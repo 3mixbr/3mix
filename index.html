@@ -268,6 +268,8 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .sheet.lg{width:min(860px,100%)}
 .sheet.xl{width:min(1180px,100%)}
 .chip.st{white-space:nowrap}
+.list.rolar{max-height:min(44vh,360px);overflow-y:auto;scrollbar-width:thin;padding-right:6px}
+.list.rolar::-webkit-scrollbar{width:8px}.list.rolar::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 .alerta{display:flex;align-items:center;gap:10px;background:var(--accent-soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px}.alerta svg{width:20px;height:20px;flex:none}.alerta span{flex:1}
 .pform{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
 .pcol{display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -684,7 +686,7 @@ const DOMINIO='3mix.com.br';
 const slugV=v=>v.slug||v.nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 /* no ar (Vercel ou domínio próprio) usa o endereço onde o app está aberto */
 const BASE=(location.protocol==='https:'&&(location.hostname.endsWith('.vercel.app')||location.hostname.endsWith(DOMINIO)))?location.origin:'https://'+DOMINIO;
-const lojaLink=vid=>{const v=vend(vid);return `${BASE}/${v?slugV(v):vid}`};
+const lojaLink=vid=>{const v=vend(vid);return `${BASE}/?loja=${encodeURIComponent(v?slugV(v):vid)}`};
 const msgGrupo=v=>{const its=S.prods.filter(p=>eV(v.id,p.id)>0);
  return `✨ *3mix Perfumes* — pronta entrega com ${v.nome.split(' ')[0]}\n\n${its.slice(0,6).map(p=>`• ${p.nome} (${p.ml} ml) — R$ ${fmt(pVista(p))}${pVista(p)<p.preco?' à vista':''}`).join('\n')}${its.length>6?`\n…e mais ${its.length-6} fragrâncias`:''}\n\n🛍️ Veja as fotos e faça seu pedido:\n${lojaLink(v.id)}`};
 function copiar(t,ok){navigator.clipboard?.writeText(t).then(()=>toast(ok),()=>toast('Não foi possível copiar'))}
@@ -1274,10 +1276,10 @@ const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
 function drawCarrinho(){
  const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean);
- const {rows,ctl}=page('cartV',its,6);const pct=t.un?Math.round((t.un%MIN||MIN)/MIN*100):0;
+ const rows=its,ctl='';const pct=t.un?Math.round((t.un%MIN||MIN)/MIN*100):0;
  UI.modal=`<h3>Meu carrinho</h3>
- ${its.length?`<div class="list">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">${Ri(pr)} por un · vende a ${Ri(p.preco)}</div></div>
-  <div class="qty"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div><span style="min-width:116px">${R(q*pr)}</span></div>`}).join('')}</div>${its.length>6?ctl:''}`
+ ${its.length?`<div class="list rolar">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">${Ri(pr)} por un · vende a ${Ri(p.preco)}</div></div>
+  <div class="qty"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div><span style="min-width:116px">${R(q*pr)}</span></div>`}).join('')}</div>`
  :'<p class="empty">Seu carrinho está vazio. Vá em Comprar e adicione perfumes.</p>'}
  <div class="meta"><div class="t">${metaTxt(t.un)}</div><div class="bar"><span style="width:${pct}%;${f?'':'background:var(--good)'}"></span></div><div class="note">O pedido fecha em múltiplos de ${MIN}: ${MIN}, ${MIN*2}, ${MIN*3}, ${MIN*4}…</div></div>
  <div class="calc"><div>Total<b>${Ri(t.tot)}</b></div><div>Frascos<b>${t.un} un</b></div><div>Lucro se vender tudo<b>${Ri(t.luc)}</b></div></div>
@@ -1666,7 +1668,7 @@ function mSenha(rec,inicial){UI.msize='sm';modal(`<h3>${rec?'Crie sua nova senha
  <label class="f full">Confirmar nova senha<input id="ns2" type="password" autocomplete="new-password"></label></div>
  <div class="actions"><button class="btn ghost" data-close>${inicial?'Depois':'Cancelar'}</button><button class="btn pri" data-savesenha>Salvar senha</button></div>`)}
 /* ===== início: loja pública pelo link, ou sessão salva, ou tela de login ===== */
-function slugAtual(){const h=location.hash.slice(1);if(h&&!h.includes('='))return decodeURIComponent(h).replace(/^loja-/,'');
+function slugAtual(){const q=new URLSearchParams(location.search).get('loja');if(q)return q.trim();const h=location.hash.slice(1);if(h&&!h.includes('='))return decodeURIComponent(h).replace(/^loja-/,'');
  const p=decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,'').replace(/\.html$/,'').split('/').pop()||'');return p&&p!=='index'?p:''}
 async function entrarPerfil(p){
  if(!p){await sb.auth.signOut();return 'Login sem cadastro no 3mix. Fale com um administrador.'}
