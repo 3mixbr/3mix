@@ -667,6 +667,8 @@ function log(a,det){const u=S.users.find(x=>x.id===UI.user);if(!u)return;S.log.p
 const brt=d=>new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
 const UI={role:'socio',vid:'v0',view:'painel',per:30,pages:{},device:'site',tab:'catalogo',modal:null};
 
+/* venda do vendedor ao cliente: só Pix ou dinheiro (direto para o vendedor) */
+const PAYV=['pix','dinheiro'];
 const PAY={pix:'Pix',debito:'Débito',credito:'Crédito à vista',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link Yampi'};
 const prod=id=>S.prods.find(p=>p.id===id);
 const vend=id=>S.vend.find(v=>v.id===id);
@@ -869,7 +871,7 @@ function vVendas(onlyVid){
  </tbody></table></div>${ctl}</section>
  ${onlyVid?'':`<section class="panel"><div class="panel-h"><h2>Por meio de pagamento · ${UI.per} dias</h2><span class="sp"></span><span class="note">taxas de exemplo — ajuste com sua maquininha</span></div>
  <table><thead><tr><th>Meio</th><th class="n">Vendas (un)</th><th class="n">Valor (R$)</th><th class="n">Taxa (%)</th><th class="n">Custo taxa (R$)</th></tr></thead><tbody>
- ${Object.keys(PAY).map(k=>`<tr><td>${PAY[k]}</td><td class="n">${U(byPay[k]?.n||0)}</td><td class="n">${R(byPay[k]?.rec||0)}</td><td class="n"><input id="tx-${k}" data-tax="${k}" type="text" inputmode="decimal" class="dec" value="${fmt(S.taxas[k])}" style="width:64px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(byPay[k]?.tax||0)}</td></tr>`).join('')}
+ ${Object.keys(PAY).filter(k=>PAYV.includes(k)||byPay[k]).map(k=>`<tr><td>${PAY[k]}</td><td class="n">${U(byPay[k]?.n||0)}</td><td class="n">${R(byPay[k]?.rec||0)}</td><td class="n"><input id="tx-${k}" data-tax="${k}" type="text" inputmode="decimal" class="dec" value="${fmt(S.taxas[k])}" style="width:64px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(byPay[k]?.tax||0)}</td></tr>`).join('')}
  </tbody></table></section>`}`;
 }
 
@@ -936,17 +938,18 @@ function vSocios(){
   </div></div>`).join('')||'<p class="empty">Nenhum banner.</p>'}
   <p class="note">Banner sem foto usa um fundo de cor com os perfumes do público escolhido. Banner de um público sem produto à venda não aparece na loja.</p>
  </section>
- <section class="panel"><div class="panel-h"><h2>Pagamentos · Yampi</h2><span class="sp"></span>${S.yampi.webhook?'<span class="chip good">baixa automática ativa</span>':'<span class="chip warn">baixa automática desligada</span>'}</div>
+ <section class="panel"><div class="panel-h"><h2>Pagamentos · Yampi</h2><span class="sp"></span><span class="note">somente kits</span>&nbsp;${S.yampi.webhook?'<span class="chip good">baixa automática ativa</span>':'<span class="chip warn">baixa automática desligada</span>'}</div>
   <div class="fg"><label class="f">Chave Pix da 3mix (pagamento dos kits)<input id="cfg-pix" data-cfg="pix3mix" value="${esc(S.pix3mix||'')}" placeholder="CNPJ, e-mail ou telefone"></label>
   <label class="f">WhatsApp da 3mix (comprovantes)<input id="cfg-whats" data-cfg="whats3mix" value="${esc(S.whats3mix||'')}" inputmode="tel" placeholder="(22) 99999-9999"></label>
   <label class="f">Alias da loja na Yampi<input id="yp-alias" data-yalias value="${esc(S.yampi.alias||'')}" placeholder="aparece no endereço do painel Yampi"></label>
   <label class="f">Domínio do checkout Yampi<input id="yp-dom" data-ydom value="${esc(S.yampi.dominio||'')}" placeholder="ex.: seguro.3mix.com.br"></label>
   <label class="f">Prefixo do cupom de nível<input id="yp-cupom" data-ycupom value="${esc(S.yampi.cupom??'NIVEL')}" placeholder="NIVEL"></label>
-  <label class="f">Produtos com token Yampi<input id="yp-sku" disabled value="${S.prods.filter(p=>p.sku).length} de ${S.prods.length}"></label></div>
-  <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'venda')&&yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'kit')?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o domínio e o token de cada produto para gerar os links</span>'}</div>
+  <label class="f">Produtos com token Yampi<input id="yp-sku" disabled value="${S.prods.filter(p=>p.skuRev).length} de ${S.prods.length}"></label></div>
+  <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'kit')?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o domínio e o token de cada produto para gerar os links</span>'}</div>
   <ol class="steps">
-   <li><b>Dois produtos na Yampi para cada perfume:</b> um com o <b>preço sugerido ao cliente</b> (ex.: R$ 49,90, para a loja) e outro "Revenda" com o <b>preço ao vendedor</b> (ex.: R$ 29,90, para os kits). De cada um, copie o <b>Link de compra</b>: o token é a última parte (ex.: <code>.../r/<b>AABBJJ</b></code>). Cole em Produtos → Editar → "Token Yampi (cliente)" e "Token Yampi (revenda)".</li>
-   <li><b>Cupons de nível:</b> crie na Yampi cupons percentuais para os níveis com bônus: ${S.niveis.filter(n=>+n.bonus>0).map(n=>`<b>${esc(S.yampi.cupom??'NIVEL')}${String(n.bonus).replace('.',',')}</b> (${pc(n.bonus)} · ${esc(n.nome)})`).join(', ')||'nenhum nível tem bônus'}. Eles valem só para os produtos "Revenda".</li>
+   <li><b>A Yampi é só para os kits</b> (o vendedor pagando a 3mix). A venda do vendedor ao cliente é só Pix ou dinheiro, direto para o vendedor, e não passa pela conta da 3mix.</li>
+   <li><b>Um produto por perfume na Yampi</b>, com o <b>preço ao vendedor</b> (ex.: R$ 29,90). Copie o <b>Link de compra</b> de cada um: o token é a última parte (ex.: <code>.../r/<b>AABBJJ</b></code>). Cole em Produtos → Editar → "Token Yampi (kit)".</li>
+   <li><b>Cupons de nível:</b> crie na Yampi cupons percentuais para os níveis com bônus: ${S.niveis.filter(n=>+n.bonus>0).map(n=>`<b>${esc(S.yampi.cupom??'NIVEL')}${String(n.bonus).replace('.',',')}</b> (${pc(n.bonus)} · ${esc(n.nome)})`).join(', ')||'nenhum nível tem bônus'}. </li>
    <li><b>Baixa automática:</b> em Supabase → Edge Functions → Secrets, cadastre <code>YAMPI_TOKEN</code> e <code>YAMPI_SECRET</code> (Yampi → Perfil → Credenciais de API). Depois clique em "Ativar baixa automática": o 3mix passa a receber o aviso de pedido pago e dá baixa sozinho no kit ou na venda.</li>
    <li><b>Sem baixa automática</b> tudo continua funcionando: o administrador confirma o kit e o vendedor marca a venda como paga.</li>
   </ol>
@@ -1231,7 +1234,7 @@ function drawQV(){const p=prod(UI.qv),v=vend(UI.vid),q=UI.cart[p.id]||0,max=eV(v
  <div class="actions"><button class="btn ghost" data-close>Continuar vendo</button>${Object.keys(UI.cart).length?'<button class="btn pri" data-checkout>Ver sacola</button>':''}</div>`;
  render();
 }
-const CKP=()=>UI.publico?{pix:'Pix com o vendedor',dinheiro:'Dinheiro na entrega',...(yLinkOk(Object.keys(UI.cart||{}).map(pid=>({pid,qtd:1})),'venda')?{link:'Cartão, boleto ou Pix online'}:{})}:{pix:'Pix',debito:'Débito',credito:'Crédito',dinheiro:'Dinheiro',link:'Link Yampi'};
+const CKP=()=>UI.publico?{pix:'Pix para o vendedor',dinheiro:'Dinheiro na entrega'}:{pix:'Pix',dinheiro:'Dinheiro'};
 function mCheckout(){UI.qv=null;UI.ck=true;UI.msize='md';UI.draft={cliente:'',tel:'',pag:'pix'};drawCheckout()}
 function drawCheckout(){
  const d=UI.draft,cp=CKP(),pg=x=>precoPag(prod(x),d.pag),tot=Object.entries(UI.cart).reduce((a,[pid,q])=>a+pg(pid)*q,0);
@@ -1359,8 +1362,7 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <label class="f s3">Descrição curta<input id="f-descricao" data-f="descricao" value="${esc(p.descricao)}" placeholder="aparece na loja do vendedor"></label>
    <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
    <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="não aparece na loja"></label>
-   <label class="f">Token Yampi (cliente)<input id="f-sku" data-f="sku" value="${esc(p.sku||'')}" placeholder="produto a R$ sugerido"></label>
-   <label class="f">Token Yampi (revenda)<input id="f-skurev" data-f="skuRev" value="${esc(p.skuRev||'')}" placeholder="produto a R$ ao vendedor"></label>
+   <label class="f">Token Yampi (kit)<input id="f-skurev" data-f="skuRev" value="${esc(p.skuRev||'')}" placeholder="ex.: AABBJJ"></label>
    <label class="f s3">Foto ambientada da loja (opcional)<input id="f-fotoamb" data-f="fotoAmb" value="${esc(p.fotoAmb||'')}" placeholder="frasco em cena, ex.: N01-amb.jpg"></label>
   </div>
  </div>
@@ -1421,7 +1423,7 @@ function drawVenda(){
  ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — R$ ${fmt(precoPag(p,d.pag))} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
   <label class="f">Qtd (un)<input id="nv-q${k}" data-it="${k}" data-k="qtd" type="number" min="1" value="${i.qtd}"></label><button class="btn sm" aria-label="Remover item" data-rmit="${k}" ${d.itens.length<2?'disabled':''}>×</button></div>`).join('')}
  <button class="btn sm" data-addit style="align-self:flex-start">+ Adicionar perfume</button>
- <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${Object.keys(PAY).map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
+ <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYV.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
  ${d.pag==='parcelado'?`<label class="f">Parcelas<select id="nv-parc" data-nv="parcelas">${[2,3,4,5,6].map(n=>`<option ${n==d.parcelas?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
  <label class="f">Status<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber (fiado)</option></select></label>
  <p class="note">Sai do estoque em mãos de ${esc(vend(d.vid)?.nome.split(' ')[0])}.</p>
