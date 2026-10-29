@@ -266,13 +266,29 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .sheet.sm{width:min(440px,100%)}
 .sheet.md{width:min(580px,100%)}
 .sheet.lg{width:min(860px,100%)}
+.sheet.xl{width:min(1180px,100%)}
+.pform{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+.pcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+.pfoto{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center}
+.pfoto-c{display:flex;flex-direction:column;gap:8px}
+.sheet .fg.p3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fg .s2{grid-column:span 2}.fg .s3{grid-column:1/-1}
+.pc-g{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:8px 10px;align-items:center}
+.pc-g>b{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding-right:4px}
+.pc-g .pc-l{font-weight:700;font-size:13px;padding:0}.pc-g .pc-l small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.pc-n{font-size:11.5px;color:var(--muted);text-align:right}
+.pc-g .f input{width:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#pCalc{grid-template-columns:repeat(2,minmax(0,1fr))}#pCalc small{display:block;font-size:11px;color:var(--muted);font-weight:500}
 .sheet>h3:first-child{position:sticky;top:0;z-index:2;background:var(--surface);padding:16px 0 10px;margin:0;border-bottom:1px solid var(--line)}
 .sheet .actions{position:sticky;bottom:0;z-index:2;background:var(--surface);padding:12px 0 16px;margin-top:auto;border-top:1px solid var(--line)}
 .sheet.lg .fg{grid-template-columns:repeat(3,minmax(0,1fr))}
 .kitgrid{display:grid;grid-template-columns:1fr;column-gap:22px}
 .sheet.lg .kitgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @container (max-width:720px){
- .sheet.sm,.sheet.md,.sheet.lg{width:100%;max-height:92%}
+ .sheet.sm,.sheet.md,.sheet.lg,.sheet.xl{width:100%;max-height:92%}
+ .pform{grid-template-columns:1fr}
+ .sheet .fg.p3{grid-template-columns:repeat(2,minmax(0,1fr))}.fg .s2{grid-column:1/-1}
  .sheet.lg .fg{grid-template-columns:repeat(2,minmax(0,1fr))}
  .sheet.lg .kitgrid{grid-template-columns:1fr}
  .sheet .actions{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
@@ -1271,42 +1287,47 @@ function modal(html){UI.modal=html;render()}
 function closeModal(){UI.modal=null;UI.msize=null;UI.cartOpen=false;UI.qv=null;UI.ck=false;render()}
 const proxCod=()=>'N'+String(S.prods.reduce((m,p)=>Math.max(m,+(p.code.match(/\d+/)||[0])[0]),0)+1).padStart(2,'0');
 const movProd=pid=>S.vendas.some(v=>v.itens.some(i=>i.pid===pid))||S.kits.some(k=>k.itens.some(i=>i.pid===pid))||S.compras.some(c=>c.pid===pid)||emRev(pid)>0;
-function mProduto(id){UI.msize='lg';UI.delArm=false;
- const p=id?prod(id):{id:'',code:proxCod(),nome:'',genero:'Unissex',familia:'Floral',descricao:'',ml:100,custo:0,frete:0,preco:0,precoVista:0,comissao:25,estoque:0,min:8,ref:'',foto:null};
+function mProduto(id){UI.msize='xl';UI.delArm=false;
+ const p=id?prod(id):{id:'',code:proxCod(),nome:'',genero:'Unissex',familia:'Floral',descricao:'',ml:100,custo:0,frete:0,preco:0,precoVista:0,comissao:0,estoque:0,min:6,ref:'',foto:null};
  UI.draft={...p,precoRev:pRev(p)};
+ const D=' type="text" inputmode="decimal" class="dec"';
  modal(`<h3>${id?'Editar produto':'Novo produto'}</h3>
- <div style="display:flex;gap:12px;align-items:center"><div class="card" style="width:84px;flex:none"><div class="ph" id="fPrev">${foto(p)}</div></div>
- <label class="f" style="flex:1">Enviar foto<input id="fFoto" type="file" accept="image/*"></label></div>
- <label class="f">Arquivo da foto<input id="f-foto" data-f="foto" value="${esc(p.foto&&!p.foto.startsWith('data:')?p.foto:'')}" placeholder="ex.: N08.png — enviado no bucket produtos do Supabase"></label>
- <label class="f">Foto ambientada da loja (opcional)<input id="f-fotoamb" data-f="fotoAmb" value="${esc(p.fotoAmb||'')}" placeholder="frasco em cena, ex.: N01-amb.jpg"></label>
- <div class="fg">
-  <label class="f">Código *<input id="f-code" data-f="code" value="${esc(p.code)}" style="text-transform:uppercase" required></label>
-  <label class="f">Nome<input id="f-nome" data-f="nome" value="${esc(p.nome)}"></label>
-  <label class="f">Gênero<select id="f-genero" data-f="genero">${['Fem','Masc','Unissex','Infantil'].map(g=>`<option ${g===p.genero?'selected':''}>${g}</option>`).join('')}</select></label>
-  <label class="f">Família olfativa<select id="f-familia" data-f="familia">${Object.keys(FAM).map(g=>`<option ${g===p.familia?'selected':''}>${g}</option>`).join('')}</select></label>
-  <label class="f full">Descrição curta<textarea id="f-descricao" data-f="descricao" rows="2">${esc(p.descricao)}</textarea></label>
-  <div class="full pcomp"><div class="pc-t">Composição do preço</div>
-   <div class="fg pc3"><label class="f">Custo (R$)<input id="f-custo" data-f="custo" type="text" inputmode="decimal" class="dec" value="${fmt(p.custo)}"></label>
-   <label class="f">Frete (%)<input id="f-frete" data-f="frete" type="text" inputmode="decimal" class="dec" value="${fmt(+p.frete||0)}"></label>
-   <label class="f">Custo final (R$)<input id="f-cf" disabled style="text-align:right" value="${fmt(custoFinal(p))}"></label></div>
-   <div class="fg pc3"><span class="pc-l">3mix → vendedor</span><label class="f">Markup 3mix (%)<input id="f-mk3" data-mk="precoRev" type="text" inputmode="decimal" class="dec" value="${fmt(mkp(pRev(p),custoFinal(p)))}"></label>
-   <label class="f">Preço ao vendedor (R$)<input id="f-precoRev" data-f="precoRev" type="text" inputmode="decimal" class="dec" value="${fmt(pRev(p))}"></label></div>
-   <div class="fg pc3"><span class="pc-l">Vendedor → cliente</span><label class="f">Markup vendedor (%)<input id="f-mkv" data-mk="preco" type="text" inputmode="decimal" class="dec" value="${fmt(mkp(+p.preco,pRev(p)))}"></label>
-   <label class="f">Preço sugerido ao cliente (R$)<input id="f-preco" data-f="preco" type="text" inputmode="decimal" class="dec" value="${fmt(p.preco)}"></label></div>
-   <p class="note">O markup da 3mix é sobre o custo final; o do vendedor é sobre o preço que ele paga. Digite o markup e o preço se ajusta, ou digite o preço e o markup se ajusta. Vendedores de nível Prata e Ouro recebem o bônus como desconto extra no preço ao vendedor.</p></div>
-  <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
-  <label class="f">Volume (ml)<input id="f-ml" data-f="ml" type="number" value="${p.ml}"></label>
-  <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="uso interno, não aparece no catálogo"></label>
-  <label class="f">Token do link de compra Yampi<input id="f-sku" data-f="sku" value="${esc(p.sku||'')}" placeholder="última parte do link de compra, ex.: AABBJJ"></label>
+ <div class="pform">
+ <div class="pcol">
+  <div class="pfoto"><div class="card"><div class="ph" id="fPrev">${foto(p)}</div></div>
+   <div class="pfoto-c"><label class="f">Enviar foto<input id="fFoto" type="file" accept="image/*"></label>
+   <label class="f">Arquivo da foto<input id="f-foto" data-f="foto" value="${esc(p.foto&&!p.foto.startsWith('data:')?p.foto:'')}" placeholder="nome do arquivo no Supabase"></label></div></div>
+  <div class="fg p3">
+   <label class="f">Código *<input id="f-code" data-f="code" value="${esc(p.code)}" style="text-transform:uppercase" required></label>
+   <label class="f s2">Nome<input id="f-nome" data-f="nome" value="${esc(p.nome)}"></label>
+   <label class="f">Gênero<select id="f-genero" data-f="genero">${['Fem','Masc','Unissex','Infantil'].map(g=>`<option ${g===p.genero?'selected':''}>${g}</option>`).join('')}</select></label>
+   <label class="f">Família olfativa<select id="f-familia" data-f="familia">${Object.keys(FAM).map(g=>`<option ${g===p.familia?'selected':''}>${g}</option>`).join('')}</select></label>
+   <label class="f">Volume (ml)<input id="f-ml" data-f="ml" type="number" value="${p.ml}"></label>
+   <label class="f s3">Descrição curta<input id="f-descricao" data-f="descricao" value="${esc(p.descricao)}" placeholder="aparece na loja do vendedor"></label>
+   <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
+   <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="não aparece na loja"></label>
+   <label class="f">Token Yampi<input id="f-sku" data-f="sku" value="${esc(p.sku||'')}" placeholder="ex.: AABBJJ"></label>
+   <label class="f s3">Foto ambientada da loja (opcional)<input id="f-fotoamb" data-f="fotoAmb" value="${esc(p.fotoAmb||'')}" placeholder="frasco em cena, ex.: N01-amb.jpg"></label>
+  </div>
  </div>
- <div class="calc" id="pCalc"></div>
+ <div class="pcol pcomp"><div class="pc-t">Composição do preço</div>
+  <div class="fg pc3"><label class="f">Custo (R$)<input id="f-custo" data-f="custo"${D} value="${fmt(p.custo)}"></label>
+   <label class="f">Frete (%)<input id="f-frete" data-f="frete"${D} value="${fmt(+p.frete||0)}"></label>
+   <label class="f">Custo final (R$)<input id="f-cf" disabled style="text-align:right" value="${fmt(custoFinal(p))}"></label></div>
+  <div class="pc-g"><span></span><b>Markup (%)</b><b>Preço (R$)</b>
+   <span class="pc-l">3mix → vendedor</span><label class="f"><input id="f-mk3" data-mk="precoRev"${D} value="${fmt(mkp(pRev(p),custoFinal(p)))}" title="Markup 3mix (%)"></label><label class="f"><input id="f-precoRev" data-f="precoRev"${D} value="${fmt(pRev(p))}" title="Preço ao vendedor (R$)"></label>
+   <span class="pc-l">Vendedor → cliente<small>preço sugerido</small></span><label class="f"><input id="f-mkv" data-mk="preco"${D} value="${fmt(mkp(+p.preco,pRev(p)))}" title="Markup vendedor (%)"></label><label class="f"><input id="f-preco" data-f="preco"${D} value="${fmt(p.preco)}" title="Preço sugerido ao cliente (R$)"></label>
+  </div>
+  <p class="note">O markup da 3mix é sobre o custo final; o do vendedor, sobre o preço que ele paga. Digite o markup ou o preço: o outro se ajusta.</p>
+  <div class="calc" id="pCalc"></div>
+ </div>
+ </div>
  <div class="actions">${id?`<button class="btn" data-delprod="${p.id}" style="color:var(--bad);margin-right:auto">Excluir produto</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveprod="${p.id}">Salvar produto</button></div>`);
  pCalc();
 }
-function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;const cf=custoFinal(d),pv=pVista(d);
- const lp=d.preco-cf-d.preco*d.comissao/100,lv=pv-cf-pv*d.comissao/100;
+function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;const cf=custoFinal(d);
  const rv=+d.precoRev||0,l3=rv-cf,lv2=(+d.preco||0)-rv;
- el.innerHTML=`<div>Lucro 3mix por frasco<b>${Ri(l3)} · ${pc(rv?l3/rv*100:0)}</b></div><div>Lucro do vendedor por frasco<b>${Ri(lv2)} · ${pc(d.preco?lv2/d.preco*100:0)}</b></div><div>Comissão do vendedor<b>${pc(d.preco?lv2/d.preco*100:0)}</b></div>`;return;
+ el.innerHTML=`<div>Lucro 3mix / frasco<b>${Ri(l3)}</b><small>${pc(rv?l3/rv*100:0)} do preço ao vendedor</small></div><div>Lucro vendedor / frasco<b>${Ri(lv2)}</b><small>${pc(d.preco?lv2/d.preco*100:0)} do sugerido</small></div>`;return;
  el.innerHTML=`<div>Markup<b>${d.custo?(d.preco/d.custo).toFixed(2):'—'}×</b></div><div>Comissão por frasco<b>${Ri(com)}</b></div><div>Lucro por frasco<b>${Ri(luc)} · ${d.preco?(luc/d.preco*100).toFixed(0):0}%</b></div>`}
 function mEntrada(pid){UI.msize='sm';
  UI.draft={pid:pid||S.prods[0].id,qtd:0,custo:0,data:iso(today)};
