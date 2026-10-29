@@ -984,7 +984,6 @@ function vInicio(){
   <div class="kpi"><span class="l">Meu lucro</span><span class="v">${R(t.com)}</span><span class="d">${Ri(pend)} já recebido</span></div>
   <div class="kpi"><span class="l">Próximo nível</span><span class="v">${next?next.nome:'Topo'}</span><div class="bar"><span style="width:${prog}%"></span></div><span class="d">${next?`faltam ${Ri(Math.max(0,n.ate-t.rec))}`:'Você está no nível máximo'}</span></div>
  </div>
- ${vEstoquePainel(v.id)}
  ${vChamp(v.id)}
  <section class="panel"><div class="panel-h"><h2>Clientes para recompra</h2><span class="sp"></span><span class="note">última compra há 25 dias ou mais</span></div>
   <div class="list">${rows.map(x=>`<div class="row"><span class="av">${ini(x.cliente)}</span><div class="grow"><div class="t">${esc(x.cliente)}</div><div class="s">Última compra ${br(x.data)} · ${x.itens.map(i=>esc(prod(i.pid).nome)).join(', ')}</div></div><span class="chip warn">${daysAgo(x.data)} dias</span></div>`).join('')||'<p class="empty">Nenhum cliente parado.</p>'}</div>${reat.length>5?ctl:''}
@@ -1005,7 +1004,7 @@ function vEstoqueV(){
  ${rows.map(r=>`<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n">${R(r.p.preco)}</td><td class="n">${R(r.p.preco-r.c)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">Se vender tudo a preço sugerido, seu lucro é ${Ri(lucV)}.</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`${yLinkOk(k.itens)?`<a class="btn pri sm" href="${esc(yLink(k.itens,k.id,'kit',cupomKit(k.itens,v.id)))}" target="_blank" rel="noopener">Pagar</a> <button class="btn sm" data-jakit="${k.id}">Já paguei</button>`:`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button>`} <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
@@ -1265,7 +1264,7 @@ function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';const w=(S.whats3mix
  const its=r.itens||[],url=yLink(its,r.id,'kit',cupomKit(its,UI.vid));
  modal(`<h3>${r.reabrir?'Pagamento do kit':'Pedido de kit enviado'}</h3>
  <p style="margin:0"><b>${r.un} un</b> · total ${Ri(+r.total)}. Os frascos ficam reservados para você.</p>
- ${url?`<a class="btn pri" href="${esc(url)}" target="_blank" rel="noopener">Pagar agora · Pix, cartão ou boleto</a><p class="note">Pagamento pela Yampi com o cupom de revenda já aplicado. ${S.yampi.webhook?'Aprovado o pagamento, os frascos entram no seu estoque sozinhos.':''}</p><div class="note" style="font-weight:700">Ou pague por Pix direto para a 3mix:</div>`:''}
+ ${url?`<a class="btn pri" href="${esc(url)}" target="_blank" rel="noopener">Pagar na Yampi · Pix, cartão ou boleto</a><p class="note">Pagamento pela Yampi com o cupom de revenda já aplicado. ${S.yampi.webhook?'Aprovado o pagamento, os frascos entram no seu estoque sozinhos.':''}</p><div class="note" style="font-weight:700">Ou pague por Pix direto para a 3mix:</div>`:''}
  ${S.pix3mix?`<div class="linkbox"><span class="note">Chave Pix da 3mix</span><code>${esc(S.pix3mix)}</code></div><button class="btn sm" data-copy="${esc(S.pix3mix)}">Copiar chave Pix</button>`:'<p class="note">A 3mix vai te passar a forma de pagamento.</p>'}
  ${w?`<a class="btn ${url?'':'pri'}" href="https://wa.me/55${w}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Mandar comprovante no WhatsApp</a>`:''}
  <p class="note">Depois de pagar, toque em <b>Já paguei</b>. A 3mix confere, separa e entrega; na entrega os frascos entram no seu estoque. Acompanhe em Estoque → Meus kits.</p>
@@ -1484,7 +1483,7 @@ document.addEventListener('click',e=>{
   rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
  if(d.cancelkit){if(UI.ckArm!==d.cancelkit){UI.ckArm=d.cancelkit;b.textContent='Confirmar?';return}UI.ckArm=null;rodar(()=>rpc('cancelar_kit',{p_id:d.cancelkit}),'Kit cancelado · frascos voltaram ao estoque central');return}
  if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · kit a entregar');return}
- if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
+ if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);if(!yLinkOk(k.itens))toast('Pagamento online (Yampi) ainda não configurado pela 3mix: use o Pix',4000);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
  if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;b.textContent='Confirmar entrega?';return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
  if(d.cancv){if(UI.cvArm!==d.cancv){UI.cvArm=d.cancv;b.textContent='Cancelar?';return}UI.cvArm=null;rodar(()=>rpc('cancelar_venda',{p_id:d.cancv}),'Venda cancelada · frascos voltaram ao estoque');return}
