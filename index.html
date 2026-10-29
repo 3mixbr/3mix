@@ -267,6 +267,8 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .sheet.md{width:min(580px,100%)}
 .sheet.lg{width:min(860px,100%)}
 .sheet.xl{width:min(1180px,100%)}
+.chip.st{white-space:nowrap}
+.alerta{display:flex;align-items:center;gap:10px;background:var(--accent-soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px}.alerta svg{width:20px;height:20px;flex:none}.alerta span{flex:1}
 .pform{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
 .pcol{display:flex;flex-direction:column;gap:10px;min-width:0}
 .pfoto{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center}
@@ -304,7 +306,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .champ{display:inline-flex;align-items:center;justify-content:center;gap:3px;width:42px;height:20px;border-radius:999px;font-size:11px;font-weight:700;background:var(--surface);color:var(--ink);border:1px solid var(--line);white-space:nowrap;vertical-align:middle}
 .champ svg,.card .ph .champ svg{width:11px;height:11px;color:var(--a)}
 .champ.off{background:transparent;color:var(--muted)}
-.chip.st{width:88px;justify-content:center}
+.chip.st{min-width:88px;width:auto;padding-inline:8px;justify-content:center}
 td.n .chip,.card .pr .chip{min-width:52px;justify-content:center}
 .card .ph .champ{position:absolute;top:8px;right:8px}
 .yp-head{display:flex;align-items:center;gap:10px;background:var(--sunk);border-radius:12px;padding:10px 12px}
@@ -630,7 +632,7 @@ const save=()=>{try{localStorage.setItem(CARTK,JSON.stringify(S.carts||{}))}catc
 function aplicaDados(d){const carts=S.carts;S={...VAZIO(),...(d||{}),carts};
  ['prods','vend','vendas','kits','compras','users','log','inventarios','banners'].forEach(k=>S[k]=S[k]||[]);S.estV=S.estV||{};
  for(const vid in S.carts)for(const pid in S.carts[vid])if(!S.prods.some(p=>p.id===pid))delete S.carts[vid][pid];
- for(const k in _nv)delete _nv[k];}
+ for(const k in _nv)delete _nv[k];MIN=Math.max(1,+S.minKit||6);}
 async function sync(){const [{data,error},f]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em')]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[]}
 async function syncLoja(){const {data,error}=await sb.rpc('loja_publica',{p_slug:UI.slug});if(error)throw error;if(data)aplicaDados(data)}
 const msgErro=e=>String((e&&(e.message||e.error_description||e.error))||e||'Erro').replace(/^.*?ERROR:\s*/,'');
@@ -779,6 +781,7 @@ function vPainel(){
  const rec=S.vendas.filter(v=>v.status==='receber');const recT=sum(rec).rec;
  const lucMes=t.luc-S.despesas*UI.per/30;
  return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · ${L.length} vendas</p></div><div class="sp"></div>${perTabs()}</div>
+ ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;return i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="equipe">Ver kits</button></div>`:''})()}
  <div class="grid-kpi">
   <div class="kpi hl"><span class="l">Faturamento</span><span class="v">${R(t.rec)}</span><span class="d">${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))} vs período anterior</span></div>
   <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${pc(t.luc/Math.max(1,t.rec)*100)}</span></div>
@@ -786,6 +789,7 @@ function vPainel(){
   <div class="kpi"><span class="l">Ticket médio</span><span class="v">${R(tick)}</span><span class="d">por venda</span></div>
   <div class="kpi"><span class="l">Ganho revendedores</span><span class="v">${R(t.com)}</span><span class="d">taxas pagto ${Ri(t.tax)}</span></div>
  </div>
+ ${vEstoquePainel()}
  ${vChamp()}
  <div class="two">
   <section class="panel"><div class="panel-h"><h2>Faturamento × lucro por dia</h2></div>${chartDaily(S.vendas)}</section>
@@ -794,7 +798,7 @@ function vPainel(){
    ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n hide-sm">${pc(+s.fundo||0)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
    <tr><td class="note">Despesas fixas (${UI.per}d)</td><td></td><td class="hide-sm"></td><td class="n">${R(-S.despesas*UI.per/30)}</td><td></td></tr></tbody></table>
    <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
-   <div class="row"><div class="grow"><div class="t">Kits pagos por revendedores</div><div class="s">${S.kits.filter(k=>k.status==='pago'&&inPer(k)).length} kits · ${U(S.kits.filter(k=>k.status==='pago'&&inPer(k)).reduce((a,k)=>a+k.itens.reduce((s,i)=>s+i.qtd,0),0))} no período</div></div><b>${R(S.kits.filter(k=>k.status==='pago'&&inPer(k)).reduce((a,k)=>a+kitVal(k),0))}</b></div>
+   <div class="row"><div class="grow"><div class="t">Kits pagos por revendedores</div><div class="s">${S.kits.filter(k=>KPAGO.includes(k.status)&&inPer(k)).length} kits · ${U(S.kits.filter(k=>KPAGO.includes(k.status)&&inPer(k)).reduce((a,k)=>a+k.itens.reduce((s,i)=>s+i.qtd,0),0))} no período</div></div><b>${R(S.kits.filter(k=>KPAGO.includes(k.status)&&inPer(k)).reduce((a,k)=>a+kitVal(k),0))}</b></div>
    <div class="row"><div class="grow"><div class="t">A receber de clientes</div><div class="s">${rec.length} vendas em aberto</div></div><b>${R(recT)}</b></div>
   </section>
  </div>
@@ -865,16 +869,16 @@ function vEquipe(){
  const L=S.vendas.filter(inPer);
  const rows=S.vend.map(v=>{const s=sum(L.filter(x=>x.vid===v.id));const m=sum(monthSales(v.id));const n=nivelDe(v.id,iso(today));const last=S.vendas.filter(x=>x.vid===v.id).map(x=>x.data).sort().pop();return {v,s,m,n,last}});
  const {rows:pr,ctl}=page('eq',rows,8);
- const ord={aguardando:0,pago:1,cancelado:2};const K=[...S.kits].sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kits',K,6);const kAg=S.kits.filter(k=>k.status==='aguardando').length;
+ const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4};const K=[...S.kits].sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kits',K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
  return `<div class="head"><div><h1>Vendedores</h1><p class="sub">${S.vend.filter(v=>v.ativo).length} ativos · nível definido pelas vendas do mês anterior</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-vend="">+ Cadastrar vendedor</button></div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Vendedor</th><th class="hide-sm">Cidade</th><th>Nível</th><th class="n">Vendido ${UI.per}d (R$)</th><th class="n">Qtd (un)</th><th class="n">Ganho (R$)</th><th class="n">Em mãos (un)</th><th class="hide-sm">Última venda</th><th></th></tr></thead><tbody>
  ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.tel)}</div></div></div></td><td class="hide-sm">${esc(r.v.cidade)}</td>
  <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> <span class="note">+${r.n.bonus}pp</span></td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.s.com)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
  </tbody></table></div>${ctl}</section>
- <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kAg?`<span class="chip warn">${kAg} aguardando pagamento</span>`:'<span class="note">confirme o pagamento para os frascos entrarem no estoque do vendedor</span>'}</div>
+ <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
  <div class="tbl"><table><thead><tr><th>Data</th><th>Vendedor</th><th class="n">Itens (un)</th><th class="n">Fragrâncias (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}</td><td>${esc(vend(k.vid)?.nome)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${U(k.itens.length)}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td>
- <td class="n">${k.status==='aguardando'?`<button class="btn pri sm" data-confkit="${k.id}">Confirmar pagamento</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
+ <td class="n" style="white-space:nowrap">${['aguardando','informado'].includes(k.status)?`<button class="btn pri sm" data-confkit="${k.id}">Confirmar pagamento</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='pago'?`<button class="btn pri sm" data-entkit="${k.id}">Marcar entregue</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
  </tbody></table></div>${kc}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus somado à comissão base de cada produto</span></div>
  <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Bônus comissão (p.p.)</th></tr></thead><tbody>
@@ -906,6 +910,10 @@ function vSocios(){
    .map(([t,s])=>`<div class="row"><div class="grow"><div class="t">${t}</div><div class="s">${s}</div></div></div>`).join('')}
   </div>
  </section></div>
+ <section class="panel"><div class="panel-h"><h2>Compra de estoque pelo vendedor</h2></div>
+  <div class="fg"><label class="f">Pedido mínimo (frascos)<input id="cfg-min" data-minkit type="number" min="1" max="100" inputmode="numeric" value="${MIN}" style="text-align:right"></label>
+  <div class="note" style="align-self:end">O vendedor pede em múltiplos deste número: ${MIN}, ${MIN*2}, ${MIN*3}… e pode variar os perfumes.</div></div>
+ </section>
  <section class="panel"><div class="panel-h"><h2>Banners da loja</h2><span class="sp"></span><span class="note">giram sozinhos · foto horizontal 1600 × 600 px</span><button class="btn sm" data-bnadd>+ Banner</button></div>
   ${S.banners.map((b,i)=>`<div class="bnrow"><div class="bnprev" style="background:${SLBG[b.pub]||SLBG['']}">${b.img?`<img src="${esc(fotoSrc(b.img,'banners'))}" alt="" onerror="${esc(fbk(b.img))}">`:''}<span>${i+1}</span></div>
   <div class="fg bnfg">
@@ -938,6 +946,24 @@ function vSocios(){
 }
 
 /* ===== telas: vendedor (app) ===== */
+/* estoque disponível: distribuidora (central) e com vendedores / comigo */
+function vEstoquePainel(vid){
+ const adm=!vid,emKit=pid=>S.kits.filter(k=>k.status==='pago').reduce((a,k)=>a+k.itens.filter(i=>i.pid===pid).reduce((s,i)=>s+i.qtd,0),0);
+ const L=S.prods.map(p=>({p,c:+p.estoque||0,m:adm?emRev(p.id):eV(vid,p.id),k:emKit(p.id)})).filter(r=>r.c||r.m||r.k).sort((a,b)=>(b.c+b.m)-(a.c+a.m));
+ const {rows,ctl}=page('estp'+(vid||''),L,adm?6:5);
+ const tc=L.reduce((a,r)=>a+r.c,0),tm=L.reduce((a,r)=>a+r.m,0),tk=L.reduce((a,r)=>a+r.k,0);
+ const vc=L.reduce((a,r)=>a+r.c*(adm?custoFinal(r.p):pRev(r.p)),0),vm=L.reduce((a,r)=>a+r.m*(adm?custoFinal(r.p):r.p.preco),0);
+ return `<section class="panel"><div class="panel-h"><h2>Estoque disponível</h2><span class="sp"></span><span class="note">${adm?'valores a custo final':'distribuidora a preço de revenda · seu estoque a preço sugerido'}</span></div>
+ <div class="grid-kpi" style="grid-template-columns:repeat(${adm?3:2},minmax(0,1fr))">
+  <div class="kpi"><span class="l">Na distribuidora</span><span class="v">${U(tc)}</span><span class="d">${Ri(vc)}${!adm?' para comprar':''}</span></div>
+  <div class="kpi hl"><span class="l">${adm?'Com os vendedores':'Comigo'}</span><span class="v">${U(tm)}</span><span class="d">${Ri(vm)}</span></div>
+  ${adm?`<div class="kpi"><span class="l">Pago, a entregar</span><span class="v">${U(tk)}</span><span class="d">kits reservados</span></div>`:''}
+ </div>
+ ${L.length?`<div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Distribuidora (un)</th><th class="n">${adm?'Com vendedores':'Comigo'} (un)</th>${adm?'<th class="n hide-sm">A entregar (un)</th><th class="n">Total (un)</th>':'<th></th>'}</tr></thead><tbody>
+ ${rows.map(r=>`<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.c<=0?'bad':r.c<=r.p.min?'warn':'good'}">${r.c} un</span></td><td class="n">${U(r.m)}</td>
+  ${adm?`<td class="n hide-sm">${U(r.k)}</td><td class="n"><b>${U(r.c+r.m+r.k)}</b></td>`:`<td class="n">${r.c>0?`<button class="btn sm" data-kit6="${r.p.id}">Pedir</button>`:'<span class="note">esgotado</span>'}</td>`}</tr>`).join('')}
+ </tbody></table></div>${ctl}`:'<p class="empty">Sem estoque.</p>'}</section>`;
+}
 function vInicio(){
  const v=vend(UI.vid);const M=monthSales(v.id);const t=sum(M);const n=nivelDe(v.id,iso(today));
  const idx=S.niveis.indexOf(n);const next=S.niveis[idx+1];
@@ -958,6 +984,7 @@ function vInicio(){
   <div class="kpi"><span class="l">Meu lucro</span><span class="v">${R(t.com)}</span><span class="d">${Ri(pend)} já recebido</span></div>
   <div class="kpi"><span class="l">Próximo nível</span><span class="v">${next?next.nome:'Topo'}</span><div class="bar"><span style="width:${prog}%"></span></div><span class="d">${next?`faltam ${Ri(Math.max(0,n.ate-t.rec))}`:'Você está no nível máximo'}</span></div>
  </div>
+ ${vEstoquePainel(v.id)}
  ${vChamp(v.id)}
  <section class="panel"><div class="panel-h"><h2>Clientes para recompra</h2><span class="sp"></span><span class="note">última compra há 25 dias ou mais</span></div>
   <div class="list">${rows.map(x=>`<div class="row"><span class="av">${ini(x.cliente)}</span><div class="grow"><div class="t">${esc(x.cliente)}</div><div class="s">Última compra ${br(x.data)} · ${x.itens.map(i=>esc(prod(i.pid).nome)).join(', ')}</div></div><span class="chip warn">${daysAgo(x.data)} dias</span></div>`).join('')||'<p class="empty">Nenhum cliente parado.</p>'}</div>${reat.length>5?ctl:''}
@@ -978,7 +1005,7 @@ function vEstoqueV(){
  ${rows.map(r=>`<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n">${R(r.p.preco)}</td><td class="n">${R(r.p.preco-r.c)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">Se vender tudo a preço sugerido, seu lucro é ${Ri(lucV)}.</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`${yLinkOk(k.itens)?`<a class="btn pri sm" href="${esc(yLink(k.itens,k.id,'kit',cupomKit(k.itens,v.id)))}" target="_blank" rel="noopener">Pagar</a> `:''}<button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
@@ -1223,27 +1250,28 @@ function vComprar(){
  const c=cartV(),t=cartTot(c),f=falta(t.un),ch=champRank();const rk={};abc(S.vendas.filter(v=>daysAgo(v.data)<30)).forEach((r,i)=>rk[r.p.id]=i);
  const its=S.prods.filter(p=>p.estoque>0).sort((a,b)=>rk[a.id]-rk[b.id]);
  const {rows,ctl}=page('cmpV',its,8);
- return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido em múltiplos de ${MIN} unidades (6, 12, 18…), pode variar os perfumes. Preço já com seu desconto de revendedor.</p></div><div class="sp"></div><button class="btn" data-top6>+ 6 mais vendidos</button></div>
+ return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido em múltiplos de ${MIN} unidades (${MIN}, ${MIN*2}, ${MIN*3}…), pode variar os perfumes. Preço já com seu desconto de revendedor.</p></div><div class="sp"></div><button class="btn" data-top6>+ ${MIN} mais vendidos</button></div>
  <div class="cat">${rows.map(p=>buyCard(p,c[p.id]||0,ch[p.id])).join('')}</div>${ctl}
  ${t.un?`<div class="cartbar">${ic('comprar').replace('<svg','<svg width="20" height="20"')}<b>${t.un} un</b><span>${Ri(t.tot)}</span><span class="chip ${f?'warn':'good'}">${metaTxt(t.un)}</span><span class="sp"></span><button class="btn pri" data-carrinho>Ver carrinho</button></div>`:''}`;
 }
 function buyCard(p,q,r){
  const ph=foto(p),pr=precoRev(p,UI.vid);
  return `<article class="card"><div class="ph">${ph}${trophy(r)}</div><div class="bd"><span class="code">${p.code} · ${p.genero.toUpperCase()} · ${p.ml} ML</span><span class="nm">${esc(p.nome)}</span>
- <div class="pr"><b>${Ri(pr)}</b><span class="note">você paga</span></div><span class="note">Vende a ${Ri(p.preco)} · lucro ${Ri(p.preco-pr)}</span></div>
+ <div class="pr"><b>${Ri(pr)}</b><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></div><span class="note">você paga · disponível na distribuidora</span><span class="note">Vende a ${Ri(p.preco)} · lucro ${Ri(p.preco-pr)}</span></div>
  <div class="ft">${q?`<div class="qty" style="margin:0 auto"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div>`:`<button class="btn pri sm" data-bc="${p.id}" data-d="1">Adicionar<span class="hide-sm">&nbsp;ao carrinho</span></button>`}</div></article>`;
 }
-function mKitOk(r){if(!r)return;UI.msize='md';const w=(S.whats3mix||'').replace(/\D/g,'');const v=vend(UI.vid);
+function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';const w=(S.whats3mix||'').replace(/\D/g,'');const v=vend(UI.vid);
  const msg=`Olá! Sou ${v?v.nome:''} (vendedor 3mix). Fiz um pedido de kit de ${r.un} un, total R$ ${fmt(r.total)}. Segue o comprovante do Pix.`;
  const its=r.itens||[],url=yLink(its,r.id,'kit',cupomKit(its,UI.vid));
- modal(`<h3>Pedido de kit enviado</h3>
+ modal(`<h3>${r.reabrir?'Pagamento do kit':'Pedido de kit enviado'}</h3>
  <p style="margin:0"><b>${r.un} un</b> · total ${Ri(+r.total)}. Os frascos ficam reservados para você.</p>
  ${url?`<a class="btn pri" href="${esc(url)}" target="_blank" rel="noopener">Pagar agora · Pix, cartão ou boleto</a><p class="note">Pagamento pela Yampi com o cupom de revenda já aplicado. ${S.yampi.webhook?'Aprovado o pagamento, os frascos entram no seu estoque sozinhos.':''}</p><div class="note" style="font-weight:700">Ou pague por Pix direto para a 3mix:</div>`:''}
  ${S.pix3mix?`<div class="linkbox"><span class="note">Chave Pix da 3mix</span><code>${esc(S.pix3mix)}</code></div><button class="btn sm" data-copy="${esc(S.pix3mix)}">Copiar chave Pix</button>`:'<p class="note">A 3mix vai te passar a forma de pagamento.</p>'}
  ${w?`<a class="btn ${url?'':'pri'}" href="https://wa.me/55${w}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Mandar comprovante no WhatsApp</a>`:''}
- <p class="note">Assim que a 3mix confirmar o pagamento, os frascos entram no seu estoque. Acompanhe em Estoque → Meus kits.</p>
- <div class="actions"><button class="btn" data-close>Fechar</button></div>`)}
-const KST={aguardando:'<span class="chip warn st">Aguardando</span>',pago:'<span class="chip good st">Pago</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
+ <p class="note">Depois de pagar, toque em <b>Já paguei</b>. A 3mix confere, separa e entrega; na entrega os frascos entram no seu estoque. Acompanhe em Estoque → Meus kits.</p>
+ <div class="actions"><button class="btn ghost" data-close>Pagar depois</button><button class="btn pri" data-jakit="${r.id}">Já paguei</button></div>`)}
+const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
+const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
 function drawCarrinho(){
  const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean);
@@ -1252,7 +1280,7 @@ function drawCarrinho(){
  ${its.length?`<div class="list">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">${Ri(pr)} por un · vende a ${Ri(p.preco)}</div></div>
   <div class="qty"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div><span style="min-width:116px">${R(q*pr)}</span></div>`}).join('')}</div>${its.length>6?ctl:''}`
  :'<p class="empty">Seu carrinho está vazio. Vá em Comprar e adicione perfumes.</p>'}
- <div class="meta"><div class="t">${metaTxt(t.un)}</div><div class="bar"><span style="width:${pct}%;${f?'':'background:var(--good)'}"></span></div><div class="note">O pedido fecha em múltiplos de ${MIN}: 6, 12, 18, 24…</div></div>
+ <div class="meta"><div class="t">${metaTxt(t.un)}</div><div class="bar"><span style="width:${pct}%;${f?'':'background:var(--good)'}"></span></div><div class="note">O pedido fecha em múltiplos de ${MIN}: ${MIN}, ${MIN*2}, ${MIN*3}, ${MIN*4}…</div></div>
  <div class="calc"><div>Total<b>${Ri(t.tot)}</b></div><div>Frascos<b>${t.un} un</b></div><div>Lucro se vender tudo<b>${Ri(t.luc)}</b></div></div>
  <div class="actions"><button class="btn ghost" data-close>Continuar comprando</button><button class="btn pri" data-fecharcarrinho ${!t.un||f?'disabled':''}>Enviar pedido</button></div>`;
  render();
@@ -1260,7 +1288,7 @@ function drawCarrinho(){
 
 /* ===== compra de kit pelo vendedor ===== */
 function mKit(){UI.msize='lg';UI.draft={vid:UI.vid,q:{},pag:'pix'};UI.pages.kit=0;drawKit()}
-const MIN=6; // pedido mínimo do vendedor: 6 unidades no total, perfumes variados
+let MIN=6; // pedido mínimo do vendedor (frascos, perfumes variados) — definido em Administração
 function presetKit(n,each){
  const A=abc(S.vendas.filter(v=>daysAgo(v.data)<30)).filter(r=>r.p.estoque>=each).slice(0,n);
  UI.draft.q={};A.forEach(r=>UI.draft.q[r.p.id]=each);
@@ -1273,7 +1301,7 @@ function drawKit(){
  const KP={pix:'Pix',credito:'Crédito à vista',parcelado:'Crédito parcelado'};
  UI.modal=`<h3>Comprar kit</h3>
  <p class="note">Pedido mínimo de <b>${MIN} unidades</b>, pode variar os perfumes. Seu preço já vem com o desconto de revendedor do seu nível. Lista em ordem de mais vendidos.</p>
- <div class="pay"><button data-preset="6">6 mais vendidos · 6 un</button><button data-preset="12">6 mais vendidos · 12 un</button><button data-preset="0">Montar do zero</button></div>
+ <div class="pay"><button data-preset="1">${MIN} mais vendidos · ${MIN} un</button><button data-preset="2">${MIN} mais vendidos · ${MIN*2} un</button><button data-preset="0">Montar do zero</button></div>
  <div class="kitgrid">${rows.map(p=>`<div class="kitrow"><div style="min-width:0"><div class="t">${p.code} · ${esc(p.nome)} ${trophy(ch[p.id])}</div><div class="s note">Você paga ${Ri(precoRev(p,d.vid))} · vende a ${Ri(p.preco)} · ${p.estoque} disp.</div></div>
   <div class="qty"><button data-kq="${p.id}" data-d="-1" aria-label="Menos" ${!(d.q[p.id])?'disabled':''}>−</button><span>${d.q[p.id]||0}</span><button data-kq="${p.id}" data-d="1" aria-label="Mais um" ${(d.q[p.id]||0)>=p.estoque?'disabled':''}>+</button></div></div>`).join('')}</div>${ctl}
  <div class="calc"><div>Total do pedido<b>${Ri(tot)}</b></div><div>Frascos<b>${un} un${un<MIN?` <span class="chip warn">faltam ${MIN-un}</span>`:''}</b></div><div>Lucro se vender tudo<b>${Ri(luc)}</b></div></div>
@@ -1407,8 +1435,10 @@ function render(){
 }
 
 /* ===== eventos ===== */
+/* só fecha a janela se o clique começar E terminar fora dela (selecionar texto arrastando não fecha) */
+document.addEventListener('pointerdown',e=>{UI.downScrim=!!(e.target.classList&&e.target.classList.contains('scrim'))},true);
 document.addEventListener('click',e=>{
- const b=e.target.closest('button');if(!b){if(e.target.classList.contains('scrim'))closeModal();return}
+ const b=e.target.closest('button');if(!b){if(e.target.classList.contains('scrim')&&UI.downScrim)closeModal();return}
  const d=b.dataset;
  if(d.authform){showAuth(d.authform);return}
  if('sair' in d){log('Saiu do sistema');UI.user=null;UI.modal=null;UI.publico=false;sb.auth.signOut().finally(()=>{S=VAZIO();carregaCarts();$('#lSenha').value='';showAuth('login');render()});return}
@@ -1447,15 +1477,18 @@ document.addEventListener('click',e=>{
  if('carrinho' in d){mCarrinho();return}
  if(d.bc){const p=prod(d.bc),c=cartV();c[d.bc]=Math.max(0,Math.min(p.estoque,(c[d.bc]||0)+ +d.d));if(!c[d.bc])delete c[d.bc];save();
   if(UI.cartOpen)drawCarrinho();else render();return}
- if('top6' in d){const c=cartV();abc(S.vendas.filter(v=>daysAgo(v.data)<30)).filter(r=>r.p.estoque>(c[r.p.id]||0)).slice(0,6).forEach(r=>c[r.p.id]=(c[r.p.id]||0)+1);save();render();toast(metaTxt(cartTot(c).un));return}
+ if('top6' in d){const c=cartV();abc(S.vendas.filter(v=>daysAgo(v.data)<30)).filter(r=>r.p.estoque>(c[r.p.id]||0)).slice(0,MIN).forEach(r=>c[r.p.id]=(c[r.p.id]||0)+1);save();render();toast(metaTxt(cartTot(c).un));return}
  if('fecharcarrinho' in d){const c=cartV(),vid=UI.vid;const its=Object.keys(c).map(pid=>({pid,qtd:c[pid]}));const un=its.reduce((a,i)=>a+i.qtd,0);
   if(!un||un%MIN){toast(metaTxt(un));return}
   UI.cartOpen=false;let r=null;
   rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
  if(d.cancelkit){if(UI.ckArm!==d.cancelkit){UI.ckArm=d.cancelkit;b.textContent='Confirmar?';return}UI.ckArm=null;rodar(()=>rpc('cancelar_kit',{p_id:d.cancelkit}),'Kit cancelado · frascos voltaram ao estoque central');return}
- if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · frascos entraram no estoque do vendedor');return}
+ if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · kit a entregar');return}
+ if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
+ if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
+ if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;b.textContent='Confirmar entrega?';return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
  if(d.cancv){if(UI.cvArm!==d.cancv){UI.cvArm=d.cancv;b.textContent='Cancelar?';return}UI.cvArm=null;rodar(()=>rpc('cancelar_venda',{p_id:d.cancv}),'Venda cancelada · frascos voltaram ao estoque');return}
- if(d.preset!==undefined){if(+d.preset)presetKit(6,+d.preset/6);else UI.draft.q={};drawKit();return}
+ if(d.preset!==undefined){if(+d.preset)presetKit(MIN,+d.preset);else UI.draft.q={};drawKit();return}
  if(d.kpay){UI.draft.pag=d.kpay;drawKit();return}
  if('savekit' in d){const x=UI.draft;const its=S.prods.filter(p=>x.q[p.id]>0).map(p=>({pid:p.id,qtd:x.q[p.id]}));
   let r=null;rodar(async()=>{r=await rpc('pedir_kit',{p_vid:x.vid,p_itens:its});r.itens=its}).then(ok=>{if(ok)mKitOk(r)});return}
@@ -1563,6 +1596,8 @@ document.addEventListener('change',e=>{
  if(d.tax!==undefined){S.taxas[d.tax]=num(t.value);cfgSave('Taxa de pagamento alterada',`${PAY[d.tax]}: ${pc(num(t.value))}`);render();return}
  if(d.invloc!==undefined){UI.inv={local:t.value,cont:{}};UI.invArm=false;render();return}
  if(d.lgf){UI.lgf[d.lgf]=t.value;render();return}
+ if(d.minkit!==undefined){const n=Math.round(+t.value);if(!(n>=1&&n<=100)){toast('Informe de 1 a 100 frascos');render();return}
+  rodar(async()=>{await upd('config',{min_kit:n},1);log('Pedido mínimo alterado',`${n} frascos (múltiplos de ${n})`)},`Pedido mínimo: ${n} frascos`);return}
  if(d.fmes!==undefined){UI.fmes=t.value;UI.ffArm=false;render();return}
  if(d.bn!==undefined){const bn=S.banners[+d.bn],val=t.type==='checkbox'?t.checked:t.value;bn[d.k]=val;
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao'}[d.k];
