@@ -657,6 +657,8 @@ const VISTA=['pix','dinheiro','debito'];
 const custoFinal=p=>Math.round((+p.custo||0)*(1+(+p.frete||0)/100)*100)/100;
 const pVista=p=>+p.preco;
 const precoPag=(p,pag)=>VISTA.includes(pag)?pVista(p):+p.preco;
+/* preço que a 3mix cobra do vendedor (sem bônus de nível) */
+const pRev=p=>+p.precoRev>0?+p.precoRev:Math.round((+p.preco||0)*(1-(+p.comissao||0)/100)*100)/100;
 const mkp=(preco,cf)=>cf>0&&preco>0?(preco/cf-1)*100:0;
 const kitVal=k=>k.itens.reduce((a,i)=>a+i.preco*i.qtd,0);
 /* endereço da loja de cada vendedor: 3mix.com.br/nome-do-vendedor */
@@ -802,10 +804,10 @@ function vProdutos(){
   body=`<div class="cat">${rows.map(p=>card(p,cl[p.id]?.cl,true)).join('')}</div>${ctl}`;
  }else if(UI.tab==='estoque'){
   const {rows,ctl}=page('est',A,9);
-  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>ABC</th><th>Produto</th><th class="n">Custo final (R$)</th><th class="n">Preço (R$)</th><th class="n">Margem (%)</th><th class="n">Comissão (%)</th><th class="n hide-sm">Vendido ${UI.per}d (R$)</th><th class="n hide-sm">Qtd ${UI.per}d (un)</th><th class="n">Central (un)</th><th class="n hide-sm">Revend. (un)</th><th class="hide-sm">Última compra</th><th class="n hide-sm">Cobertura (dias)</th></tr></thead><tbody>
-  ${rows.map(r=>{const p=r.p;const mg=p.preco?(p.preco-custoFinal(p)-p.preco*p.comissao/100)/p.preco*100:0;const cob=r.un?Math.round(p.estoque/(r.un/UI.per)):'—';
+  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>ABC</th><th>Produto</th><th class="n">Custo final (R$)</th><th class="n">Ao vendedor (R$)</th><th class="n">Sugerido (R$)</th><th class="n">Margem 3mix (%)</th><th class="n hide-sm">Comissão (%)</th><th class="n hide-sm">Vendido ${UI.per}d (R$)</th><th class="n hide-sm">Qtd ${UI.per}d (un)</th><th class="n">Central (un)</th><th class="n hide-sm">Revend. (un)</th><th class="hide-sm">Última compra</th><th class="n hide-sm">Cobertura (dias)</th></tr></thead><tbody>
+  ${rows.map(r=>{const p=r.p;const mg=pRev(p)?(pRev(p)-custoFinal(p))/pRev(p)*100:0;const cob=r.un?Math.round(p.estoque/(r.un/UI.per)):'—';
    return `<tr><td><span class="chip ${r.cl}">${r.cl}</span></td><td><button class="btn ghost sm" style="padding:0;border:0" data-edit="${p.id}"><b>${p.code}</b>&nbsp;${esc(p.nome)}</button></td>
-   <td class="n">${R(custoFinal(p))}</td><td class="n">${R(p.preco)}</td><td class="n">${P(mg)}</td><td class="n">${P(p.comissao)}</td><td class="n hide-sm">${R(r.rec)}</td><td class="n hide-sm">${U(r.un)}</td>
+   <td class="n">${R(custoFinal(p))}</td><td class="n">${R(pRev(p))}</td><td class="n">${R(p.preco)}</td><td class="n">${P(mg)}</td><td class="n hide-sm">${P(p.comissao)}</td><td class="n hide-sm">${R(r.rec)}</td><td class="n hide-sm">${U(r.un)}</td>
    <td class="n"><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></td><td class="n hide-sm">${U(emRev(p.id))}</td><td class="hide-sm">${br(p.ultimaCompra)}</td><td class="n hide-sm">${cob}</td></tr>`}).join('')}
   </tbody></table></div>${ctl}<p class="note">Margem = preço − custo − comissão base, antes de taxas de pagamento. Cobertura = estoque ÷ média diária de saída.</p></section>`;
  }else{
@@ -1271,7 +1273,7 @@ const proxCod=()=>'N'+String(S.prods.reduce((m,p)=>Math.max(m,+(p.code.match(/\d
 const movProd=pid=>S.vendas.some(v=>v.itens.some(i=>i.pid===pid))||S.kits.some(k=>k.itens.some(i=>i.pid===pid))||S.compras.some(c=>c.pid===pid)||emRev(pid)>0;
 function mProduto(id){UI.msize='lg';UI.delArm=false;
  const p=id?prod(id):{id:'',code:proxCod(),nome:'',genero:'Unissex',familia:'Floral',descricao:'',ml:100,custo:0,frete:0,preco:0,precoVista:0,comissao:25,estoque:0,min:8,ref:'',foto:null};
- UI.draft={...p};
+ UI.draft={...p,precoRev:pRev(p)};
  modal(`<h3>${id?'Editar produto':'Novo produto'}</h3>
  <div style="display:flex;gap:12px;align-items:center"><div class="card" style="width:84px;flex:none"><div class="ph" id="fPrev">${foto(p)}</div></div>
  <label class="f" style="flex:1">Enviar foto<input id="fFoto" type="file" accept="image/*"></label></div>
@@ -1287,10 +1289,11 @@ function mProduto(id){UI.msize='lg';UI.delArm=false;
    <div class="fg pc3"><label class="f">Custo (R$)<input id="f-custo" data-f="custo" type="text" inputmode="decimal" class="dec" value="${fmt(p.custo)}"></label>
    <label class="f">Frete (%)<input id="f-frete" data-f="frete" type="text" inputmode="decimal" class="dec" value="${fmt(+p.frete||0)}"></label>
    <label class="f">Custo final (R$)<input id="f-cf" disabled style="text-align:right" value="${fmt(custoFinal(p))}"></label></div>
-   <div class="fg pc3"><span class="pc-l">Venda</span><label class="f">Markup (%)<input id="f-mkp" data-mk="preco" type="text" inputmode="decimal" class="dec" value="${fmt(mkp(+p.preco,custoFinal(p)))}"></label>
-   <label class="f">Preço de venda (R$)<input id="f-preco" data-f="preco" type="text" inputmode="decimal" class="dec" value="${fmt(p.preco)}"></label></div>
-   <p class="note">Digite o markup e o preço se ajusta, ou digite o preço e o markup se ajusta.</p></div>
-  <label class="f">Comissão base (%)<input id="f-comissao" data-f="comissao" type="text" inputmode="decimal" class="dec" value="${fmt(p.comissao)}"></label>
+   <div class="fg pc3"><span class="pc-l">3mix → vendedor</span><label class="f">Markup 3mix (%)<input id="f-mk3" data-mk="precoRev" type="text" inputmode="decimal" class="dec" value="${fmt(mkp(pRev(p),custoFinal(p)))}"></label>
+   <label class="f">Preço ao vendedor (R$)<input id="f-precoRev" data-f="precoRev" type="text" inputmode="decimal" class="dec" value="${fmt(pRev(p))}"></label></div>
+   <div class="fg pc3"><span class="pc-l">Vendedor → cliente</span><label class="f">Markup vendedor (%)<input id="f-mkv" data-mk="preco" type="text" inputmode="decimal" class="dec" value="${fmt(mkp(+p.preco,pRev(p)))}"></label>
+   <label class="f">Preço sugerido ao cliente (R$)<input id="f-preco" data-f="preco" type="text" inputmode="decimal" class="dec" value="${fmt(p.preco)}"></label></div>
+   <p class="note">O markup da 3mix é sobre o custo final; o do vendedor é sobre o preço que ele paga. Digite o markup e o preço se ajusta, ou digite o preço e o markup se ajusta. Vendedores de nível Prata e Ouro recebem o bônus como desconto extra no preço ao vendedor.</p></div>
   <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
   <label class="f">Volume (ml)<input id="f-ml" data-f="ml" type="number" value="${p.ml}"></label>
   <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="uso interno, não aparece no catálogo"></label>
@@ -1302,7 +1305,8 @@ function mProduto(id){UI.msize='lg';UI.delArm=false;
 }
 function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;const cf=custoFinal(d),pv=pVista(d);
  const lp=d.preco-cf-d.preco*d.comissao/100,lv=pv-cf-pv*d.comissao/100;
- el.innerHTML=`<div>Custo final<b>${Ri(cf)}</b></div><div>Comissão por frasco<b>${Ri(d.preco*d.comissao/100)}</b></div><div>Lucro por frasco<b>${Ri(lp)} · ${pc(d.preco?lp/d.preco*100:0)}</b></div>`;return;
+ const rv=+d.precoRev||0,l3=rv-cf,lv2=(+d.preco||0)-rv;
+ el.innerHTML=`<div>Lucro 3mix por frasco<b>${Ri(l3)} · ${pc(rv?l3/rv*100:0)}</b></div><div>Lucro do vendedor por frasco<b>${Ri(lv2)} · ${pc(d.preco?lv2/d.preco*100:0)}</b></div><div>Comissão do vendedor<b>${pc(d.preco?lv2/d.preco*100:0)}</b></div>`;return;
  el.innerHTML=`<div>Markup<b>${d.custo?(d.preco/d.custo).toFixed(2):'—'}×</b></div><div>Comissão por frasco<b>${Ri(com)}</b></div><div>Lucro por frasco<b>${Ri(luc)} · ${d.preco?(luc/d.preco*100).toFixed(0):0}%</b></div>`}
 function mEntrada(pid){UI.msize='sm';
  UI.draft={pid:pid||S.prods[0].id,qtd:0,custo:0,data:iso(today)};
@@ -1477,12 +1481,14 @@ document.addEventListener('click',e=>{
  if('addit' in d){UI.draft.itens.push({pid:(S.prods.find(p=>eV(UI.draft.vid,p.id)>0)||S.prods[0]).id,qtd:1});drawVenda();return}
  if(d.rmit){UI.draft.itens.splice(+d.rmit,1);drawVenda();return}
  if(d.pay){UI.draft.pag=d.pay;drawVenda();return}
- if('saveprod' in d){const x=UI.draft;['custo','frete','preco','precoVista','comissao'].forEach(k=>x[k]=num(x[k]));['min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
+ if('saveprod' in d){const x=UI.draft;['custo','frete','preco','precoRev'].forEach(k=>x[k]=+x[k]||0);
+  if(x.precoRev>0&&x.preco<x.precoRev){toast('O preço sugerido ao cliente não pode ser menor que o preço ao vendedor');return}
+  x.comissao=x.preco>0?Math.round((1-x.precoRev/x.preco)*1e8)/1e6:0;['min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
   rodar(async()=>{let foto=x.foto||'';if(foto.startsWith('data:'))foto=await subirFoto(foto,'produtos',x.code);
-   const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,preco:x.preco,preco_vista:0,comissao:x.comissao,
+   const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,preco:x.preco,preco_rev:x.precoRev,preco_vista:0,comissao:x.comissao,
     estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:x.sku||''};
    if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',row);
-   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · preço R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)}`);UI.modal=null},'Produto salvo');return}
+   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)}`);UI.modal=null},'Produto salvo');return}
  if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=num(x.custo);if(q<=0){toast('Quantidade deve ser maior que zero');return}
   rodar(async()=>{await rpc('registrar_entrada',{p_pid:x.pid,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},`Entrada de ${q} un registrada`);return}
  if('savevend' in d){const nome=$('#vd-nome').value.trim();if(!nome){toast('Informe o nome');return}
@@ -1508,10 +1514,11 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
- if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','preco','precoVista','comissao'].includes(d.f)){UI.draft[d.f]=num(t.value);const D=UI.draft,cf=custoFinal(D);
+ if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','preco','precoRev'].includes(d.f)){UI.draft[d.f]=num(t.value);const D=UI.draft,cf=custoFinal(D);
   if(d.f==='precoVista'&&!D.precoVista)D.precoVista=0;
-  $('#f-cf').value=fmt(cf);$('#f-mkp').value=fmt(mkp(+D.preco,cf));pCalc()}return}
- if(d.mk){const D=UI.draft,cf=custoFinal(D),v=Math.round(cf*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);pCalc();return}
+  $('#f-cf').value=fmt(cf);if(d.f!=='preco')$('#f-mk3').value=fmt(mkp(+D.precoRev,cf));$('#f-mkv').value=fmt(mkp(+D.preco,+D.precoRev));pCalc()}return}
+ if(d.mk){const D=UI.draft,base=d.mk==='preco'?+D.precoRev||0:custoFinal(D),v=Math.round(base*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);
+  if(d.mk==='precoRev')$('#f-mkv').value=fmt(mkp(+D.preco,v));pCalc();return}
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){$('#e-custo').value=fmt(0);UI.draft.custo=0}return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
  if(d.ck){UI.draft[d.ck]=t.value;return}
