@@ -718,6 +718,11 @@ function nivelDe(vid,ref){
  return _nv[key]=S.niveis.find(n=>tot<n.ate)||S.niveis[0];
 }
 const inPer=v=>daysAgo(v.data)<UI.per;
+/* caixa da 3mix = só os kits pagos pelos vendedores (a venda ao cliente é dinheiro do vendedor) */
+const TXY=()=>+S.taxas.link||0;
+function kitCalc(k){let rec=0,cus=0,un=0;k.itens.forEach(i=>{const p=prod(i.pid);rec+=i.preco*i.qtd;cus+=(p?custoFinal(p):0)*i.qtd;un+=i.qtd});const tax=rec*TXY()/100;return {rec,cus,com:0,tax,un,luc:rec-cus-tax}}
+const kPagos=()=>S.kits.filter(k=>KPAGO.includes(k.status));
+function ksum(list){return list.reduce((a,k)=>{const c=kitCalc(k);for(const x in c)a[x]+=c[x];return a},{rec:0,cus:0,com:0,tax:0,un:0,luc:0})}
 function sum(list){return list.reduce((a,v)=>{const c=saleCalc(v);for(const k in c)a[k]+=c[k];return a},{rec:0,cus:0,com:0,tax:0,un:0,luc:0})}
 function abc(list){
  const m={};list.forEach(v=>v.itens.forEach(i=>{m[i.pid]=m[i.pid]||{rec:0,un:0};m[i.pid].rec+=i.preco*i.qtd;m[i.pid].un+=i.qtd}));
@@ -754,9 +759,9 @@ function page(key,items,per){
 }
 
 /* ===== gráficos ===== */
-function chartDaily(list){
+function chartDaily(list,fs=sum){
  const days=UI.per,W=640,H=180,pl=44,pb=22,pt=10;const data=[];
- for(let d=days-1;d>=0;d--){const k=iso(today-d*DAY);const s=list.filter(v=>v.data===k);data.push({k,rec:sum(s).rec,luc:sum(s).luc})}
+ for(let d=days-1;d>=0;d--){const k=iso(today-d*DAY);const s=list.filter(v=>v.data===k);const c=fs(s);data.push({k,rec:c.rec,luc:c.luc})}
  const mx=Math.max(...data.map(d=>d.rec),1);const step=Math.pow(10,Math.floor(Math.log10(mx)));const top=Math.ceil(mx/step)*step;
  const bw=(W-pl-6)/data.length;const y=v=>pt+(H-pt-pb)*(1-v/top);
  let g='';for(let i=0;i<=4;i++){const v=top*i/4;g+=`<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(v)+3}" text-anchor="end">${(v/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})}k</text>`}
@@ -783,38 +788,38 @@ function chartABC(rows){
 /* ===== telas: gestão ===== */
 const perTabs=()=>`<div class="tabs" role="group" aria-label="Período">${[7,30,60].map(d=>`<button data-per="${d}" aria-pressed="${UI.per===d}">${d} dias</button>`).join('')}</div>`;
 function vPainel(){
- const L=S.vendas.filter(inPer), t=sum(L), prev=sum(S.vendas.filter(v=>{const a=daysAgo(v.data);return a>=UI.per&&a<UI.per*2}));
+ const KP=kPagos(),L=KP.filter(inPer), t=ksum(L), prev=ksum(KP.filter(v=>{const a=daysAgo(v.data);return a>=UI.per&&a<UI.per*2}));
  const dv=prev.rec?((t.rec/prev.rec-1)*100):0, tick=t.rec/Math.max(1,L.length);
+ const LV=S.vendas.filter(inPer),tv=sum(LV);
  const A=abc(L); const low=S.prods.filter(p=>p.estoque<=p.min);
- const rank=S.vend.map(v=>{const s=sum(L.filter(x=>x.vid===v.id));return {v,...s}}).sort((a,b)=>b.rec-a.rec);
- const rec=S.vendas.filter(v=>v.status==='receber');const recT=sum(rec).rec;
+ const rank=S.vend.map(v=>{const s=sum(LV.filter(x=>x.vid===v.id));return {v,...s}}).sort((a,b)=>b.rec-a.rec);
+ const abertos=S.kits.filter(k=>['aguardando','informado'].includes(k.status));
  const lucMes=t.luc-S.despesas*UI.per/30;
- return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · ${L.length} vendas</p></div><div class="sp"></div>${perTabs()}</div>
+ return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · caixa da 3mix = kits pagos pelos vendedores</p></div><div class="sp"></div>${perTabs()}</div>
  ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;return i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="equipe">Ver kits</button></div>`:''})()}
  <div class="grid-kpi">
-  <div class="kpi hl"><span class="l">Faturamento</span><span class="v">${R(t.rec)}</span><span class="d">${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))} vs período anterior</span></div>
-  <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${pc(t.luc/Math.max(1,t.rec)*100)}</span></div>
-  <div class="kpi"><span class="l">Frascos vendidos</span><span class="v">${U(t.un)}</span><span class="d">${(t.un/UI.per).toFixed(1)} un por dia</span></div>
-  <div class="kpi"><span class="l">Ticket médio</span><span class="v">${R(tick)}</span><span class="d">por venda</span></div>
-  <div class="kpi"><span class="l">Ganho revendedores</span><span class="v">${R(t.com)}</span><span class="d">taxas pagto ${Ri(t.tax)}</span></div>
+  <div class="kpi hl"><span class="l">Faturamento 3mix</span><span class="v">${R(t.rec)}</span><span class="d">${L.length} kits pagos · ${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))}</span></div>
+  <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${pc(t.luc/Math.max(1,t.rec)*100)} · taxa Yampi ${Ri(t.tax)}</span></div>
+  <div class="kpi"><span class="l">Frascos aos vendedores</span><span class="v">${U(t.un)}</span><span class="d">${(t.un/UI.per).toFixed(1)} un por dia</span></div>
+  <div class="kpi"><span class="l">Ticket médio</span><span class="v">${R(tick)}</span><span class="d">por kit</span></div>
+  <div class="kpi"><span class="l">Vendedores venderam</span><span class="v">${R(tv.rec)}</span><span class="d">aos clientes · dinheiro deles</span></div>
  </div>
  ${vEstoquePainel()}
  ${vAvise()}
  ${vChamp()}
  <div class="two">
-  <section class="panel"><div class="panel-h"><h2>Faturamento × lucro por dia</h2></div>${chartDaily(S.vendas)}</section>
+  <section class="panel"><div class="panel-h"><h2>Kits pagos × lucro por dia</h2></div>${chartDaily(KP,ksum)}</section>
   <section class="panel"><div class="panel-h"><h2>Divisão do lucro</h2><span class="sp"></span><span class="note">após despesas fixas</span></div>
    <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n hide-sm">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
    ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n hide-sm">${pc(+s.fundo||0)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
    <tr><td class="note">Despesas fixas (${UI.per}d)</td><td></td><td class="hide-sm"></td><td class="n">${R(-S.despesas*UI.per/30)}</td><td></td></tr></tbody></table>
    <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
-   <div class="row"><div class="grow"><div class="t">Kits pagos por revendedores</div><div class="s">${S.kits.filter(k=>KPAGO.includes(k.status)&&inPer(k)).length} kits · ${U(S.kits.filter(k=>KPAGO.includes(k.status)&&inPer(k)).reduce((a,k)=>a+k.itens.reduce((s,i)=>s+i.qtd,0),0))} no período</div></div><b>${R(S.kits.filter(k=>KPAGO.includes(k.status)&&inPer(k)).reduce((a,k)=>a+kitVal(k),0))}</b></div>
-   <div class="row"><div class="grow"><div class="t">A receber de clientes</div><div class="s">${rec.length} vendas em aberto</div></div><b>${R(recT)}</b></div>
+   <div class="row"><div class="grow"><div class="t">Kits aguardando pagamento</div><div class="s">${abertos.length} kits · ainda não entram no caixa</div></div><b>${R(abertos.reduce((a,k)=>a+kitVal(k),0))}</b></div>
   </section>
  </div>
  <div class="two">
-  <section class="panel"><div class="panel-h"><h2>Curva ABC · produtos</h2><span class="sp"></span><span class="note">${A.filter(r=>r.cl==='A').length} itens fazem 80% da receita</span></div>${chartABC(A)}</section>
-  <section class="panel"><div class="panel-h"><h2>Ranking de vendedores</h2></div>
+  <section class="panel"><div class="panel-h"><h2>Curva ABC · produtos</h2><span class="sp"></span><span class="note">kits · ${A.filter(r=>r.cl==='A').length} itens fazem 80% da receita</span></div>${chartABC(A)}</section>
+  <section class="panel"><div class="panel-h"><h2>Ranking de vendedores</h2><span class="sp"></span><span class="note">vendas aos clientes</span></div>
    <table><thead><tr><th>Vendedor</th><th class="n">Vendido (R$)</th><th class="n">Qtd (un)</th></tr></thead><tbody>
    ${rank.map(r=>{const n=nivelDe(r.v.id,iso(today));return `<tr><td><div class="t">${esc(r.v.nome.split(' ')[0])} <span class="lvl ${n.nome}" style="font-size:11px">${n.nome}</span></div></td><td class="n">${R(r.rec)}</td><td class="n">${U(r.un)}</td></tr>`}).join('')}</tbody></table>
   </section>
@@ -826,7 +831,7 @@ function vPainel(){
 }
 
 function vProdutos(){
- const L=S.vendas.filter(inPer);const A=abc(L);const cl={};A.forEach(r=>cl[r.p.id]=r);
+ const L=kPagos().filter(inPer);const A=abc(L);const cl={};A.forEach(r=>cl[r.p.id]=r);
  const tabs=`<div class="tabs" role="group"><button data-tab="catalogo" aria-pressed="${UI.tab==='catalogo'}">Catálogo</button><button data-tab="estoque" aria-pressed="${UI.tab==='estoque'}">Estoque e custos</button><button data-tab="compras" aria-pressed="${UI.tab==='compras'}">Entradas</button></div>`;
  let body='';
  if(UI.tab==='catalogo'){
@@ -834,12 +839,12 @@ function vProdutos(){
   body=`<div class="cat">${rows.map(p=>card(p,cl[p.id]?.cl,true)).join('')}</div>${ctl}`;
  }else if(UI.tab==='estoque'){
   const {rows,ctl}=page('est',A,9);
-  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>ABC</th><th>Produto</th><th class="n">Custo final (R$)</th><th class="n">Ao vendedor (R$)</th><th class="n">Sugerido (R$)</th><th class="n">Margem 3mix (%)</th><th class="n hide-sm">Comissão (%)</th><th class="n hide-sm">Vendido ${UI.per}d (R$)</th><th class="n hide-sm">Qtd ${UI.per}d (un)</th><th class="n">Central (un)</th><th class="n hide-sm">Revend. (un)</th><th class="hide-sm">Última compra</th><th class="n hide-sm">Cobertura (dias)</th></tr></thead><tbody>
+  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>ABC</th><th>Produto</th><th class="n">Custo final (R$)</th><th class="n">Ao vendedor (R$)</th><th class="n">Sugerido (R$)</th><th class="n">Margem 3mix (%)</th><th class="n hide-sm">Comissão (%)</th><th class="n hide-sm">Kits ${UI.per}d (R$)</th><th class="n hide-sm">Kits ${UI.per}d (un)</th><th class="n">Central (un)</th><th class="n hide-sm">Revend. (un)</th><th class="hide-sm">Última compra</th><th class="n hide-sm">Cobertura (dias)</th></tr></thead><tbody>
   ${rows.map(r=>{const p=r.p;const mg=pRev(p)?(pRev(p)-custoFinal(p))/pRev(p)*100:0;const cob=r.un?Math.round(p.estoque/(r.un/UI.per)):'—';
    return `<tr><td><span class="chip ${r.cl}">${r.cl}</span></td><td><button class="btn ghost sm" style="padding:0;border:0" data-edit="${p.id}"><b>${p.code}</b>&nbsp;${esc(p.nome)}</button></td>
    <td class="n">${R(custoFinal(p))}</td><td class="n">${R(pRev(p))}</td><td class="n">${R(p.preco)}</td><td class="n">${P(mg)}</td><td class="n hide-sm">${P(p.comissao)}</td><td class="n hide-sm">${R(r.rec)}</td><td class="n hide-sm">${U(r.un)}</td>
    <td class="n"><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></td><td class="n hide-sm">${U(emRev(p.id))}</td><td class="hide-sm">${br(p.ultimaCompra)}</td><td class="n hide-sm">${cob}</td></tr>`}).join('')}
-  </tbody></table></div>${ctl}<p class="note">Margem = preço − custo − comissão base, antes de taxas de pagamento. Cobertura = estoque ÷ média diária de saída.</p></section>`;
+  </tbody></table></div>${ctl}<p class="note">Margem 3mix = preço ao vendedor − custo final, antes da taxa da Yampi. Cobertura = estoque ÷ média diária de saída em kits.</p></section>`;
  }else{
   const C=[...S.compras].sort((a,b)=>b.data.localeCompare(a.data));const {rows,ctl}=page('cmp',C,10);
   body=`<section class="panel"><div class="tbl"><table><thead><tr><th>Data da compra</th><th>Produto</th><th class="n">Qtd (un)</th><th class="n">Custo unit. (R$)</th><th class="n">Total (R$)</th></tr></thead><tbody>
@@ -863,16 +868,13 @@ function vVendas(onlyVid){
  const {rows,ctl}=page('vds'+(onlyVid||''),L,10);
  const t=sum(L.filter(inPer));
  const byPay={};L.filter(inPer).forEach(v=>{const c=saleCalc(v);byPay[v.pag]=byPay[v.pag]||{rec:0,n:0,tax:0};byPay[v.pag].rec+=c.rec;byPay[v.pag].n++;byPay[v.pag].tax+=c.tax});
- return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas'}</h1><p class="sub">${UI.per} dias: ${L.filter(inPer).length} vendas · ${U(t.un)}</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-nova>+ Nova venda</button></div>
- <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th>${onlyVid?'':'<th class="hide-sm">Vendedor</th>'}<th class="hide-sm">Itens</th><th>Pagamento</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro (R$)'}</th><th>Status</th></tr></thead><tbody>
+ return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas'}</h1><p class="sub">${UI.per} dias: ${L.filter(inPer).length} vendas · ${U(t.un)}${onlyVid?'':' · dinheiro dos vendedores'}</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-nova>+ Nova venda</button></div>
+ <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th>${onlyVid?'':'<th class="hide-sm">Vendedor</th>'}<th class="hide-sm">Itens</th><th>Pagamento</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro vendedor (R$)'}</th><th>Status</th></tr></thead><tbody>
  ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}</td><td>${esc(v.cliente)}${v.origem?` <span class="chip A">${v.origem==='loja'?'online':'site'}</span>`:''}</td>${onlyVid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome.split(' ')[0])}</td>`}<td class="hide-sm note">${v.itens.map(i=>prod(i.pid)?.code).join(', ')}</td>
- <td>${PAY[v.pag]}${v.parcelas>1?` ${v.parcelas}x`:''}</td><td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(onlyVid?c.com:c.luc)}</td>
+ <td>${PAY[v.pag]}${v.parcelas>1?` ${v.parcelas}x`:''}</td><td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
  <td style="white-space:nowrap">${v.status==='pago'?'<span class="chip good st">Pago</span>':`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`} <button class="btn sm" data-cancv="${v.id}" title="Cancelar venda e devolver os frascos ao estoque" aria-label="Cancelar venda">×</button></td></tr>`}).join('')||`<tr><td colspan="9" class="empty">Nenhuma venda ainda.</td></tr>`}
  </tbody></table></div>${ctl}</section>
- ${onlyVid?'':`<section class="panel"><div class="panel-h"><h2>Por meio de pagamento · ${UI.per} dias</h2><span class="sp"></span><span class="note">taxas de exemplo — ajuste com sua maquininha</span></div>
- <table><thead><tr><th>Meio</th><th class="n">Vendas (un)</th><th class="n">Valor (R$)</th><th class="n">Taxa (%)</th><th class="n">Custo taxa (R$)</th></tr></thead><tbody>
- ${Object.keys(PAY).filter(k=>PAYV.includes(k)||byPay[k]).map(k=>`<tr><td>${PAY[k]}</td><td class="n">${U(byPay[k]?.n||0)}</td><td class="n">${R(byPay[k]?.rec||0)}</td><td class="n"><input id="tx-${k}" data-tax="${k}" type="text" inputmode="decimal" class="dec" value="${fmt(S.taxas[k])}" style="width:64px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(byPay[k]?.tax||0)}</td></tr>`).join('')}
- </tbody></table></section>`}`;
+ ${onlyVid?'':'<p class="note">Vendas dos vendedores aos clientes (Pix ou dinheiro, direto para o vendedor). Não entram no caixa da 3mix — o caixa da 3mix são os kits pagos.</p>'}`;
 }
 
 function vEquipe(){
@@ -896,13 +898,13 @@ function vEquipe(){
 }
 
 function vSocios(){
- const m=UI.sim||(UI.sim={custo:32,preco:129,com:25,taxa:2.5,un:300,desp:S.despesas,kit:249,kitCusto:150});
- const porUn=m.preco-m.custo-m.preco*m.com/100-m.preco*m.taxa/100;
+ const m=UI.sim||(UI.sim={custo:11,preco:29.9,taxa:TXY(),un:300,desp:S.despesas});
+ const porUn=m.preco-m.custo-m.preco*m.taxa/100;
  const luc=porUn*m.un-m.desp;const pe=Math.ceil(m.desp/Math.max(.01,porUn));
  return `<div class="head"><div><h1>Administração</h1><p class="sub">Divisão do lucro entre os administradores, simulador por frasco e pagamentos</p></div></div>
  <div class="two"><section class="panel"><div class="panel-h"><h2>Simulador mensal</h2></div>
   <div class="fg">
-   ${[['custo','Custo do frasco (R$)'],['preco','Preço sugerido (R$)'],['com','Comissão média (%)'],['taxa','Taxa média de pagamento (%)'],['un','Frascos por mês (un)'],['desp','Despesas fixas mês (R$)']].map(([k,l])=>`<label class="f">${l}<input id="sim-${k}" data-sim="${k}" type="text" inputmode="decimal" class="dec" value="${k==='un'?m[k]:fmt(m[k])}"></label>`).join('')}
+   ${[['custo','Custo final do frasco (R$)'],['preco','Preço ao vendedor (R$)'],['taxa','Taxa da Yampi (%)'],['un','Frascos vendidos aos vendedores por mês (un)'],['desp','Despesas fixas mês (R$)']].map(([k,l])=>`<label class="f">${l}<input id="sim-${k}" data-sim="${k}" type="text" inputmode="decimal" class="dec" value="${k==='un'?m[k]:fmt(m[k])}"></label>`).join('')}
   </div>
   <div class="calc"><div>Lucro por frasco<b>${Ri(porUn)}</b></div><div>Lucro do mês<b>${Ri(luc)}</b></div><div>Ponto de equilíbrio<b>${pe} un/mês</b></div></div>
   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe mês (R$)</th></tr></thead><tbody>
@@ -943,6 +945,7 @@ function vSocios(){
   <label class="f">WhatsApp da 3mix (comprovantes)<input id="cfg-whats" data-cfg="whats3mix" value="${esc(S.whats3mix||'')}" inputmode="tel" placeholder="(22) 99999-9999"></label>
   <label class="f">Alias da loja na Yampi<input id="yp-alias" data-yalias value="${esc(S.yampi.alias||'')}" placeholder="aparece no endereço do painel Yampi"></label>
   <label class="f">Domínio do checkout Yampi<input id="yp-dom" data-ydom value="${esc(S.yampi.dominio||'')}" placeholder="ex.: seguro.3mix.com.br"></label>
+  <label class="f">Taxa da Yampi por pagamento (%)<input id="tx-link" data-tax="link" type="text" inputmode="decimal" class="dec" value="${fmt(S.taxas.link||0)}"></label>
   <label class="f">Prefixo do cupom de nível<input id="yp-cupom" data-ycupom value="${esc(S.yampi.cupom??'NIVEL')}" placeholder="NIVEL"></label>
   <label class="f">Produtos com token Yampi<input id="yp-sku" disabled value="${S.prods.filter(p=>p.skuRev).length} de ${S.prods.length}"></label></div>
   <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'kit')?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o domínio e o token de cada produto para gerar os links</span>'}</div>
@@ -950,7 +953,7 @@ function vSocios(){
    <li><b>A Yampi é só para os kits</b> (o vendedor pagando a 3mix). A venda do vendedor ao cliente é só Pix ou dinheiro, direto para o vendedor, e não passa pela conta da 3mix.</li>
    <li><b>Um produto por perfume na Yampi</b>, com o <b>preço ao vendedor</b> (ex.: R$ 29,90). Copie o <b>Link de compra</b> de cada um: o token é a última parte (ex.: <code>.../r/<b>AABBJJ</b></code>). Cole em Produtos → Editar → "Token Yampi (kit)".</li>
    <li><b>Cupons de nível:</b> crie na Yampi cupons percentuais para os níveis com bônus: ${S.niveis.filter(n=>+n.bonus>0).map(n=>`<b>${esc(S.yampi.cupom??'NIVEL')}${String(n.bonus).replace('.',',')}</b> (${pc(n.bonus)} · ${esc(n.nome)})`).join(', ')||'nenhum nível tem bônus'}. </li>
-   <li><b>Baixa automática:</b> em Supabase → Edge Functions → Secrets, cadastre <code>YAMPI_TOKEN</code> e <code>YAMPI_SECRET</code> (Yampi → Perfil → Credenciais de API). Depois clique em "Ativar baixa automática": o 3mix passa a receber o aviso de pedido pago e dá baixa sozinho no kit ou na venda.</li>
+   <li><b>Baixa automática:</b> em Supabase → Edge Functions → Secrets, cadastre <code>YAMPI_TOKEN</code> e <code>YAMPI_SECRET</code> (Yampi → Perfil → Credenciais de API). Depois clique em "Ativar baixa automática": o 3mix passa a receber o aviso de pedido pago e dá baixa sozinho no kit.</li>
    <li><b>Sem baixa automática</b> tudo continua funcionando: o administrador confirma o kit e o vendedor marca a venda como paga.</li>
   </ol>
  </section>`;
@@ -1066,7 +1069,7 @@ function vInventario(){
 const fundoSaldo=()=>(S.fundo||[]).reduce((a,m)=>a+ +m.valor,0);
 const fundoPct=()=>S.socios.reduce((a,s)=>a+(+s.fundo||0),0);
 const mesNome=m=>{const [y,mm]=m.split('-');return new Date(+y,+mm-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})};
-function lucroMes(m){const L=S.vendas.filter(v=>v.data.slice(0,7)===m);const t=sum(L);return {luc:t.luc-S.despesas,rec:t.rec,un:t.un,n:L.length}}
+function lucroMes(m){const L=kPagos().filter(v=>v.data.slice(0,7)===m);const t=ksum(L);return {luc:t.luc-S.despesas,rec:t.rec,un:t.un,n:L.length}}
 const mesFechado=m=>(S.fundo||[]).some(x=>x.tipo==='reinvestimento'&&x.mes===m&&!x.estornado);
 const FT={reinvestimento:'Reinvestimento',aporte:'Aporte',uso:'Uso / saída',estorno:'Estorno'};
 function vFundo(){
@@ -1087,7 +1090,7 @@ function vFundo(){
  <div class="two">
  <section class="panel"><div class="panel-h"><h2>Fechamento do mês</h2><span class="sp"></span>${fech?'<span class="chip good">fechado</span>':'<span class="chip warn">aberto</span>'}</div>
   <label class="f">Mês<select id="f-mes" data-fmes>${meses.map(m=>`<option value="${m}" ${m===M?'selected':''}>${mesNome(m)}${mesFechado(m)?' · fechado':''}</option>`).join('')}</select></label>
-  <div class="calc"><div>Vendido<b>${Ri(lm.rec)}</b></div><div>Frascos<b>${lm.un} un</b></div><div>Lucro líquido<b>${Ri(lm.luc)}</b></div></div>
+  <div class="calc"><div>Kits pagos<b>${Ri(lm.rec)}</b></div><div>Frascos<b>${lm.un} un</b></div><div>Lucro líquido<b>${Ri(lm.luc)}</b></div></div>
   <table><thead><tr><th>Sócio</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n">${pc(+s.fundo||0)}</td><td class="n">${R(base*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(base*(+s.fundo||0)/100)}</td></tr>`).join('')}
   <tr><td><b>Total</b></td><td class="n">${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}</td><td class="n">${pc(fundoPct())}</td><td class="n">${R(base*(S.socios.reduce((a,s)=>a+ +s.pct,0)-fundoPct())/100)}</td><td class="n"><b>${R(base*fundoPct()/100)}</b></td></tr></tbody></table>
