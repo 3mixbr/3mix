@@ -55,24 +55,24 @@ button{cursor:pointer}
 .frame{width:100%;container-type:inline-size}
 .stage.phone .frame{width:390px;max-width:100%;height:780px;border:10px solid var(--ink);border-radius:42px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(40,20,60,.5)}
 .stage.phone .shell{height:100%}
-/* computador: conteúdo ocupa a tela, menu fixo à direita */
-.shell{width:100%;background:var(--bg);display:grid;grid-template-columns:minmax(0,1fr) 220px;min-height:calc(100dvh - 56px);position:relative}
+/* computador: conteúdo ocupa a tela, menu fixo à esquerda */
+.shell{width:100%;background:var(--bg);display:grid;grid-template-columns:220px minmax(0,1fr);min-height:calc(100dvh - 56px);position:relative}
 /* Celular de verdade: sem moldura, sem botão Site/Celular, app ocupando a tela toda */
 @media (max-width:720px){
   .seg,.brand small{display:none}
   .topbar{gap:10px}
 }
-.nav{order:2;display:flex;flex-direction:column;gap:2px;padding:16px 12px;border-left:1px solid var(--line);background:var(--surface);position:sticky;top:56px;align-self:start;height:calc(100dvh - 56px)}
+.nav{order:1;display:flex;flex-direction:column;gap:2px;padding:16px 12px;border-right:1px solid var(--line);background:var(--surface);position:sticky;top:56px;align-self:start;height:calc(100dvh - 56px)}
 .nav .mais{display:none}
 .nav button{display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:9px 12px;border-radius:10px;text-align:left;color:var(--muted);font-weight:600}
 .nav button svg{width:18px;height:18px;flex:none}
 .nav button[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 var(--line)}
 .nav button[aria-current="page"] svg{color:var(--accent)}
 .nav .navlabel{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 12px 4px}
-.main{order:1;padding:22px clamp(16px,2.4vw,36px) 32px;min-width:0;display:flex;flex-direction:column;gap:16px}
-/* tablet: menu vira trilho de ícones à direita */
+.main{order:2;padding:22px clamp(16px,2.4vw,36px) 32px;min-width:0;display:flex;flex-direction:column;gap:16px}
+/* tablet: menu vira trilho de ícones à esquerda */
 @container (min-width:721px) and (max-width:1100px){
-  .shell{grid-template-columns:minmax(0,1fr) 88px}
+  .shell{grid-template-columns:88px minmax(0,1fr)}
   .nav{padding:12px 8px;align-items:stretch}
   .nav .navlabel{display:none}
   .nav button{flex-direction:column;gap:3px;padding:9px 2px;font-size:9.5px;letter-spacing:-.01em;text-align:center;align-items:center}
@@ -81,7 +81,7 @@ button{cursor:pointer}
 }
 @container (max-width:720px){
   .shell{grid-template-columns:1fr;grid-template-rows:1fr auto;min-height:100%;height:100%}
-  .nav{order:2;flex-direction:row;flex-wrap:wrap;border-left:0;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;background:var(--surface);position:sticky;top:auto;bottom:0;height:auto;align-self:end;z-index:4}
+  .nav{order:2;flex-direction:row;flex-wrap:wrap;border-right:0;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;background:var(--surface);position:sticky;top:auto;bottom:0;height:auto;align-self:end;z-index:4}
   .nav button.x{display:none}
   .nav .mais{display:flex}
   .nav.open button.x{display:flex}
@@ -90,7 +90,7 @@ button{cursor:pointer}
   .nav .navlabel{display:none}
   .nav button{flex-direction:column;gap:2px;font-size:10.5px;padding:6px 4px;flex:1;align-items:center}
   .nav button[aria-current="page"]{box-shadow:none;background:var(--accent-soft)}
-  .main{padding:16px 16px 18px;overflow:auto}
+  .main{order:1;padding:16px 16px 18px;overflow:auto}
   h1{font-size:22px}
   th,td{padding:7px 5px}
   th{letter-spacing:.04em}
