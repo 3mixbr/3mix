@@ -1557,7 +1557,11 @@ const fimCursor=t=>{const n=t.value.length;try{t.setSelectionRange(n,n)}catch(_)
 document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('dec'))return;
  const dig=t.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
  t.value=fmt((+dig||0)/100);fimCursor(t)},true);
-document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec'))setTimeout(()=>fimCursor(t),0)});
+document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec')){t.dataset.novo='1';setTimeout(()=>fimCursor(t),0)}});
+/* como calculadora: o primeiro dígito depois de entrar no campo apaga o valor anterior */
+document.addEventListener('keydown',e=>{const t=e.target;if(!t.classList||!t.classList.contains('dec')||t.dataset.novo!=='1')return;
+ if(/^\d$/.test(e.key)||e.key==='Backspace'||e.key==='Delete'){t.value='';delete t.dataset.novo;if(e.key!=='Backspace'&&e.key!=='Delete')return;
+  e.preventDefault();t.value='0,00';t.dispatchEvent(new Event('input',{bubbles:true}))}},true);
 document.addEventListener('click',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec'))fimCursor(t)},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.modal)closeModal()});
 /* formulários de login, cadastro e recuperação */
