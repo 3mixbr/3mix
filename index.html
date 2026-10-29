@@ -50,28 +50,43 @@ button{cursor:pointer}
 .who select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:var(--plum-ink);border-radius:8px;padding:5px 8px}
 .who select option{color:#222;background:#fff}
 
-.stage{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px;display:flex;justify-content:center}
+.stage{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);display:flex;justify-content:center}
 /* .frame é o "container": as regras @container abaixo reorganizam o .shell quando a largura é de celular */
-.frame{width:100%;max-width:1240px;container-type:inline-size}
+.frame{width:100%;container-type:inline-size}
 .stage.phone .frame{width:390px;max-width:100%;height:780px;border:10px solid var(--ink);border-radius:42px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(40,20,60,.5)}
 .stage.phone .shell{height:100%}
-.shell{width:100%;background:var(--bg);display:grid;grid-template-columns:200px 1fr;min-height:600px;position:relative}
+/* computador: conteúdo ocupa a tela, menu fixo à direita */
+.shell{width:100%;background:var(--bg);display:grid;grid-template-columns:minmax(0,1fr) 220px;min-height:calc(100dvh - 56px);position:relative}
 /* Celular de verdade: sem moldura, sem botão Site/Celular, app ocupando a tela toda */
 @media (max-width:720px){
-  .stage{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);padding-block:0}
   .seg,.brand small{display:none}
   .topbar{gap:10px}
 }
-.nav{display:flex;flex-direction:column;gap:2px;padding:6px 10px 6px 0;border-right:1px solid var(--line)}
+.nav{order:2;display:flex;flex-direction:column;gap:2px;padding:16px 12px;border-left:1px solid var(--line);background:var(--surface);position:sticky;top:56px;align-self:start;height:calc(100dvh - 56px)}
+.nav .mais{display:none}
 .nav button{display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:9px 12px;border-radius:10px;text-align:left;color:var(--muted);font-weight:600}
 .nav button svg{width:18px;height:18px;flex:none}
 .nav button[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 var(--line)}
 .nav button[aria-current="page"] svg{color:var(--accent)}
 .nav .navlabel{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 12px 4px}
-.main{padding:4px 0 24px 22px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.main{order:1;padding:22px clamp(16px,2.4vw,36px) 32px;min-width:0;display:flex;flex-direction:column;gap:16px}
+/* tablet: menu vira trilho de ícones à direita */
+@container (min-width:721px) and (max-width:1100px){
+  .shell{grid-template-columns:minmax(0,1fr) 88px}
+  .nav{padding:12px 8px;align-items:stretch}
+  .nav .navlabel{display:none}
+  .nav button{flex-direction:column;gap:3px;padding:9px 2px;font-size:9.5px;letter-spacing:-.01em;text-align:center;align-items:center}
+  .nav button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .grid-kpi{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important}
+}
 @container (max-width:720px){
   .shell{grid-template-columns:1fr;grid-template-rows:1fr auto;min-height:100%;height:100%}
-  .nav{order:2;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;background:var(--surface);position:sticky;bottom:0}
+  .nav{order:2;flex-direction:row;flex-wrap:wrap;border-left:0;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around;background:var(--surface);position:sticky;top:auto;bottom:0;height:auto;align-self:end;z-index:4}
+  .nav button.x{display:none}
+  .nav .mais{display:flex}
+  .nav.open button.x{display:flex}
+  .nav.open button{flex:0 0 25%}
+  .nav.open .mais{order:99}
   .nav .navlabel{display:none}
   .nav button{flex-direction:column;gap:2px;font-size:10.5px;padding:6px 4px;flex:1;align-items:center}
   .nav button[aria-current="page"]{box-shadow:none;background:var(--accent-soft)}
@@ -545,6 +560,8 @@ const ICON={
  inventario:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11l2 2 4-4M9 17h6"/>',
  log:'<path d="M4 6h16M4 12h9M4 18h6"/><circle cx="17.5" cy="16.5" r="3.5"/><path d="M17.5 15v1.6l1 .8"/>',
  busca:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+ mais:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+ fechar:'<path d="M6 6l12 12M18 6L6 18"/>',
  whats:'<path d="M4 20l1.3-3.8A8 8 0 1 1 8.2 19z"/><path d="M9.2 8.6c-.6.4-.8 1.2-.5 2.1.7 2 2.3 3.6 4.3 4.3.9.3 1.7.1 2.1-.5l-1.6-1.2-1 .6a4.6 4.6 0 0 1-2.1-2.1l.6-1-1.2-1.6z"/>',
  vender:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
 };
@@ -1268,7 +1285,10 @@ function render(){
  if(!dentro)return;
  $('#userBox').innerHTML=u&&!UI.publico?`${UI.role==='loja'?'<button class="btn sm" data-voltar>Voltar ao painel</button>':''}${UI.role==='vend'?cartBtn():''}<span class="av">${ini(u.nome)}</span><span class="uname"><b>${esc(u.nome.split(' ')[0])}</b><small>${PERFIL[u.perfil]}</small></span><button class="btn sm" data-senha title="Trocar senha">Senha</button><button class="btn sm" data-sair>Sair</button>`:'';
  $('#shell').classList.toggle('store',UI.role==='loja');
- $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+navList().map(([k,l])=>`<button data-view="${k}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('');
+ const NL=navList(),xtra=NL.length>5;
+ $('#nav').classList.toggle('open',!!UI.navOpen);
+ $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l],i)=>`<button data-view="${k}" class="${xtra&&i>=4?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
+  +(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
  let h='';
  if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:()=>vVendas(),equipe:vEquipe,socios:vSocios,acessos:vAcessos,inventario:vInventario,log:vLog}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
@@ -1293,7 +1313,8 @@ document.addEventListener('click',e=>{
  if(d.resetsenha){const u=S.users.find(x=>x.id===d.resetsenha);if(UI.rsArm!==u.id){UI.rsArm=u.id;b.textContent='Confirmar?';return}UI.rsArm=null;
   rodar(()=>fnAcessos({acao:'senha',user_id:u.id}),`Senha de ${u.nome.split(' ')[0]} voltou para 123456`);return}
  if(b.id==='vSite'||b.id==='vApp'){UI.device=b.id==='vApp'?'app':'site';$('#stage').classList.toggle('phone',UI.device==='app');$('#vSite').setAttribute('aria-pressed',UI.device==='site');$('#vApp').setAttribute('aria-pressed',UI.device==='app');return}
- if(d.view){if(d.view==='vender'){mVenda();return}UI.view=d.view;UI.modal=null;render();$('#main').scrollTop=0;return}
+ if('navmais' in d){UI.navOpen=!UI.navOpen;render();return}
+ if(d.view){UI.navOpen=false;if(d.view==='vender'){mVenda();return}UI.view=d.view;UI.modal=null;render();$('#main').scrollTop=0;return}
  if(d.per){UI.per=+d.per;render();return}
  if(d.tab){UI.tab=d.tab;render();return}
  if(d.kq){const p=prod(d.kq);UI.draft.q[d.kq]=Math.max(0,Math.min(p.estoque,(UI.draft.q[d.kq]||0)+ +d.d));drawKit();return}
