@@ -657,7 +657,7 @@ const VISTA=['pix','dinheiro','debito'];
 const custoFinal=p=>Math.round((+p.custo||0)*(1+(+p.frete||0)/100)*100)/100;
 const pVista=p=>(+p.precoVista>0?+p.precoVista:+p.preco);
 const precoPag=(p,pag)=>VISTA.includes(pag)?pVista(p):+p.preco;
-const mkp=(preco,cf)=>cf>0?(preco/cf-1)*100:0;
+const mkp=(preco,cf)=>cf>0&&preco>0?(preco/cf-1)*100:0;
 const kitVal=k=>k.itens.reduce((a,i)=>a+i.preco*i.qtd,0);
 /* endereço da loja de cada vendedor: 3mix.com.br/nome-do-vendedor */
 const DOMINIO='3mix.com.br';
@@ -1512,7 +1512,7 @@ document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
  if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','preco','precoVista','comissao'].includes(d.f)){UI.draft[d.f]=num(t.value);const D=UI.draft,cf=custoFinal(D);
   if(d.f==='precoVista'&&!D.precoVista)D.precoVista=0;
-  $('#f-cf').value=fmt(cf);$('#f-mkp').value=fmt(mkp(+D.preco,cf));if(d.f!=='precoVista'&&!(+D.precoVista>0))$('#f-precoVista').value=fmt(+D.preco);$('#f-mkv').value=fmt(mkp(pVista(D),cf));pCalc()}return}
+  $('#f-cf').value=fmt(cf);if(d.f!=='precoVista'){$('#f-mkp').value=fmt(mkp(+D.preco,cf));if(!(+D.precoVista>0))$('#f-precoVista').value=fmt(+D.preco)}if(d.f!=='preco'||!(+D.precoVista>0))$('#f-mkv').value=fmt(mkp(pVista(D),cf));pCalc()}return}
  if(d.mk){const D=UI.draft,cf=custoFinal(D),v=Math.round(cf*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);pCalc();return}
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){$('#e-custo').value=fmt(prod(t.value).custo);UI.draft.custo=prod(t.value).custo}return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
@@ -1555,8 +1555,8 @@ document.addEventListener('change',e=>{
 /* campos de valor e %: digitação da direita para a esquerda, sempre com 2 casas (1 → 0,01 · 1050 → 10,50) */
 const fimCursor=t=>{const n=t.value.length;try{t.setSelectionRange(n,n)}catch(_){}};
 document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('dec'))return;
- const neg=/-/.test(t.value),dig=t.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
- t.value=(neg?'-':'')+fmt((+dig||0)/100);fimCursor(t)},true);
+ const dig=t.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+ t.value=fmt((+dig||0)/100);fimCursor(t)},true);
 document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec'))setTimeout(()=>fimCursor(t),0)});
 document.addEventListener('click',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec'))fimCursor(t)},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.modal)closeModal()});
