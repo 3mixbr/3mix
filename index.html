@@ -635,7 +635,7 @@ async function rodar(fn,okMsg){UI.busy=true;document.body.style.cursor='progress
 /* foto enviada pelo formulário vai para o Storage (bucket produtos ou banners) */
 async function subirFoto(dataUrl,bucket,base){const blob=await (await fetch(dataUrl)).blob();const png=blob.type==='image/png';
  const nome=`${String(base||'foto').replace(/[^A-Za-z0-9_-]/g,'')}-${Date.now()}.${png?'png':'jpg'}`;
- const {error}=await sb.storage.from(bucket).upload(nome,blob,{contentType:png?'image/png':'image/jpeg',upsert:true});if(error)throw error;return nome}
+ const {error}=await sb.storage.from(bucket).upload(nome,blob,{contentType:png?'image/png':'image/jpeg',upsert:false});if(error)throw new Error('Foto não enviada: '+msgErro(error));return nome}
 const MAXADM=3, PERFIL={adm:'Administrador',vend:'Vendedor'};
 /* log do sistema: quem fez o quê e quando */
 function log(a,det){const u=S.users.find(x=>x.id===UI.user);if(!u)return;S.log.push({t:new Date().toISOString(),u:u.nome,a,d:det||''});sb.rpc('registrar_log',{p_acao:a,p_detalhe:det||''}).then(()=>{},()=>{})}
@@ -1552,7 +1552,13 @@ document.addEventListener('change',e=>{
  if(d.f==='familia'||d.f==='foto'){$('#fPrev').innerHTML=foto(UI.draft)}
  if(t.id==='fFoto'&&t.files&&t.files[0]){lerFoto(t.files[0],900,true).then(u=>{UI.draft.foto=u;$('#f-foto').value='';$('#fPrev').innerHTML=foto(UI.draft)});return}
 });
-document.addEventListener('focusout',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec')&&t.value.trim()!=='')t.value=fmt(num(t.value))});
+/* campos de valor e %: digitação da direita para a esquerda, sempre com 2 casas (1 → 0,01 · 1050 → 10,50) */
+const fimCursor=t=>{const n=t.value.length;try{t.setSelectionRange(n,n)}catch(_){}};
+document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('dec'))return;
+ const neg=/-/.test(t.value),dig=t.value.replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+ t.value=(neg?'-':'')+fmt((+dig||0)/100);fimCursor(t)},true);
+document.addEventListener('focusin',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec'))setTimeout(()=>fimCursor(t),0)});
+document.addEventListener('click',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec'))fimCursor(t)},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.modal)closeModal()});
 /* formulários de login, cadastro e recuperação */
 document.addEventListener('submit',async e=>{
