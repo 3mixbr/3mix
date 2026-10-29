@@ -408,6 +408,11 @@ body:has(.shell.store){background:#fff}
 .sc-pr{margin:8px 0 12px;font-size:16px;font-weight:800}
 .sc-pr .acc{width:auto;min-width:0;gap:5px;justify-content:flex-start}
 .sc-pr .acc i{color:#000;font-weight:800}
+.sc-pr{margin-bottom:0}.sc-vs{display:block;font-size:11px;font-weight:600;color:var(--s-mut);margin-top:2px}
+.sc-pz{font-size:12px;color:var(--s-mut);margin:4px 0 12px}.sc-pz .acc{width:auto;min-width:0;gap:3px}
+.pcomp{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px}
+.pc-t{font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.pc3{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:end}.pc-l{font-weight:700;font-size:13px;padding-bottom:10px}
 .sh-add{margin-top:auto;border:1px solid #000;background:#000;color:#fff;padding:11px;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;border-radius:2px}
 .sh-add:hover:not(:disabled){background:#fff;color:#000}
 .sh-add:disabled{background:#fff;color:#999;border-color:#ddd;cursor:default}
@@ -560,6 +565,7 @@ const ICON={
  inventario:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11l2 2 4-4M9 17h6"/>',
  log:'<path d="M4 6h16M4 12h9M4 18h6"/><circle cx="17.5" cy="16.5" r="3.5"/><path d="M17.5 15v1.6l1 .8"/>',
  busca:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+ fundo:'<path d="M4 10h16M5 10V19M9.5 10v9M14.5 10v9M19 10v9M3 20h18M12 3l9 5H3z"/>',
  mais:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
  fechar:'<path d="M6 6l12 12M18 6L6 18"/>',
  whats:'<path d="M4 20l1.3-3.8A8 8 0 1 1 8.2 19z"/><path d="M9.2 8.6c-.6.4-.8 1.2-.5 2.1.7 2 2.3 3.6 4.3 4.3.9.3 1.7.1 2.1-.5l-1.6-1.2-1 .6a4.6 4.6 0 0 1-2.1-2.1l.6-1-1.2-1.6z"/>',
@@ -595,7 +601,7 @@ const foto=p=>`<span class="bt">${bottle(FAM[p.familia]||'#7d6a95')}</span>`+(p.
 const SB_KEY='sb_publishable_Ga8cw6XuYu4ssHp-F5EvjQ_FgWiPugT';
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const VAZIO=()=>({prods:[],vend:[],vendas:[],compras:[],estV:{},kits:[],carts:{},socios:[],taxas:{pix:0,debito:0,credito:0,parcelado:0,dinheiro:0,link:0},
- niveis:[{nome:'Bronze',ate:1e12,bonus:0}],despesas:0,yampi:{alias:'3mix'},users:[],log:[],inventarios:[],banners:[],rank:null,pix3mix:'',whats3mix:''});
+ niveis:[{nome:'Bronze',ate:1e12,bonus:0}],fundo:[],despesas:0,yampi:{alias:'3mix'},users:[],log:[],inventarios:[],banners:[],rank:null,pix3mix:'',whats3mix:''});
 let S=VAZIO();
 const CARTK='3mix-carrinho';
 function carregaCarts(){try{S.carts=JSON.parse(localStorage.getItem(CARTK))||{}}catch(e){S.carts={}}}
@@ -605,7 +611,7 @@ function aplicaDados(d){const carts=S.carts;S={...VAZIO(),...(d||{}),carts};
  ['prods','vend','vendas','kits','compras','users','log','inventarios','banners'].forEach(k=>S[k]=S[k]||[]);S.estV=S.estV||{};
  for(const vid in S.carts)for(const pid in S.carts[vid])if(!S.prods.some(p=>p.id===pid))delete S.carts[vid][pid];
  for(const k in _nv)delete _nv[k];}
-async function sync(){const {data,error}=await sb.rpc('dados');if(error)throw error;aplicaDados(data)}
+async function sync(){const [{data,error},f]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em')]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[]}
 async function syncLoja(){const {data,error}=await sb.rpc('loja_publica',{p_slug:UI.slug});if(error)throw error;if(data)aplicaDados(data)}
 const msgErro=e=>String((e&&(e.message||e.error_description||e.error))||e||'Erro').replace(/^.*?ERROR:\s*/,'');
 async function rpc(nome,args){const {data,error}=await sb.rpc(nome,args);if(error)throw error;return data}
@@ -641,6 +647,13 @@ const addEV=(vid,pid,q)=>{S.estV[vid]=S.estV[vid]||{};S.estV[vid][pid]=Math.max(
 const emRev=pid=>Object.values(S.estV).reduce((a,o)=>a+(o[pid]||0),0);
 const maosV=vid=>Object.values(S.estV[vid]||{}).reduce((a,b)=>a+b,0);
 const precoRev=(p,vid)=>Math.round(p.preco*(1-(p.comissao+nivelDe(vid,iso(today)).bonus)/100)*100)/100;
+/* composição do preço: custo + frete (%) = custo final; markup sobre o custo final.
+   Preço a prazo (preco) vale para crédito, parcelado e link; preço à vista (precoVista) para Pix, dinheiro e débito. */
+const VISTA=['pix','dinheiro','debito'];
+const custoFinal=p=>Math.round((+p.custo||0)*(1+(+p.frete||0)/100)*100)/100;
+const pVista=p=>(+p.precoVista>0?+p.precoVista:+p.preco);
+const precoPag=(p,pag)=>VISTA.includes(pag)?pVista(p):+p.preco;
+const mkp=(preco,cf)=>cf>0?(preco/cf-1)*100:0;
 const kitVal=k=>k.itens.reduce((a,i)=>a+i.preco*i.qtd,0);
 /* endereço da loja de cada vendedor: 3mix.com.br/nome-do-vendedor */
 const DOMINIO='3mix.com.br';
@@ -649,7 +662,7 @@ const slugV=v=>v.slug||v.nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCas
 const BASE=(location.protocol==='https:'&&(location.hostname.endsWith('.vercel.app')||location.hostname.endsWith(DOMINIO)))?location.origin:'https://'+DOMINIO;
 const lojaLink=vid=>{const v=vend(vid);return `${BASE}/${v?slugV(v):vid}`};
 const msgGrupo=v=>{const its=S.prods.filter(p=>eV(v.id,p.id)>0);
- return `✨ *3mix Perfumes* — pronta entrega com ${v.nome.split(' ')[0]}\n\n${its.slice(0,6).map(p=>`• ${p.nome} (${p.ml} ml) — R$ ${fmt(p.preco)}`).join('\n')}${its.length>6?`\n…e mais ${its.length-6} fragrâncias`:''}\n\n🛍️ Veja as fotos e faça seu pedido:\n${lojaLink(v.id)}`};
+ return `✨ *3mix Perfumes* — pronta entrega com ${v.nome.split(' ')[0]}\n\n${its.slice(0,6).map(p=>`• ${p.nome} (${p.ml} ml) — R$ ${fmt(pVista(p))}${pVista(p)<p.preco?' à vista':''}`).join('\n')}${its.length>6?`\n…e mais ${its.length-6} fragrâncias`:''}\n\n🛍️ Veja as fotos e faça seu pedido:\n${lojaLink(v.id)}`};
 function copiar(t,ok){navigator.clipboard?.writeText(t).then(()=>toast(ok),()=>toast('Não foi possível copiar'))}
 
 /* ===== cálculos ===== */
@@ -755,9 +768,10 @@ function vPainel(){
  <div class="two">
   <section class="panel"><div class="panel-h"><h2>Faturamento × lucro por dia</h2></div>${chartDaily(S.vendas)}</section>
   <section class="panel"><div class="panel-h"><h2>Divisão do lucro</h2><span class="sp"></span><span class="note">após despesas fixas</span></div>
-   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Valor (R$)</th></tr></thead><tbody>
-   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${s.pct}%</td><td class="n">${R(lucMes*s.pct/100)}</td></tr>`).join('')}
-   <tr><td class="note">Despesas fixas (${UI.per}d)</td><td></td><td class="n">${R(-S.despesas*UI.per/30)}</td></tr></tbody></table>
+   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n hide-sm">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
+   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${s.pct}%</td><td class="n hide-sm">${+s.fundo||0}%</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
+   <tr><td class="note">Despesas fixas (${UI.per}d)</td><td></td><td class="hide-sm"></td><td class="n">${R(-S.despesas*UI.per/30)}</td><td></td></tr></tbody></table>
+   <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${fundoPct()}% do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
    <div class="row"><div class="grow"><div class="t">Kits pagos por revendedores</div><div class="s">${S.kits.filter(k=>k.status==='pago'&&inPer(k)).length} kits · ${U(S.kits.filter(k=>k.status==='pago'&&inPer(k)).reduce((a,k)=>a+k.itens.reduce((s,i)=>s+i.qtd,0),0))} no período</div></div><b>${R(S.kits.filter(k=>k.status==='pago'&&inPer(k)).reduce((a,k)=>a+kitVal(k),0))}</b></div>
    <div class="row"><div class="grow"><div class="t">A receber de clientes</div><div class="s">${rec.length} vendas em aberto</div></div><b>${R(recT)}</b></div>
   </section>
@@ -784,10 +798,10 @@ function vProdutos(){
   body=`<div class="cat">${rows.map(p=>card(p,cl[p.id]?.cl,true)).join('')}</div>${ctl}`;
  }else if(UI.tab==='estoque'){
   const {rows,ctl}=page('est',A,9);
-  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>ABC</th><th>Produto</th><th class="n">Custo (R$)</th><th class="n">Preço sug. (R$)</th><th class="n">Margem (%)</th><th class="n">Comissão (%)</th><th class="n hide-sm">Vendido ${UI.per}d (R$)</th><th class="n hide-sm">Qtd ${UI.per}d (un)</th><th class="n">Central (un)</th><th class="n hide-sm">Revend. (un)</th><th class="hide-sm">Última compra</th><th class="n hide-sm">Cobertura (dias)</th></tr></thead><tbody>
-  ${rows.map(r=>{const p=r.p;const mg=p.preco?(p.preco-p.custo-p.preco*p.comissao/100)/p.preco*100:0;const cob=r.un?Math.round(p.estoque/(r.un/UI.per)):'—';
+  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>ABC</th><th>Produto</th><th class="n">Custo final (R$)</th><th class="n">A prazo (R$)</th><th class="n hide-sm">À vista (R$)</th><th class="n">Margem (%)</th><th class="n">Comissão (%)</th><th class="n hide-sm">Vendido ${UI.per}d (R$)</th><th class="n hide-sm">Qtd ${UI.per}d (un)</th><th class="n">Central (un)</th><th class="n hide-sm">Revend. (un)</th><th class="hide-sm">Última compra</th><th class="n hide-sm">Cobertura (dias)</th></tr></thead><tbody>
+  ${rows.map(r=>{const p=r.p;const mg=p.preco?(p.preco-custoFinal(p)-p.preco*p.comissao/100)/p.preco*100:0;const cob=r.un?Math.round(p.estoque/(r.un/UI.per)):'—';
    return `<tr><td><span class="chip ${r.cl}">${r.cl}</span></td><td><button class="btn ghost sm" style="padding:0;border:0" data-edit="${p.id}"><b>${p.code}</b>&nbsp;${esc(p.nome)}</button></td>
-   <td class="n">${R(p.custo)}</td><td class="n">${R(p.preco)}</td><td class="n">${P(mg)}</td><td class="n">${P(p.comissao)}</td><td class="n hide-sm">${R(r.rec)}</td><td class="n hide-sm">${U(r.un)}</td>
+   <td class="n">${R(custoFinal(p))}</td><td class="n">${R(p.preco)}</td><td class="n hide-sm">${R(pVista(p))}</td><td class="n">${P(mg)}</td><td class="n">${P(p.comissao)}</td><td class="n hide-sm">${R(r.rec)}</td><td class="n hide-sm">${U(r.un)}</td>
    <td class="n"><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></td><td class="n hide-sm">${U(emRev(p.id))}</td><td class="hide-sm">${br(p.ultimaCompra)}</td><td class="n hide-sm">${cob}</td></tr>`}).join('')}
   </tbody></table></div>${ctl}<p class="note">Margem = preço − custo − comissão base, antes de taxas de pagamento. Cobertura = estoque ÷ média diária de saída.</p></section>`;
  }else{
@@ -804,7 +818,7 @@ function card(p,cl,admin,qty){
  const ph=foto(p);
  return `<article class="card"><div class="ph">${ph}${cl?`<span class="chip ${cl}">Curva ${cl}</span>`:''}${trophy(champRank()[p.id])}</div><div class="bd">
  <span class="code">${p.code} · ${p.genero.toUpperCase()} · ${p.ml} ML</span><span class="nm">${esc(p.nome)}</span><span class="ds">${esc(p.descricao)}</span>
- <div class="pr"><b>${Ri(p.preco)}</b><span class="chip ${q<=0?'bad':q<=lim?'warn':'good'}">${q} un</span></div></div>
+ <div class="pr"><b>${Ri(p.preco)}</b><span class="chip ${q<=0?'bad':q<=lim?'warn':'good'}">${q} un</span></div>${pVista(p)<p.preco?`<span class="note">à vista ${Ri(pVista(p))}</span>`:''}</div>
  <div class="ft">${admin?`<button class="btn sm" data-edit="${p.id}">Editar</button>`:`<button class="btn pri sm" data-vender="${p.id}" ${q<=0?'disabled':''}>Vender</button>`}<button class="btn sm" data-share="${p.id}" title="Copiar texto para o WhatsApp">Copiar</button></div></article>`;
 }
 
@@ -855,10 +869,10 @@ function vSocios(){
    ${[['custo','Custo do frasco (R$)'],['preco','Preço sugerido (R$)'],['com','Comissão média (%)'],['taxa','Taxa média de pagamento (%)'],['un','Frascos por mês (un)'],['desp','Despesas fixas mês (R$)']].map(([k,l])=>`<label class="f">${l}<input id="sim-${k}" data-sim="${k}" type="number" step="0.1" value="${m[k]}"></label>`).join('')}
   </div>
   <div class="calc"><div>Lucro por frasco<b>${Ri(porUn)}</b></div><div>Lucro do mês<b>${Ri(luc)}</b></div><div>Ponto de equilíbrio<b>${pe} un/mês</b></div></div>
-  <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Lucro mês (R$)</th></tr></thead><tbody>
-  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="number" value="${s.pct}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(luc*s.pct/100)}</td></tr>`).join('')}
+  <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe mês (R$)</th></tr></thead><tbody>
+  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="number" value="${s.pct}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="number" min="0" step="0.5" value="${+s.fundo||0}" title="Quanto da parte deste sócio fica no fundo" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(luc*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
   </tbody></table>
-  <p class="note">As despesas fixas daqui também entram no Painel. Soma das participações: ${S.socios.reduce((a,s)=>a+ +s.pct,0)}%.</p>
+  <p class="note">As despesas fixas daqui também entram no Painel. Soma das participações: ${S.socios.reduce((a,s)=>a+ +s.pct,0)}%. <b>Fundo (%)</b>: quanto da parte de cada sócio fica no fundo de investimento da 3mix (ex.: 33% de participação com 1% no fundo = recebe 32%).</p>
  </section>
  <section class="panel"><div class="panel-h"><h2>Onde está o dinheiro</h2></div>
   <div class="list">
@@ -978,6 +992,63 @@ function vInventario(){
  </tbody></table></div>${hc}`:'<p class="empty">Nenhum inventário aplicado ainda.</p>'}</section>`;
 }
 
+/* ===== fundo de investimento (só administrador) =====
+   Cada sócio escolhe quanto da parte dele no lucro fica na empresa. No fechamento do mês o valor é lançado no fundo.
+   Aporte e uso são lançamentos manuais. Nada é apagado: erro se corrige com estorno. */
+const fundoSaldo=()=>(S.fundo||[]).reduce((a,m)=>a+ +m.valor,0);
+const fundoPct=()=>S.socios.reduce((a,s)=>a+(+s.fundo||0),0);
+const mesNome=m=>{const [y,mm]=m.split('-');return new Date(+y,+mm-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})};
+function lucroMes(m){const L=S.vendas.filter(v=>v.data.slice(0,7)===m);const t=sum(L);return {luc:t.luc-S.despesas,rec:t.rec,un:t.un,n:L.length}}
+const mesFechado=m=>(S.fundo||[]).some(x=>x.tipo==='reinvestimento'&&x.mes===m&&!x.estornado);
+const FT={reinvestimento:'Reinvestimento',aporte:'Aporte',uso:'Uso / saída',estorno:'Estorno'};
+function vFundo(){
+ const F=[...(S.fundo||[])].reverse();const {rows,ctl}=page('fundo',F,10);
+ const meses=[];{const d=new Date(today.getFullYear(),today.getMonth(),1);for(let i=1;i<=12;i++){const x=new Date(d.getFullYear(),d.getMonth()-i,1);meses.push(x.toISOString().slice(0,7))}}
+ const M=UI.fmes&&meses.includes(UI.fmes)?UI.fmes:meses[0];UI.fmes=M;
+ const lm=lucroMes(M),fech=mesFechado(M),base=Math.max(0,lm.luc);
+ const ent=F.filter(m=>+m.valor>0&&m.tipo!=='estorno').reduce((a,m)=>a+ +m.valor,0),sai=F.filter(m=>+m.valor<0&&m.tipo!=='estorno').reduce((a,m)=>a- +m.valor,0);
+ const porSocio=S.socios.map(s=>({s,v:F.filter(m=>m.socio===s.nome&&m.tipo!=='uso').reduce((a,m)=>a+ +m.valor,0)}));
+ const atual=today.toISOString().slice(0,7),prev=Math.max(0,lucroMes(atual).luc)*fundoPct()/100;
+ return `<div class="head"><div><h1>Fundo de investimento</h1><p class="sub">Parte do lucro que os sócios deixam na 3mix · hoje ${fundoPct()}% do lucro líquido</p></div><div class="sp"></div><button class="btn pri" data-fmov="aporte">+ Aporte</button><button class="btn" data-fmov="uso">Registrar uso</button></div>
+ <div class="grid-kpi" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+  <div class="kpi hl"><span class="l">Saldo do fundo</span><span class="v">${R(fundoSaldo())}</span><span class="d">${F.length} lançamentos</span></div>
+  <div class="kpi"><span class="l">Entrou</span><span class="v">${R(ent)}</span><span class="d">reinvestimentos e aportes</span></div>
+  <div class="kpi"><span class="l">Saiu</span><span class="v">${R(sai)}</span><span class="d">usos registrados</span></div>
+  <div class="kpi"><span class="l">Previsão deste mês</span><span class="v">${R(prev)}</span><span class="d">se o mês fechasse hoje</span></div>
+ </div>
+ <div class="two">
+ <section class="panel"><div class="panel-h"><h2>Fechamento do mês</h2><span class="sp"></span>${fech?'<span class="chip good">fechado</span>':'<span class="chip warn">aberto</span>'}</div>
+  <label class="f">Mês<select id="f-mes" data-fmes>${meses.map(m=>`<option value="${m}" ${m===M?'selected':''}>${mesNome(m)}${mesFechado(m)?' · fechado':''}</option>`).join('')}</select></label>
+  <div class="calc"><div>Vendido<b>${Ri(lm.rec)}</b></div><div>Frascos<b>${lm.un} un</b></div><div>Lucro líquido<b>${Ri(lm.luc)}</b></div></div>
+  <table><thead><tr><th>Sócio</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
+  ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${s.pct}%</td><td class="n">${+s.fundo||0}%</td><td class="n">${R(base*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(base*(+s.fundo||0)/100)}</td></tr>`).join('')}
+  <tr><td><b>Total</b></td><td class="n">${S.socios.reduce((a,s)=>a+ +s.pct,0)}%</td><td class="n">${fundoPct()}%</td><td class="n">${R(base*(S.socios.reduce((a,s)=>a+ +s.pct,0)-fundoPct())/100)}</td><td class="n"><b>${R(base*fundoPct()/100)}</b></td></tr></tbody></table>
+  ${lm.luc<=0?'<p class="note">Mês sem lucro: nada vai para o fundo.</p>':''}
+  <div class="btnrow" style="justify-content:flex-end">${fech?'<span class="note">Para refazer, estorne os lançamentos deste mês no extrato.</span>':`<button class="btn pri" data-ffechar ${lm.luc<=0||!fundoPct()?'disabled':''}>Fechar ${mesNome(M)} e lançar no fundo</button>`}</div>
+  <p class="note">A % de cada sócio é ajustada em Administração → Simulador mensal → Fundo (%).</p>
+ </section>
+ <section class="panel"><div class="panel-h"><h2>Quanto cada sócio deixou</h2></div>
+  <table><thead><tr><th>Sócio</th><th class="n">No fundo (R$)</th><th class="n">Part. (%)</th></tr></thead><tbody>
+  ${porSocio.map(r=>`<tr><td>${esc(r.s.nome)}</td><td class="n">${R(r.v)}</td><td class="n">${P(ent?r.v/Math.max(.01,porSocio.reduce((a,x)=>a+x.v,0))*100:0)}</td></tr>`).join('')}</tbody></table>
+  <p class="note">Soma reinvestimentos e aportes de cada sócio, já descontados os estornos.</p>
+ </section></div>
+ <section class="panel"><div class="panel-h"><h2>Extrato</h2></div>
+  ${F.length?`<div class="tbl"><table><thead><tr><th>Data</th><th>Tipo</th><th class="hide-sm">Sócio</th><th>Descrição</th><th class="n">Entrada (R$)</th><th class="n">Saída (R$)</th><th></th></tr></thead><tbody>
+  ${rows.map(m=>`<tr style="${m.estornado?'opacity:.5':''}"><td>${br(m.data)}</td><td>${FT[m.tipo]}</td><td class="hide-sm">${esc(m.socio||'3mix')}</td><td class="note">${esc(m.descricao)}</td>
+   <td class="n">${+m.valor>0?R(+m.valor):''}</td><td class="n">${+m.valor<0?R(-m.valor):''}</td>
+   <td class="n">${m.estornado?'<span class="note">estornado</span>':m.tipo==='estorno'?'':`<button class="btn sm" data-festorno="${m.id}">Estornar</button>`}</td></tr>`).join('')}
+  </tbody></table></div>${ctl}`:'<p class="empty">Nenhum lançamento ainda. Defina o Fundo (%) de cada sócio em Administração e feche o mês.</p>'}
+ </section>`;
+}
+function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(curUser()?.nome||''):'',valor:'',data:iso(today),descricao:''};
+ modal(`<h3>${tipo==='aporte'?'Aporte no fundo':'Uso do fundo'}</h3><div class="fg">
+ <label class="f full">${tipo==='aporte'?'Quem aportou':'Responsável'}<select id="fm-socio" data-fm="socio"><option value="">3mix</option>${S.socios.map(s=>`<option ${s.nome===UI.draft.socio?'selected':''}>${esc(s.nome)}</option>`).join('')}</select></label>
+ <label class="f">Valor (R$)<input id="fm-valor" data-fm="valor" type="number" step="0.01" min="0" inputmode="decimal"></label>
+ <label class="f">Data<input id="fm-data" data-fm="data" type="date" value="${UI.draft.data}"></label>
+ <label class="f full">Descrição<input id="fm-desc" data-fm="descricao" placeholder="${tipo==='aporte'?'ex.: capital para compra de estoque':'ex.: compra de frascos, marketing, embalagens'}"></label></div>
+ <p class="note">${tipo==='aporte'?'Dinheiro novo colocado pelo sócio no fundo da 3mix.':'Saída de dinheiro do fundo. Fica no extrato e no log.'}</p>
+ <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-fmsave>Registrar</button></div>`)}
+
 /* ===== log do sistema (só administrador) ===== */
 function vLog(){
  const F=UI.lgf||(UI.lgf={u:'',a:''});const all=[...S.log].reverse();
@@ -1022,7 +1093,7 @@ function vLoja(){
  const q=f.q.trim().toLowerCase();
  const its=disp.filter(p=>(!f.g||(f.g==='top'?ch[p.id]:p.genero===f.g))&&(!q||(p.nome+' '+p.familia+' '+p.descricao+' '+(GEN[p.genero]||'')).toLowerCase().includes(q)));
  const {rows,ctl}=page('loja'+v.id+f.g+q,its,8);
- const un=Object.values(cart).reduce((a,b)=>a+b,0),tot=Object.entries(cart).reduce((a,[pid,n])=>a+prod(pid).preco*n,0);
+ const un=Object.values(cart).reduce((a,b)=>a+b,0),tot=Object.entries(cart).reduce((a,[pid,n])=>a+pVista(prod(pid))*n,0);
  const first=esc(v.nome.split(' ')[0]),cid=esc(v.cidade||'sua cidade'),fone=(v.tel||'').replace(/\D/g,'');
  const tabs=[['','Todos'],...(Object.keys(ch).length?[['top','Mais vendidos']]:[]),['Fem','Feminino'],['Masc','Masculino'],['Unissex','Unissex'],['Infantil','Infantil']].filter(([k])=>!k||k==='top'||disp.some(p=>p.genero===k));
  const duo=[['Fem','Para ela','Florais, doces e marcantes'],['Masc','Para ele','Amadeirados, frescos e intensos']].map(([g,t,s])=>[g,t,s,disp.find(p=>p.genero===g)]).filter(x=>x[3]);
@@ -1071,27 +1142,28 @@ setInterval(()=>{const c=document.querySelector('[data-car]');if(!c||UI.modal||c
 {let x0=null;document.addEventListener('touchstart',e=>{x0=e.target.closest('[data-car]')?e.touches[0].clientX:null},{passive:true});
  document.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40)carGo(dx<0?1:-1)},{passive:true})}
 const qtyCtl=(pid,q,max)=>`<div class="qty"><button data-cart="${pid}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-cart="${pid}" data-d="1" aria-label="Mais um" ${q>=max?'disabled':''}>+</button></div>`;
+const prLoja=p=>pVista(p)<p.preco?`<div class="sc-pr">${R(pVista(p))}<small class="sc-vs">à vista no Pix</small></div><div class="sc-pz">ou ${Ri(p.preco)} a prazo</div>`:`<div class="sc-pr">${R(p.preco)}</div>`;
 function shopCard(p,vid,q,r){const max=eV(vid,p.id);
  return `<article class="sc"><button class="sc-ph" data-qv="${p.id}" aria-label="Ver ${esc(p.nome)}">${palco(p)}${r?'<span class="sc-tag">Mais vendido</span>':''}${max>0&&max<=2?'<span class="sc-tag lo">Últimas unidades</span>':''}</button>
  <div class="sc-bd"><span class="sc-brand">3MIX</span><button class="sc-nm" data-qv="${p.id}">${esc(p.nome)}</button><span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>
- <div class="sc-pr">${R(p.preco)}</div>
+ ${prLoja(p)}
  ${q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1" ${max<=0?'disabled':''}>${max>0?'Adicionar<span class="hide-sm">&nbsp;à sacola</span>':'Esgotado'}</button>`}</div></article>`;
 }
 function mQV(pid){UI.qv=pid;UI.ck=false;UI.msize='lg';drawQV()}
 function drawQV(){const p=prod(UI.qv),v=vend(UI.vid),q=UI.cart[p.id]||0,max=eV(v.id,p.id);
  UI.modal=`<div class="qv">${palco(p,true)}<div class="qv-t"><span class="sc-brand">3MIX</span><h3>${esc(p.nome)}</h3>
- <span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>${p.descricao?`<p class="qv-ds">${esc(p.descricao)}</p>`:''}<div class="sc-pr">${R(p.preco)}</div>
+ <span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>${p.descricao?`<p class="qv-ds">${esc(p.descricao)}</p>`:''}${prLoja(p)}
  <p class="note">${max>0?`${max} un a pronta entrega com ${esc(v.nome.split(' ')[0])}`:'Esgotado no momento'}</p>
  ${q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1" ${max<=0?'disabled':''}>Adicionar à sacola</button>`}</div></div>
  <div class="actions"><button class="btn ghost" data-close>Continuar vendo</button>${Object.keys(UI.cart).length?'<button class="btn pri" data-checkout>Ver sacola</button>':''}</div>`;
  render();
 }
-const CKP=()=>UI.publico?{...(yLinkOk(Object.keys(UI.cart||{}).map(pid=>({pid,qtd:1})))?{link:'Pagar online (Pix, cartão ou boleto)'}:{}),pix:'Pix com o vendedor',dinheiro:'Dinheiro ou cartão na entrega'}:{pix:'Pix',debito:'Débito',credito:'Crédito',dinheiro:'Dinheiro',link:'Link Yampi'};
+const CKP=()=>UI.publico?{pix:'Pix com o vendedor (à vista)',dinheiro:'Dinheiro na entrega (à vista)',...(yLinkOk(Object.keys(UI.cart||{}).map(pid=>({pid,qtd:1})))?{link:'Cartão ou boleto online (a prazo)'}:{})}:{pix:'Pix',debito:'Débito',credito:'Crédito',dinheiro:'Dinheiro',link:'Link Yampi'};
 function mCheckout(){UI.qv=null;UI.ck=true;UI.msize='md';UI.draft={cliente:'',tel:'',pag:'pix'};drawCheckout()}
 function drawCheckout(){
- const d=UI.draft,cp=CKP(),tot=Object.entries(UI.cart).reduce((a,[pid,q])=>a+prod(pid).preco*q,0);
+ const d=UI.draft,cp=CKP(),pg=x=>precoPag(prod(x),d.pag),tot=Object.entries(UI.cart).reduce((a,[pid,q])=>a+pg(pid)*q,0);
  UI.modal=`<h3>${UI.publico?'Sua sacola':'Registrar venda'}</h3>
- <div class="list">${Object.entries(UI.cart).map(([pid,q])=>{const p=prod(pid);return `<div class="row"><div class="grow"><div class="t">${esc(p.nome)}</div><div class="s">${Ri(p.preco)} por un</div></div>${qtyCtl(pid,q,eV(UI.vid,pid))}<span style="min-width:110px">${R(p.preco*q)}</span></div>`}).join('')}
+ <div class="list">${Object.entries(UI.cart).map(([pid,q])=>{const p=prod(pid);return `<div class="row"><div class="grow"><div class="t">${esc(p.nome)}</div><div class="s">${Ri(pg(pid))} por un · ${VISTA.includes(d.pag)?'à vista':'a prazo'}</div></div>${qtyCtl(pid,q,eV(UI.vid,pid))}<span style="min-width:110px">${R(pg(pid)*q)}</span></div>`}).join('')}
  <div class="row"><div class="grow"><div class="t">Total</div></div><span style="min-width:110px"><b>${R(tot)}</b></span></div></div>
  <div class="fg"><label class="f">${UI.publico?'Seu nome':'Nome do cliente'}<input id="ck-nome" data-ck="cliente" value="${esc(d.cliente)}"></label><label class="f">WhatsApp${UI.publico?'':' do cliente'}<input id="ck-tel" data-ck="tel" inputmode="tel" value="${esc(d.tel)}"></label></div>
  <div><div class="note" style="margin-bottom:6px;font-weight:700">${UI.publico?'Como quer pagar?':'Forma de pagamento'}</div><div class="pay">${Object.keys(cp).map(k=>`<button data-ckpay="${k}" aria-pressed="${d.pag===k}">${cp[k]}</button>`).join('')}</div></div>
@@ -1194,7 +1266,7 @@ function closeModal(){UI.modal=null;UI.msize=null;UI.cartOpen=false;UI.qv=null;U
 const proxCod=()=>'N'+String(S.prods.reduce((m,p)=>Math.max(m,+(p.code.match(/\d+/)||[0])[0]),0)+1).padStart(2,'0');
 const movProd=pid=>S.vendas.some(v=>v.itens.some(i=>i.pid===pid))||S.kits.some(k=>k.itens.some(i=>i.pid===pid))||S.compras.some(c=>c.pid===pid)||emRev(pid)>0;
 function mProduto(id){UI.msize='lg';UI.delArm=false;
- const p=id?prod(id):{id:'',code:proxCod(),nome:'',genero:'Unissex',familia:'Floral',descricao:'',ml:100,custo:0,preco:0,comissao:25,estoque:0,min:8,ref:'',foto:null};
+ const p=id?prod(id):{id:'',code:proxCod(),nome:'',genero:'Unissex',familia:'Floral',descricao:'',ml:100,custo:0,frete:0,preco:0,precoVista:0,comissao:25,estoque:0,min:8,ref:'',foto:null};
  UI.draft={...p};
  modal(`<h3>${id?'Editar produto':'Novo produto'}</h3>
  <div style="display:flex;gap:12px;align-items:center"><div class="card" style="width:84px;flex:none"><div class="ph" id="fPrev">${foto(p)}</div></div>
@@ -1207,8 +1279,15 @@ function mProduto(id){UI.msize='lg';UI.delArm=false;
   <label class="f">Gênero<select id="f-genero" data-f="genero">${['Fem','Masc','Unissex','Infantil'].map(g=>`<option ${g===p.genero?'selected':''}>${g}</option>`).join('')}</select></label>
   <label class="f">Família olfativa<select id="f-familia" data-f="familia">${Object.keys(FAM).map(g=>`<option ${g===p.familia?'selected':''}>${g}</option>`).join('')}</select></label>
   <label class="f full">Descrição curta<textarea id="f-descricao" data-f="descricao" rows="2">${esc(p.descricao)}</textarea></label>
-  <label class="f">Custo (R$)<input id="f-custo" data-f="custo" type="number" step="0.01" value="${p.custo}"></label>
-  <label class="f">Preço sugerido (R$)<input id="f-preco" data-f="preco" type="number" step="0.01" value="${p.preco}"></label>
+  <div class="full pcomp"><div class="pc-t">Composição do preço</div>
+   <div class="fg pc3"><label class="f">Custo (R$)<input id="f-custo" data-f="custo" type="number" step="0.01" min="0" value="${p.custo}"></label>
+   <label class="f">Frete (%)<input id="f-frete" data-f="frete" type="number" step="0.1" min="0" value="${+p.frete||0}"></label>
+   <label class="f">Custo final (R$)<input id="f-cf" disabled value="${fmt(custoFinal(p))}"></label></div>
+   <div class="fg pc3"><span class="pc-l">A prazo</span><label class="f">Markup (%)<input id="f-mkp" data-mk="preco" type="number" step="0.01" value="${mkp(+p.preco,custoFinal(p)).toFixed(2)}"></label>
+   <label class="f">Preço a prazo (R$)<input id="f-preco" data-f="preco" type="number" step="0.01" min="0" value="${p.preco}"></label></div>
+   <div class="fg pc3"><span class="pc-l">À vista</span><label class="f">Markup (%)<input id="f-mkv" data-mk="precoVista" type="number" step="0.01" value="${mkp(pVista(p),custoFinal(p)).toFixed(2)}"></label>
+   <label class="f">Preço à vista (R$)<input id="f-precoVista" data-f="precoVista" type="number" step="0.01" min="0" value="${pVista(p)}"></label></div>
+   <p class="note">Digite o markup e o preço se ajusta, ou digite o preço e o markup se ajusta. À vista vale para Pix, dinheiro e débito; a prazo para crédito, parcelado e link.</p></div>
   <label class="f">Comissão base (%)<input id="f-comissao" data-f="comissao" type="number" step="0.5" value="${p.comissao}"></label>
   <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
   <label class="f">Volume (ml)<input id="f-ml" data-f="ml" type="number" value="${p.ml}"></label>
@@ -1219,7 +1298,9 @@ function mProduto(id){UI.msize='lg';UI.delArm=false;
  <div class="actions">${id?`<button class="btn" data-delprod="${p.id}" style="color:var(--bad);margin-right:auto">Excluir produto</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveprod="${p.id}">Salvar produto</button></div>`);
  pCalc();
 }
-function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;const com=d.preco*d.comissao/100;const luc=d.preco-d.custo-com;
+function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;const cf=custoFinal(d),pv=pVista(d);
+ const lp=d.preco-cf-d.preco*d.comissao/100,lv=pv-cf-pv*d.comissao/100;
+ el.innerHTML=`<div>Custo final<b>${Ri(cf)}</b></div><div>Lucro a prazo<b>${Ri(lp)} · ${d.preco?(lp/d.preco*100).toFixed(0):0}%</b></div><div>Lucro à vista<b>${Ri(lv)} · ${pv?(lv/pv*100).toFixed(0):0}%</b></div>`;return;
  el.innerHTML=`<div>Markup<b>${d.custo?(d.preco/d.custo).toFixed(2):'—'}×</b></div><div>Comissão por frasco<b>${Ri(com)}</b></div><div>Lucro por frasco<b>${Ri(luc)} · ${d.preco?(luc/d.preco*100).toFixed(0):0}%</b></div>`}
 function mEntrada(pid){UI.msize='sm';
  UI.draft={pid:pid||S.prods[0].id,qtd:12,custo:(prod(pid)||S.prods[0]).custo,data:iso(today)};
@@ -1251,12 +1332,12 @@ function mVenda(){UI.msize='md';
 }
 function drawVenda(){
  const d=UI.draft;
- const v={...d,data:iso(today),itens:d.itens.map(i=>{const p=prod(i.pid);return {pid:i.pid,qtd:+i.qtd||0,preco:p.preco,custo:p.custo,com:p.comissao}})};
+ const v={...d,data:iso(today),itens:d.itens.map(i=>{const p=prod(i.pid);return {pid:i.pid,qtd:+i.qtd||0,preco:precoPag(p,d.pag),custo:custoFinal(p),com:p.comissao}})};
  const c=saleCalc(v);
  UI.modal=`<h3>Nova venda</h3><div class="fg">
  ${UI.role==='vend'?'':`<label class="f">Vendedor<select id="nv-vid" data-nv="vid">${S.vend.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${x.id===d.vid?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label>`}
  <label class="f ${UI.role==='vend'?'full':''}">Cliente<input id="nv-cli" data-nv="cliente" value="${esc(d.cliente)}" placeholder="Nome da cliente"></label></div>
- ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — ${Ri(p.preco)} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
+ ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — R$ ${fmt(precoPag(p,d.pag))} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
   <label class="f">Qtd (un)<input id="nv-q${k}" data-it="${k}" data-k="qtd" type="number" min="1" value="${i.qtd}"></label><button class="btn sm" aria-label="Remover item" data-rmit="${k}" ${d.itens.length<2?'disabled':''}>×</button></div>`).join('')}
  <button class="btn sm" data-addit style="align-self:flex-start">+ Adicionar perfume</button>
  <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${Object.keys(PAY).map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
@@ -1278,7 +1359,7 @@ function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
  if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}}
 function showAuth(k){['login','cad','rec'].forEach(x=>$({login:'#fLogin',cad:'#fCad',rec:'#fRec'}[x]).hidden=x!==k);document.querySelectorAll('.lp-erro,.lp-ok').forEach(e=>e.hidden=true)}
 function authMsg(id,t){const e=$(id);e.textContent=t;e.hidden=false}
-const navList=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['inventario','Inventário'],['acessos','Acessos'],['log','Log']]:NAVS[UI.role];
+const navList=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log']]:NAVS[UI.role];
 function render(){
  const u=curUser();const dentro=!!u||(UI.role==='loja'&&UI.publico);
  $('#login').hidden=dentro;$('.topbar').hidden=!dentro||UI.role==='loja';$('#stage').hidden=!dentro;
@@ -1290,7 +1371,7 @@ function render(){
  $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l],i)=>`<button data-view="${k}" class="${xtra&&i>=4?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
   +(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
  let h='';
- if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:()=>vVendas(),equipe:vEquipe,socios:vSocios,acessos:vAcessos,inventario:vInventario,log:vLog}[UI.view]();
+ if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:()=>vVendas(),equipe:vEquipe,socios:vSocios,acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
  else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vCatalogo,vendas:()=>vVendas(UI.vid),vender:vInicio}[UI.view]();
  $('#main').innerHTML=h;
@@ -1360,7 +1441,7 @@ document.addEventListener('click',e=>{
  if('confirmck' in d){const x=UI.draft,v=vend(UI.vid),pub=!!UI.publico;if(!x.cliente.trim()){toast(pub?'Informe seu nome':'Informe o nome do cliente');return}
   for(const pid in UI.cart)if(UI.cart[pid]>eV(v.id,pid)){toast(`${prod(pid).nome}: só ${eV(v.id,pid)} un disponível`);return}
   const its=Object.entries(UI.cart).map(([pid,q])=>({pid,qtd:q}));
-  const tot=its.reduce((a,i)=>a+prod(i.pid).preco*i.qtd,0),fone=(v.tel||'').replace(/\D/g,''),first=v.nome.split(' ')[0],cli=x.cliente.trim();
+  const tot=its.reduce((a,i)=>a+precoPag(prod(i.pid),x.pag)*i.qtd,0),fone=(v.tel||'').replace(/\D/g,''),first=v.nome.split(' ')[0],cli=x.cliente.trim();
   const resumo=its.map(i=>`• ${i.qtd}x ${prod(i.pid).nome}`).join('\n');
   if(!pub){let vid=null;
    rodar(async()=>{vid=await rpc('registrar_venda',{p_vid:v.id,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_parcelas:1,p_status:'pago',p_origem:'site',p_itens:its});UI.cart={};UI.ck=false;UI.modal=null},x.pag==='link'?'':'Venda registrada')
@@ -1381,18 +1462,25 @@ document.addEventListener('click',e=>{
  if('entrada' in d){mEntrada(d.entrada);return}
  if('vend' in d){mVend(d.vend);return}
  if('nova' in d){mVenda();return}
+ if(d.fmov){mFundoMov(d.fmov);return}
+ if('fmsave' in d){const x=UI.draft;const v=+String(x.valor).replace(',','.')||0;if(v<=0){toast('Informe o valor');return}if(!String(x.descricao).trim()){toast('Informe a descrição');return}
+  rodar(async()=>{await rpc('movimentar_fundo',{p_tipo:x.tipo,p_socio:x.socio,p_valor:v,p_data:x.data||iso(today),p_descricao:x.descricao});UI.modal=null},x.tipo==='aporte'?'Aporte registrado':'Saída registrada');return}
+ if('ffechar' in d){const M=UI.fmes,lm=lucroMes(M);if(!UI.ffArm){UI.ffArm=true;b.textContent=`Confirmar fechamento de ${mesNome(M)}?`;return}UI.ffArm=false;
+  const its=S.socios.map(s=>({socio:s.nome,pct:+s.fundo||0,valor:Math.round(Math.max(0,lm.luc)*(+s.fundo||0))/100}));
+  rodar(()=>rpc('fechar_mes',{p_mes:M,p_lucro:Math.round(lm.luc*100)/100,p_itens:its}),`${mesNome(M)} fechado · ${fmt(its.reduce((a,i)=>a+i.valor,0))} no fundo`);return}
+ if(d.festorno){if(UI.feArm!==d.festorno){UI.feArm=d.festorno;b.textContent='Confirmar?';return}UI.feArm=null;rodar(()=>rpc('estornar_fundo',{p_id:d.festorno}),'Lançamento estornado');return}
  if(d.pagar){rodar(()=>rpc('marcar_pago',{p_id:d.pagar}),'Venda marcada como paga');return}
- if(d.share){const p=prod(d.share);const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(p.preco)} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
+ if(d.share){const p=prod(d.share);const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(pVista(p))}${pVista(p)<p.preco?` à vista ou R$ ${fmt(p.preco)} a prazo`:''} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
   navigator.clipboard?.writeText(t).then(()=>toast('Texto copiado'),()=>toast('Não foi possível copiar'));return}
  if('addit' in d){UI.draft.itens.push({pid:(S.prods.find(p=>eV(UI.draft.vid,p.id)>0)||S.prods[0]).id,qtd:1});drawVenda();return}
  if(d.rmit){UI.draft.itens.splice(+d.rmit,1);drawVenda();return}
  if(d.pay){UI.draft.pag=d.pay;drawVenda();return}
- if('saveprod' in d){const x=UI.draft;['custo','preco','comissao','min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
+ if('saveprod' in d){const x=UI.draft;['custo','frete','preco','precoVista','comissao','min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
   rodar(async()=>{let foto=x.foto||'';if(foto.startsWith('data:'))foto=await subirFoto(foto,'produtos',x.code);
-   const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,preco:x.preco,comissao:x.comissao,
+   const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,preco:x.preco,preco_vista:+x.precoVista||0,comissao:x.comissao,
     estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:x.sku||''};
    if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',row);
-   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · preço R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)}`);UI.modal=null},'Produto salvo');return}
+   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · a prazo R$ ${fmt(x.preco)} · à vista R$ ${fmt(pVista(x))} · custo R$ ${fmt(x.custo)} + frete ${x.frete}%`);UI.modal=null},'Produto salvo');return}
  if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=+x.custo||0;if(q<=0){toast('Quantidade deve ser maior que zero');return}
   rodar(async()=>{await rpc('registrar_entrada',{p_pid:x.pid,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},`Entrada de ${q} un registrada`);return}
  if('savevend' in d){const nome=$('#vd-nome').value.trim();if(!nome){toast('Informe o nome');return}
@@ -1412,16 +1500,20 @@ document.addEventListener('click',e=>{
   const need={};x.itens.forEach(i=>need[i.pid]=(need[i.pid]||0)+(+i.qtd||0));
   for(const pid in need){if(need[pid]>eV(x.vid,pid)){toast(`${prod(pid).nome}: só ${eV(x.vid,pid)} un em mãos`);return}}
   const its=Object.entries(need).filter(([,q])=>q>0).map(([pid,qtd])=>({pid,qtd}));
-  const tot=its.reduce((a,i)=>a+prod(i.pid).preco*i.qtd,0);let vid=null;
+  const tot=its.reduce((a,i)=>a+precoPag(prod(i.pid),x.pag)*i.qtd,0);let vid=null;
   rodar(async()=>{vid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:'',p_pag:x.pag,p_parcelas:x.pag==='parcelado'?+x.parcelas:1,p_status:x.status,p_origem:'painel',p_itens:its});UI.modal=null},x.pag==='link'?'':'Venda registrada')
    .then(ok=>{if(ok&&x.pag==='link')mYampiLink(its,vid,tot)});return}
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
- if(d.f){UI.draft[d.f]=t.value;if(['custo','preco','comissao'].includes(d.f)){UI.draft[d.f]=+t.value||0;pCalc()}return}
+ if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','preco','precoVista','comissao'].includes(d.f)){UI.draft[d.f]=+t.value||0;const D=UI.draft,cf=custoFinal(D);
+  if(d.f==='precoVista'&&!D.precoVista)D.precoVista=0;
+  $('#f-cf').value=fmt(cf);$('#f-mkp').value=mkp(+D.preco,cf).toFixed(2);if(d.f!=='precoVista'&&!(+D.precoVista>0))$('#f-precoVista').value=(+D.preco).toFixed(2);$('#f-mkv').value=mkp(pVista(D),cf).toFixed(2);pCalc()}return}
+ if(d.mk){const D=UI.draft,cf=custoFinal(D),v=Math.round(cf*(1+(+t.value||0)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=v.toFixed(2);pCalc();return}
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid')$('#e-custo').value=prod(t.value).custo;return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
  if(d.ck){UI.draft[d.ck]=t.value;return}
+ if(d.fm){UI.draft[d.fm]=t.value;return}
  if(d.lq!==undefined){UI.lf.q=t.value;UI.pages={};render();const el=$('[data-lq]');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}return}
  if(d.inv){UI.inv.cont[d.inv]=t.value;UI.invArm=false;const p=prod(d.inv),[a,b]=invCells(p);$('#invd-'+p.id).innerHTML=a;$('#invv-'+p.id).innerHTML=b;$('#invK').innerHTML=invKpis();return}
  if(t.id==='yp-alias'){S.yampi.alias=t.value.trim();return}
@@ -1441,11 +1533,13 @@ document.addEventListener('change',e=>{
  if(d.tax!==undefined){S.taxas[d.tax]=+t.value||0;cfgSave('Taxa de pagamento alterada',`${PAY[d.tax]}: ${t.value}%`);render();return}
  if(d.invloc!==undefined){UI.inv={local:t.value,cont:{}};UI.invArm=false;render();return}
  if(d.lgf){UI.lgf[d.lgf]=t.value;render();return}
+ if(d.fmes!==undefined){UI.fmes=t.value;UI.ffArm=false;render();return}
  if(d.bn!==undefined){const bn=S.banners[+d.bn],val=t.type==='checkbox'?t.checked:t.value;bn[d.k]=val;
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao'}[d.k];
   upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub')render()},err=>toast(msgErro(err),4000));return}
  if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome}`)},'Foto do banner enviada'));return}
  if(d.sim){UI.sim[d.sim]=+t.value||0;if(d.sim==='desp'){S.despesas=UI.sim.desp;cfgSave('Despesas fixas alteradas',`R$ ${fmt(S.despesas)}`)}render();return}
+ if(d.sf!==undefined){const so=S.socios[+d.sf],v=Math.max(0,+t.value||0);if(v>so.pct){toast(`O fundo não pode passar da participação de ${so.nome} (${so.pct}%)`);render();return}so.fundo=v;cfgSave('Fundo do sócio alterado',`${so.nome}: ${v}% do lucro fica no fundo`);render();return}
  if(d.sp!==undefined){S.socios[+d.sp].pct=+t.value||0;cfgSave('Participação alterada',`${S.socios[+d.sp].nome}: ${t.value}%`);render();return}
  if(d.uperfil){const u=S.users.find(x=>x.id===d.uperfil),nv=t.value;
   if(nv==='adm'&&S.users.filter(x=>x.perfil==='adm').length>=MAXADM){toast(`Limite de ${MAXADM} administradores`);render();return}
