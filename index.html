@@ -675,7 +675,7 @@ const eV=(vid,pid)=>((S.estV||{})[vid]||{})[pid]||0;
 const addEV=(vid,pid,q)=>{S.estV[vid]=S.estV[vid]||{};S.estV[vid][pid]=Math.max(0,eV(vid,pid)+q)};
 const emRev=pid=>Object.values(S.estV).reduce((a,o)=>a+(o[pid]||0),0);
 const maosV=vid=>Object.values(S.estV[vid]||{}).reduce((a,b)=>a+b,0);
-const precoRev=(p,vid)=>Math.round(p.preco*(1-(p.comissao+nivelDe(vid,iso(today)).bonus)/100)*100)/100;
+const precoRev=(p,vid)=>Math.round(pRev(p)*(1-nivelDe(vid,iso(today)).bonus/100)*100)/100;
 /* composição do preço: custo + frete (%) = custo final; markup sobre o custo final.
    Um único preço de venda (preco) para todas as formas de pagamento. */
 const VISTA=['pix','dinheiro','debito'];
@@ -888,8 +888,8 @@ function vEquipe(){
  ${kr.map(k=>`<tr><td>${br(k.data)}</td><td>${esc(vend(k.vid)?.nome)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${U(k.itens.length)}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td>
  <td class="n" style="white-space:nowrap">${['aguardando','informado'].includes(k.status)?`<button class="btn pri sm" data-confkit="${k.id}">Confirmar pagamento</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='pago'?`<button class="btn pri sm" data-entkit="${k.id}">Marcar entregue</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
  </tbody></table></div>${kc}</section>
- <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus somado à comissão base de cada produto</span></div>
- <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Bônus comissão (p.p.)</th></tr></thead><tbody>
+ <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
+ <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
  ${S.niveis.map((n,i)=>`<tr><td><span class="lvl ${n.nome}">${n.nome}</span></td><td class="n">${i===0?'até '+fmt(n.ate):i===S.niveis.length-1?'acima de '+fmt(S.niveis[i-1].ate):fmt(S.niveis[i-1].ate)+' a '+fmt(n.ate)}</td><td class="n">+${n.bonus}</td></tr>`).join('')}</tbody></table></section>`;
 }
 
@@ -941,12 +941,12 @@ function vSocios(){
   <label class="f">WhatsApp da 3mix (comprovantes)<input id="cfg-whats" data-cfg="whats3mix" value="${esc(S.whats3mix||'')}" inputmode="tel" placeholder="(22) 99999-9999"></label>
   <label class="f">Alias da loja na Yampi<input id="yp-alias" data-yalias value="${esc(S.yampi.alias||'')}" placeholder="aparece no endereço do painel Yampi"></label>
   <label class="f">Domínio do checkout Yampi<input id="yp-dom" data-ydom value="${esc(S.yampi.dominio||'')}" placeholder="ex.: seguro.3mix.com.br"></label>
-  <label class="f">Prefixo do cupom de revenda<input id="yp-cupom" data-ycupom value="${esc(S.yampi.cupom??'REVENDA')}" placeholder="REVENDA"></label>
+  <label class="f">Prefixo do cupom de nível<input id="yp-cupom" data-ycupom value="${esc(S.yampi.cupom??'NIVEL')}" placeholder="NIVEL"></label>
   <label class="f">Produtos com token Yampi<input id="yp-sku" disabled value="${S.prods.filter(p=>p.sku).length} de ${S.prods.length}"></label></div>
-  <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})))?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o domínio e o token de cada produto para gerar os links</span>'}</div>
+  <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'venda')&&yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'kit')?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o domínio e o token de cada produto para gerar os links</span>'}</div>
   <ol class="steps">
-   <li><b>Token de cada produto:</b> no painel da Yampi, abra o produto e copie o <b>Link de compra</b>. O token é a última parte (ex.: <code>.../r/<b>AABBJJ</b></code>). Cole em Produtos → Editar → "Token do link de compra".</li>
-   <li><b>Cupom de revenda:</b> o kit do vendedor usa o cupom <b>${esc(S.yampi.cupom??'REVENDA')}</b> + desconto total (comissão + bônus do nível). Crie na Yampi os cupons percentuais ${[...new Set(S.prods.map(p=>p.comissao))].flatMap(c=>S.niveis.map(n=>esc(S.yampi.cupom??'REVENDA')+(c+n.bonus))).filter((x,i,a)=>a.indexOf(x)===i).map(c=>`<b>${c}</b>`).join(', ')} (o número é a % de desconto).</li>
+   <li><b>Dois produtos na Yampi para cada perfume:</b> um com o <b>preço sugerido ao cliente</b> (ex.: R$ 49,90, para a loja) e outro "Revenda" com o <b>preço ao vendedor</b> (ex.: R$ 29,90, para os kits). De cada um, copie o <b>Link de compra</b>: o token é a última parte (ex.: <code>.../r/<b>AABBJJ</b></code>). Cole em Produtos → Editar → "Token Yampi (cliente)" e "Token Yampi (revenda)".</li>
+   <li><b>Cupons de nível:</b> crie na Yampi cupons percentuais para os níveis com bônus: ${S.niveis.filter(n=>+n.bonus>0).map(n=>`<b>${esc(S.yampi.cupom??'NIVEL')}${String(n.bonus).replace('.',',')}</b> (${pc(n.bonus)} · ${esc(n.nome)})`).join(', ')||'nenhum nível tem bônus'}. Eles valem só para os produtos "Revenda".</li>
    <li><b>Baixa automática:</b> em Supabase → Edge Functions → Secrets, cadastre <code>YAMPI_TOKEN</code> e <code>YAMPI_SECRET</code> (Yampi → Perfil → Credenciais de API). Depois clique em "Ativar baixa automática": o 3mix passa a receber o aviso de pedido pago e dá baixa sozinho no kit ou na venda.</li>
    <li><b>Sem baixa automática</b> tudo continua funcionando: o administrador confirma o kit e o vendedor marca a venda como paga.</li>
   </ol>
@@ -1021,7 +1021,7 @@ function vEstoqueV(){
  ${rows.map(r=>`<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n">${R(r.p.preco)}</td><td class="n">${R(r.p.preco-r.c)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">Se vender tudo a preço sugerido, seu lucro é ${Ri(lucV)}.</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`${yLinkOk(k.itens)?`<a class="btn pri sm" href="${esc(yLink(k.itens,k.id,'kit',cupomKit(k.itens,v.id)))}" target="_blank" rel="noopener">Pagar</a> <button class="btn sm" data-jakit="${k.id}">Já paguei</button>`:`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button>`} <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`${yLinkOk(k.itens,'kit')?`<a class="btn pri sm" href="${esc(yLink(k.itens,k.id,'kit',cupomKit(k.itens,v.id)))}" target="_blank" rel="noopener">Pagar</a> <button class="btn sm" data-jakit="${k.id}">Já paguei</button>`:`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button>`} <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
@@ -1231,7 +1231,7 @@ function drawQV(){const p=prod(UI.qv),v=vend(UI.vid),q=UI.cart[p.id]||0,max=eV(v
  <div class="actions"><button class="btn ghost" data-close>Continuar vendo</button>${Object.keys(UI.cart).length?'<button class="btn pri" data-checkout>Ver sacola</button>':''}</div>`;
  render();
 }
-const CKP=()=>UI.publico?{pix:'Pix com o vendedor',dinheiro:'Dinheiro na entrega',...(yLinkOk(Object.keys(UI.cart||{}).map(pid=>({pid,qtd:1})))?{link:'Cartão, boleto ou Pix online'}:{})}:{pix:'Pix',debito:'Débito',credito:'Crédito',dinheiro:'Dinheiro',link:'Link Yampi'};
+const CKP=()=>UI.publico?{pix:'Pix com o vendedor',dinheiro:'Dinheiro na entrega',...(yLinkOk(Object.keys(UI.cart||{}).map(pid=>({pid,qtd:1})),'venda')?{link:'Cartão, boleto ou Pix online'}:{})}:{pix:'Pix',debito:'Débito',credito:'Crédito',dinheiro:'Dinheiro',link:'Link Yampi'};
 function mCheckout(){UI.qv=null;UI.ck=true;UI.msize='md';UI.draft={cliente:'',tel:'',pag:'pix'};drawCheckout()}
 function drawCheckout(){
  const d=UI.draft,cp=CKP(),pg=x=>precoPag(prod(x),d.pag),tot=Object.entries(UI.cart).reduce((a,[pid,q])=>a+pg(pid)*q,0);
@@ -1251,11 +1251,12 @@ function drawCheckout(){
    A Yampi avisa o pagamento pelo webhook order.paid e a função marca a venda como paga. */
 /* link de compra da Yampi: https://<domínio>/r/TOKEN:qtd,TOKEN:qtd — leva o código do kit/venda em utm_content,
    que volta no aviso de pedido pago e permite a baixa automática */
-const yLinkOk=its=>!!(S.yampi&&S.yampi.dominio&&its.length&&its.every(i=>prod(i.pid)&&prod(i.pid).sku));
-function yLink(its,ref,tipo,cupom){if(!yLinkOk(its))return '';const dom=String(S.yampi.dominio).replace(/^https?:\/\//,'').replace(/\/+$/,'');
- return `https://${dom}/r/${its.map(i=>encodeURIComponent(prod(i.pid).sku.trim())+':'+i.qtd).join(',')}?utm_source=3mix&utm_medium=${tipo}&utm_campaign=3mix-app&utm_content=${ref}${cupom?'&promocode='+encodeURIComponent(cupom):''}`}
-/* cupom do kit: mesmo desconto em todos os itens (comissão + bônus do nível) */
-function cupomKit(its,vid){const ds=[...new Set(its.map(i=>prod(i.pid).comissao+nivelDe(vid,iso(today)).bonus))];return ds.length===1?`${S.yampi.cupom??'REVENDA'}${ds[0]}`:''}
+const yTok=(p,tipo)=>String((tipo==='kit'?p.skuRev:p.sku)||'').trim();
+const yLinkOk=(its,tipo)=>!!(S.yampi&&S.yampi.dominio&&its.length&&its.every(i=>prod(i.pid)&&yTok(prod(i.pid),tipo)));
+function yLink(its,ref,tipo,cupom){if(!yLinkOk(its,tipo))return '';const dom=String(S.yampi.dominio).replace(/^https?:\/\//,'').replace(/\/+$/,'');
+ return `https://${dom}/r/${its.map(i=>encodeURIComponent(yTok(prod(i.pid),tipo))+':'+i.qtd).join(',')}?utm_source=3mix&utm_medium=${tipo}&utm_campaign=3mix-app&utm_content=${ref}${cupom?'&promocode='+encodeURIComponent(cupom):''}`}
+/* cupom do kit: só o bônus do nível (ex.: NIVEL2 = 2% de desconto no preço ao vendedor) */
+function cupomKit(its,vid){const b=+nivelDe(vid,iso(today)).bonus||0;return b>0?`${S.yampi.cupom??'NIVEL'}${String(b).replace('.',',')}`:''}
 /* link para o vendedor mandar ao cliente (venda com pagamento pela Yampi) */
 function mYampiLink(its,ref,valor){UI.msize='md';const url=yLink(its,ref,'venda');
  modal(`<h3>Link de pagamento</h3>
@@ -1358,7 +1359,8 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <label class="f s3">Descrição curta<input id="f-descricao" data-f="descricao" value="${esc(p.descricao)}" placeholder="aparece na loja do vendedor"></label>
    <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
    <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="não aparece na loja"></label>
-   <label class="f">Token Yampi<input id="f-sku" data-f="sku" value="${esc(p.sku||'')}" placeholder="ex.: AABBJJ"></label>
+   <label class="f">Token Yampi (cliente)<input id="f-sku" data-f="sku" value="${esc(p.sku||'')}" placeholder="produto a R$ sugerido"></label>
+   <label class="f">Token Yampi (revenda)<input id="f-skurev" data-f="skuRev" value="${esc(p.skuRev||'')}" placeholder="produto a R$ ao vendedor"></label>
    <label class="f s3">Foto ambientada da loja (opcional)<input id="f-fotoamb" data-f="fotoAmb" value="${esc(p.fotoAmb||'')}" placeholder="frasco em cena, ex.: N01-amb.jpg"></label>
   </div>
  </div>
@@ -1516,7 +1518,7 @@ document.addEventListener('click',e=>{
   rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
  if(d.cancelkit){if(UI.ckArm!==d.cancelkit){UI.ckArm=d.cancelkit;b.textContent='Confirmar?';return}UI.ckArm=null;rodar(()=>rpc('cancelar_kit',{p_id:d.cancelkit}),'Kit cancelado · frascos voltaram ao estoque central');return}
  if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · kit a entregar');return}
- if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);if(!yLinkOk(k.itens))toast('Pagamento online (Yampi) ainda não configurado pela 3mix: use o Pix',4000);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
+ if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);if(!yLinkOk(k.itens,'kit'))toast('Pagamento online (Yampi) ainda não configurado pela 3mix: use o Pix',4000);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
  if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;b.textContent='Confirmar entrega?';return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
  if(d.cancv){if(UI.cvArm!==d.cancv){UI.cvArm=d.cancv;b.textContent='Cancelar?';return}UI.cvArm=null;rodar(()=>rpc('cancelar_venda',{p_id:d.cancv}),'Venda cancelada · frascos voltaram ao estoque');return}
@@ -1574,7 +1576,7 @@ document.addEventListener('click',e=>{
   x.comissao=x.preco>0?Math.round((1-x.precoRev/x.preco)*1e8)/1e6:0;['min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
   rodar(async()=>{let foto=x.foto||'';if(foto.startsWith('data:'))foto=await subirFoto(foto,'produtos',x.code);
    const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,preco:x.preco,preco_rev:x.precoRev,preco_vista:0,comissao:x.comissao,
-    estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:x.sku||''};
+    estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:(x.sku||'').trim(),sku_rev:(x.skuRev||'').trim()};
    if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',row);
    log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)}`);UI.modal=null},'Produto salvo');return}
  if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=num(x.custo);if(q<=0){toast('Quantidade deve ser maior que zero');return}
