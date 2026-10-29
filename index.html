@@ -445,6 +445,11 @@ body:has(.shell.store){background:#fff}
 .sh-trust b{color:#000;font-size:12.5px;text-transform:uppercase;letter-spacing:.1em}
 .sh-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#000;color:#fff;padding:24px 28px;margin-top:28px;font-size:12px;color:#bbb}
 .sh-foot .sh-logo{color:#fff;font-size:22px}
+.sc-st{font-size:11.5px;color:var(--s-mut);margin:-6px 0 10px}.sc-st.ok{color:#0a7a4b;font-weight:600}
+.sh-avise{background:#fff;color:#000}.sh-avise:hover{background:#000;color:#fff}
+.sh-zap{position:fixed;right:18px;bottom:18px;z-index:6;display:flex;align-items:center;gap:8px;background:#25d366;color:#fff;text-decoration:none;border-radius:999px;padding:12px 16px;font-weight:700;font-size:13px;box-shadow:0 10px 24px -8px rgba(0,0,0,.4)}
+.sh-zap svg{width:22px;height:22px}.sh-zap.sobe{bottom:86px}
+@media (max-width:720px){.sh-zap span{display:none}.sh-zap{padding:13px}}
 .sh-bar{background:#000;color:#fff;border-radius:0}
 .sh-bar .acc i{color:#bbb}
 .sh-bar .btn.pri{background:#fff;border-color:#fff;color:#000}
@@ -635,7 +640,7 @@ function aplicaDados(d){const carts=S.carts;S={...VAZIO(),...(d||{}),carts};
  ['prods','vend','vendas','kits','compras','users','log','inventarios','banners'].forEach(k=>S[k]=S[k]||[]);S.estV=S.estV||{};
  for(const vid in S.carts)for(const pid in S.carts[vid])if(!S.prods.some(p=>p.id===pid))delete S.carts[vid][pid];
  for(const k in _nv)delete _nv[k];MIN=Math.max(1,+S.minKit||6);}
-async function sync(){const [{data,error},f]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em')]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[]}
+async function sync(){const [{data,error},f,av]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em'),sb.from('avise_me').select('*').eq('atendido',false).order('criado_em',{ascending:false})]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[];S.avise=(av&&av.data)||[]}
 async function syncLoja(){const {data,error}=await sb.rpc('loja_publica',{p_slug:UI.slug});if(error)throw error;if(data)aplicaDados(data)}
 const msgErro=e=>String((e&&(e.message||e.error_description||e.error))||e||'Erro').replace(/^.*?ERROR:\s*/,'');
 async function rpc(nome,args){const {data,error}=await sb.rpc(nome,args);if(error)throw error;return data}
@@ -792,6 +797,7 @@ function vPainel(){
   <div class="kpi"><span class="l">Ganho revendedores</span><span class="v">${R(t.com)}</span><span class="d">taxas pagto ${Ri(t.tax)}</span></div>
  </div>
  ${vEstoquePainel()}
+ ${vAvise()}
  ${vChamp()}
  <div class="two">
   <section class="panel"><div class="panel-h"><h2>Faturamento × lucro por dia</h2></div>${chartDaily(S.vendas)}</section>
@@ -966,6 +972,15 @@ function vEstoquePainel(vid){
   ${adm?`<td class="n hide-sm">${U(r.k)}</td><td class="n"><b>${U(r.c+r.m+r.k)}</b></td>`:`<td class="n">${r.c>0?`<button class="btn sm" data-kit6="${r.p.id}">Pedir</button>`:'<span class="note">esgotado</span>'}</td>`}</tr>`).join('')}
  </tbody></table></div>${ctl}`:'<p class="empty">Sem estoque.</p>'}</section>`;
 }
+/* clientes que pediram "avise-me quando chegar" (só administrador) */
+function vAvise(){const A=S.avise||[];if(!A.length)return '';const {rows,ctl}=page('avise',A,5);
+ const porP={};A.forEach(a=>porP[a.produto_id]=(porP[a.produto_id]||0)+1);
+ return `<section class="panel"><div class="panel-h"><h2>Clientes esperando reposição</h2><span class="sp"></span><span class="note">${Object.entries(porP).map(([pid,n])=>`${prod(pid)?.code||'?'}: ${n}`).join(' · ')}</span></div>
+ <div class="tbl"><table><thead><tr><th>Data</th><th>Perfume</th><th>Cliente</th><th>WhatsApp</th><th class="hide-sm">Loja</th><th></th></tr></thead><tbody>
+ ${rows.map(a=>{const p=prod(a.produto_id);return `<tr><td>${br(a.criado_em)}</td><td><b>${p?.code||''}</b> ${esc(p?.nome||'')}</td><td>${esc(a.nome)}</td>
+ <td><a href="https://wa.me/${zap(a.tel)}?text=${encodeURIComponent(`Olá ${a.nome}! O perfume ${p?.nome||''} que você pediu chegou na 3mix.`)}" target="_blank" rel="noopener">${esc(a.tel)}</a></td>
+ <td class="hide-sm">${esc(vend(a.vendedor_id)?.nome||'—')}</td><td class="n"><button class="btn sm" data-avok="${a.id}">Avisado</button></td></tr>`}).join('')}
+ </tbody></table></div>${ctl}</section>`}
 function vInicio(){
  const v=vend(UI.vid);const M=monthSales(v.id);const t=sum(M);const n=nivelDe(v.id,iso(today));
  const idx=S.niveis.indexOf(n);const next=S.niveis[idx+1];
@@ -992,8 +1007,8 @@ function vInicio(){
  </section>`;
 }
 function vCatalogo(){
- const {rows,ctl}=page('vcat',S.prods.filter(p=>eV(UI.vid,p.id)>0),8);
- return `<div class="head"><div><h1>Catálogo</h1><p class="sub">Seus perfumes em mãos. Toque em Vender para registrar a venda ou em Copiar para mandar no WhatsApp</p></div></div><div class="cat">${rows.map(p=>card(p,null,false,eV(UI.vid,p.id))).join('')||'<p class="empty">Sem estoque. Compre um kit para começar.</p>'}</div>${ctl}`;
+ const {rows,ctl}=page('vcat',[...S.prods].filter(p=>+p.preco>0).sort((a,b)=>(eV(UI.vid,b.id)>0)-(eV(UI.vid,a.id)>0)||a.code.localeCompare(b.code)),8);
+ return `<div class="head"><div><h1>Catálogo</h1><p class="sub">Todos os perfumes da 3mix. Os que estão com você aparecem primeiro, com a quantidade em mãos; os outros você pede em Comprar.</p></div></div><div class="cat">${rows.map(p=>card(p,null,false,eV(UI.vid,p.id))).join('')||'<p class="empty">Sem estoque. Compre um kit para começar.</p>'}</div>${ctl}`;
 }
 function vEstoqueV(){
  const v=vend(UI.vid);const L=S.vendas.filter(x=>x.vid===v.id&&daysAgo(x.data)<30);
@@ -1139,7 +1154,7 @@ const palco=(p,big)=>`<div class="palco${big?' big':''}" style="background:${fam
 function vLoja(){
  const v=vend(UI.vid);if(!v)return '<p class="empty">Loja não encontrada.</p>';
  const cart=UI.cart||(UI.cart={}),f=UI.lf||(UI.lf={g:'',q:''}),ch=champRank();
- const disp=S.prods.filter(p=>eV(v.id,p.id)>0||cart[p.id]).sort((a,b)=>(ch[a.id]||9)-(ch[b.id]||9));
+ const disp=S.prods.filter(p=>+p.preco>0).sort((a,b)=>((eV(v.id,b.id)>0)-(eV(v.id,a.id)>0))||(ch[a.id]||9)-(ch[b.id]||9)||a.code.localeCompare(b.code));
  const q=f.q.trim().toLowerCase();
  const its=disp.filter(p=>(!f.g||(f.g==='top'?ch[p.id]:p.genero===f.g))&&(!q||(p.nome+' '+p.familia+' '+p.descricao+' '+(GEN[p.genero]||'')).toLowerCase().includes(q)));
  const {rows,ctl}=page('loja'+v.id+f.g+q,its,8);
@@ -1162,6 +1177,7 @@ function vLoja(){
   <div class="sh-grid">${rows.map(p=>shopCard(p,v.id,cart[p.id]||0,ch[p.id])).join('')||'<p class="empty">Nenhum perfume encontrado.</p>'}</div>${its.length>8?ctl:''}</section>
  <div class="sh-trust"><div>${ic('estoque')}<b>Pronta entrega</b><span>em ${cid}</span></div><div>${ic('vendas')}<b>Pagamento seguro</b><span>Pix, cartão ou boleto</span></div><div>${ic('whats')}<b>Atendimento pessoal</b><span>com ${first} pelo WhatsApp</span></div></div>
  <footer class="sh-foot"><div class="sh-logo">3MIX<small>Perfumaria</small></div><span>Loja de ${esc(v.nome)}${v.cidade?' · '+esc(v.cidade):''}</span></footer>
+ ${fone?`<a class="sh-zap${un?' sobe':''}" href="https://wa.me/${zap(fone)}?text=${encodeURIComponent('Olá '+v.nome.split(' ')[0]+'! Vim pela sua loja 3mix e gostaria de ajuda.')}" target="_blank" rel="noopener" aria-label="Falar com ${first} no WhatsApp">${ic('whats')}<span>Fale comigo</span></a>`:''}
  ${un?`<div class="cartbar sh-bar"><b>${un} un</b><span>${Ri(tot)}</span><span class="sp"></span><button class="btn pri" data-checkout>Ver sacola</button></div>`:''}
  </div>`;
 }
@@ -1193,18 +1209,25 @@ setInterval(()=>{const c=document.querySelector('[data-car]');if(!c||UI.modal||c
  document.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40)carGo(dx<0?1:-1)},{passive:true})}
 const qtyCtl=(pid,q,max)=>`<div class="qty"><button data-cart="${pid}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-cart="${pid}" data-d="1" aria-label="Mais um" ${q>=max?'disabled':''}>+</button></div>`;
 const prLoja=p=>pVista(p)<p.preco?`<div class="sc-pr">${R(pVista(p))}<small class="sc-vs">à vista no Pix</small></div><div class="sc-pz">ou ${Ri(p.preco)} a prazo</div>`:`<div class="sc-pr">${R(p.preco)}</div>`;
+/* número de WhatsApp com DDI 55 */
+const zap=f=>{f=String(f||'').replace(/\D/g,'');return f.startsWith('55')&&f.length>11?f:'55'+f};
+function mAvise(pid){const p=prod(pid),v=vend(UI.vid);UI.msize='sm';UI.draft={pid,nome:'',tel:''};
+ modal(`<h3>Avise-me quando chegar</h3><p style="margin:0"><b>${esc(p.nome)}</b> está sem estoque. Deixe seu contato: ${esc(v.nome.split(' ')[0])} te chama no WhatsApp quando chegar.</p>
+ <div class="fg"><label class="f full">Seu nome<input id="av-nome" data-av="nome" autocomplete="name"></label><label class="f full">Seu WhatsApp com DDD<input id="av-tel" data-av="tel" inputmode="tel" placeholder="(22) 99999-9999" autocomplete="tel"></label></div>
+ <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-avisesave>Me avise</button></div>`)}
 function shopCard(p,vid,q,r){const max=eV(vid,p.id);
  return `<article class="sc"><button class="sc-ph" data-qv="${p.id}" aria-label="Ver ${esc(p.nome)}">${palco(p)}${r?'<span class="sc-tag">Mais vendido</span>':''}${max>0&&max<=2?'<span class="sc-tag lo">Últimas unidades</span>':''}</button>
  <div class="sc-bd"><span class="sc-brand">3MIX</span><button class="sc-nm" data-qv="${p.id}">${esc(p.nome)}</button><span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>
  ${prLoja(p)}
- ${q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1" ${max<=0?'disabled':''}>${max>0?'Adicionar<span class="hide-sm">&nbsp;à sacola</span>':'Esgotado'}</button>`}</div></article>`;
+ <span class="sc-st ${max>0?'ok':''}">${max>0?`${max} disponíve${max>1?'is':'l'}`:'Sem estoque no momento'}</span>
+ ${max<=0?`<button class="sh-add sh-avise" data-avise="${p.id}">Avise-me quando chegar</button>`:q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1">Adicionar<span class="hide-sm">&nbsp;à sacola</span></button>`}</div></article>`;
 }
 function mQV(pid){UI.qv=pid;UI.ck=false;UI.msize='lg';drawQV()}
 function drawQV(){const p=prod(UI.qv),v=vend(UI.vid),q=UI.cart[p.id]||0,max=eV(v.id,p.id);
  UI.modal=`<div class="qv">${palco(p,true)}<div class="qv-t"><span class="sc-brand">3MIX</span><h3>${esc(p.nome)}</h3>
  <span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>${p.descricao?`<p class="qv-ds">${esc(p.descricao)}</p>`:''}${prLoja(p)}
- <p class="note">${max>0?`${max} un a pronta entrega com ${esc(v.nome.split(' ')[0])}`:'Esgotado no momento'}</p>
- ${q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1" ${max<=0?'disabled':''}>Adicionar à sacola</button>`}</div></div>
+ <p class="note">${max>0?`${max} un a pronta entrega com ${esc(v.nome.split(' ')[0])}`:'Sem estoque no momento'}</p>
+ ${max<=0?`<button class="sh-add sh-avise" data-avise="${p.id}">Avise-me quando chegar</button>`:q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1">Adicionar à sacola</button>`}</div></div>
  <div class="actions"><button class="btn ghost" data-close>Continuar vendo</button>${Object.keys(UI.cart).length?'<button class="btn pri" data-checkout>Ver sacola</button>':''}</div>`;
  render();
 }
@@ -1378,7 +1401,7 @@ function mVend(id){UI.msize='sm';
  <label class="f">E-mail de acesso<input id="vd-email" type="email" value="${esc((S.users.find(u=>u.vid===v.id&&v.id)||{}).email||'')}" placeholder="para o vendedor entrar no app"></label>
  <label class="f">Situação<select id="vd-ativo"><option value="1" ${v.ativo?'selected':''}>Ativo</option><option value="0" ${!v.ativo?'selected':''}>Inativo</option></select></label></div>
  <p class="note">Com e-mail preenchido, o vendedor ganha login com a senha inicial 123456 e só enxerga o próprio painel.</p>
- <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevend="${v.id}">Salvar</button></div>`);
+ <div class="actions">${v.id?`<button class="btn" data-delvend="${v.id}" style="color:var(--bad);margin-right:auto">Excluir vendedor</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevend="${v.id}">Salvar</button></div>`);UI.dvArm=false;
 }
 function mVenda(){UI.msize='md';
  const vid=UI.role==='vend'?UI.vid:S.vend.find(x=>x.ativo)?.id;
@@ -1463,6 +1486,14 @@ document.addEventListener('click',e=>{
  if(d.cart){UI.cart[d.cart]=Math.max(0,Math.min(eV(UI.vid,d.cart),(UI.cart[d.cart]||0)+ +d.d));if(!UI.cart[d.cart])delete UI.cart[d.cart];
   if(UI.qv&&UI.modal)drawQV();else if(UI.ck){if(Object.keys(UI.cart).length)drawCheckout();else closeModal()}else render();return}
  if(d.qv){mQV(d.qv);return}
+ if(d.avise){mAvise(d.avise);return}
+ if(d.avok){rodar(async()=>{await upd('avise_me',{atendido:true},d.avok);log('Cliente avisado da reposição','')},'Marcado como avisado');return}
+ if('avisesave' in d){const x=UI.draft,v=vend(UI.vid),p=prod(x.pid),tel=String(x.tel||'').replace(/\D/g,'');
+  if(!String(x.nome||'').trim()||tel.length<10){toast('Informe seu nome e WhatsApp com DDD');return}
+  const msg=`Olá ${v.nome.split(' ')[0]}! Quero ser avisado(a) quando chegar o perfume *${p.nome}* (${p.ml} ml).\nNome: ${x.nome.trim()}\nWhatsApp: ${x.tel}`;
+  const fone=String(v.tel||'').replace(/\D/g,'');if(fone)window.open(`https://wa.me/${zap(fone)}?text=${encodeURIComponent(msg)}`,'_blank','noopener');
+  sb.rpc('avise_me',{p_slug:UI.slug||v.slug,p_pid:p.id,p_nome:x.nome.trim(),p_tel:tel}).then(({error})=>{if(error)toast(msgErro(error),4000)});
+  closeModal();toast(fone?'Pronto! Envie a mensagem no WhatsApp que abriu':'Pronto! Você será avisado(a)');return}
  if(d.slnav){carGo(+d.slnav);return}
  if(d.sl!==undefined){carGo(0,+d.sl);return}
  if('bnadd' in d){rodar(async()=>{await ins('banners',{ordem:S.banners.length+1,titulo:'Novo banner',botao:'Conferir'});log('Banner criado')});return}
@@ -1514,6 +1545,8 @@ document.addEventListener('click',e=>{
    ${x.pag==='pix'&&v.pix?`<div class="linkbox"><span class="note">Chave Pix de ${esc(first)}</span><code>${esc(v.pix)}</code></div><button class="btn sm" data-copy="${esc(v.pix)}">Copiar chave Pix</button>`:''}
    ${fone?`<a class="btn pri" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Avisar ${esc(first)} no WhatsApp</a>`:''}
    <div class="actions"><button class="btn" data-close>Fechar</button></div>`;render()});return}
+ if(d.delvend){const v=vend(d.delvend);if(!UI.dvArm){UI.dvArm=true;b.textContent='Confirmar exclusão?';toast('O estoque em mãos e os kits não entregues voltam para a distribuidora; o login é apagado',4500);return}UI.dvArm=false;
+  rodar(async()=>{await rpc('excluir_vendedor',{p_vid:v.id,p_devolver:true});UI.modal=null},`${v.nome} excluído`);return}
  if(d.delprod){const p=prod(d.delprod);
   if(movProd(p.id)){toast(`${p.code} tem vendas, kits ou entradas registradas e não pode ser excluído`);return}
   if(!UI.delArm){UI.delArm=true;b.textContent='Confirmar exclusão';return}
@@ -1577,6 +1610,7 @@ document.addEventListener('input',e=>{
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){$('#e-custo').value=fmt(0);UI.draft.custo=0}return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
  if(d.ck){UI.draft[d.ck]=t.value;return}
+ if(d.av){UI.draft[d.av]=t.value;return}
  if(d.fm){UI.draft[d.fm]=t.value;return}
  if(d.lq!==undefined){UI.lf.q=t.value;UI.pages={};render();const el=$('[data-lq]');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}return}
  if(d.inv){UI.inv.cont[d.inv]=t.value;UI.invArm=false;const p=prod(d.inv),[a,b]=invCells(p);$('#invd-'+p.id).innerHTML=a;$('#invv-'+p.id).innerHTML=b;$('#invK').innerHTML=invKpis();return}
