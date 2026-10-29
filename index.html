@@ -459,6 +459,7 @@ body:has(.shell.store){background:#fff}
  .bnrow{grid-template-columns:1fr}.bnfg{grid-template-columns:1fr 1fr}
 }
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:.6}}}
+input.dec{text-align:right}
 .carregando #stage,.carregando .topbar{visibility:hidden}
 .carregando::after{content:"Carregando…";position:fixed;inset:0;display:grid;place-items:center;font-weight:700;color:var(--muted)}
 </style>
@@ -537,10 +538,13 @@ body:has(.shell.store){background:#fff}
 /* ===== utilidades ===== */
 const $=s=>document.querySelector(s);
 const fmt=n=>(Math.round(n*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+/* lê número digitado: aceita 1.234,56 ou 1234.56 */
+const num=v=>{v=String(v??'').trim().replace(/\s|R\$|%/g,'');if(v.includes(','))v=v.replace(/\./g,'').replace(',','.');const n=parseFloat(v);return isFinite(n)?n:0};
+const pc=n=>fmt(+n||0)+'%';
 const Ri=n=>`<span class="acc in"><i>R$</i><b>${n<0?'('+fmt(-n)+')':fmt(n)}</b></span>`;
 const R=n=>`<span class="acc"><i>R$</i><b>${n<0?'('+fmt(-n)+')':fmt(n)}</b></span>`;
 const U=n=>`${Math.round(n).toLocaleString('pt-BR')}<span class="un">un</span>`;
-const P=n=>`${(n).toLocaleString('pt-BR',{maximumFractionDigits:1})}<span class="un">%</span>`;
+const P=n=>`${(+n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}<span class="un">%</span>`;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const DAY=864e5, today=new Date();
 const iso=d=>new Date(d).toISOString().slice(0,10);
@@ -740,7 +744,7 @@ function chartABC(rows){
  [0,mx/2,mx].forEach(v=>{g+=`<text x="${pl-6}" y="${yb(v)+3}" text-anchor="end">${v.toFixed(0)}%</text>`});
  g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(80)}" y2="${y(80)}" stroke="var(--a)" stroke-dasharray="4 4"/><line x1="${pl}" x2="${W-pr}" y1="${y(95)}" y2="${y(95)}" stroke="var(--b)" stroke-dasharray="4 4"/>`;
  const col={A:'var(--a)',B:'var(--b)',C:'var(--c)'};
- const bars=rows.map((r,i)=>`<rect x="${pl+i*bw+bw*.12}" y="${yb(r.pct)}" width="${bw*.76}" height="${H-pb-yb(r.pct)}" rx="2" fill="${col[r.cl]}"><title>${r.p.code} ${esc(r.p.nome)} · ${r.pct.toFixed(1)}%</title></rect>
+ const bars=rows.map((r,i)=>`<rect x="${pl+i*bw+bw*.12}" y="${yb(r.pct)}" width="${bw*.76}" height="${H-pb-yb(r.pct)}" rx="2" fill="${col[r.cl]}"><title>${r.p.code} ${esc(r.p.nome)} · ${pc(r.pct)}</title></rect>
   <text x="${pl+i*bw+bw/2}" y="${H-9}" text-anchor="middle">${r.p.code.slice(1)}</text>`).join('');
  const pts=rows.map((r,i)=>`${pl+i*bw+bw/2},${y(r.acum)}`).join(' ');
  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Curva ABC de produtos">${g}${bars}<polyline points="${pts}" fill="none" stroke="var(--ink)" stroke-width="1.6"/>${rows.map((r,i)=>`<circle cx="${pl+i*bw+bw/2}" cy="${y(r.acum)}" r="2.4" fill="var(--ink)"/>`).join('')}</svg></div>
@@ -758,8 +762,8 @@ function vPainel(){
  const lucMes=t.luc-S.despesas*UI.per/30;
  return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · ${L.length} vendas</p></div><div class="sp"></div>${perTabs()}</div>
  <div class="grid-kpi">
-  <div class="kpi hl"><span class="l">Faturamento</span><span class="v">${R(t.rec)}</span><span class="d">${dv>=0?'▲':'▼'} ${Math.abs(dv).toFixed(1)}% vs período anterior</span></div>
-  <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${(t.luc/Math.max(1,t.rec)*100).toFixed(1)}%</span></div>
+  <div class="kpi hl"><span class="l">Faturamento</span><span class="v">${R(t.rec)}</span><span class="d">${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))} vs período anterior</span></div>
+  <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${pc(t.luc/Math.max(1,t.rec)*100)}</span></div>
   <div class="kpi"><span class="l">Frascos vendidos</span><span class="v">${U(t.un)}</span><span class="d">${(t.un/UI.per).toFixed(1)} un por dia</span></div>
   <div class="kpi"><span class="l">Ticket médio</span><span class="v">${R(tick)}</span><span class="d">por venda</span></div>
   <div class="kpi"><span class="l">Ganho revendedores</span><span class="v">${R(t.com)}</span><span class="d">taxas pagto ${Ri(t.tax)}</span></div>
@@ -769,9 +773,9 @@ function vPainel(){
   <section class="panel"><div class="panel-h"><h2>Faturamento × lucro por dia</h2></div>${chartDaily(S.vendas)}</section>
   <section class="panel"><div class="panel-h"><h2>Divisão do lucro</h2><span class="sp"></span><span class="note">após despesas fixas</span></div>
    <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n hide-sm">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
-   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${s.pct}%</td><td class="n hide-sm">${+s.fundo||0}%</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
+   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n hide-sm">${pc(+s.fundo||0)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
    <tr><td class="note">Despesas fixas (${UI.per}d)</td><td></td><td class="hide-sm"></td><td class="n">${R(-S.despesas*UI.per/30)}</td><td></td></tr></tbody></table>
-   <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${fundoPct()}% do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
+   <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
    <div class="row"><div class="grow"><div class="t">Kits pagos por revendedores</div><div class="s">${S.kits.filter(k=>k.status==='pago'&&inPer(k)).length} kits · ${U(S.kits.filter(k=>k.status==='pago'&&inPer(k)).reduce((a,k)=>a+k.itens.reduce((s,i)=>s+i.qtd,0),0))} no período</div></div><b>${R(S.kits.filter(k=>k.status==='pago'&&inPer(k)).reduce((a,k)=>a+kitVal(k),0))}</b></div>
    <div class="row"><div class="grow"><div class="t">A receber de clientes</div><div class="s">${rec.length} vendas em aberto</div></div><b>${R(recT)}</b></div>
   </section>
@@ -835,7 +839,7 @@ function vVendas(onlyVid){
  </tbody></table></div>${ctl}</section>
  ${onlyVid?'':`<section class="panel"><div class="panel-h"><h2>Por meio de pagamento · ${UI.per} dias</h2><span class="sp"></span><span class="note">taxas de exemplo — ajuste com sua maquininha</span></div>
  <table><thead><tr><th>Meio</th><th class="n">Vendas (un)</th><th class="n">Valor (R$)</th><th class="n">Taxa (%)</th><th class="n">Custo taxa (R$)</th></tr></thead><tbody>
- ${Object.keys(PAY).map(k=>`<tr><td>${PAY[k]}</td><td class="n">${U(byPay[k]?.n||0)}</td><td class="n">${R(byPay[k]?.rec||0)}</td><td class="n"><input id="tx-${k}" data-tax="${k}" type="number" step="0.1" value="${S.taxas[k]}" style="width:64px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(byPay[k]?.tax||0)}</td></tr>`).join('')}
+ ${Object.keys(PAY).map(k=>`<tr><td>${PAY[k]}</td><td class="n">${U(byPay[k]?.n||0)}</td><td class="n">${R(byPay[k]?.rec||0)}</td><td class="n"><input id="tx-${k}" data-tax="${k}" type="text" inputmode="decimal" class="dec" value="${fmt(S.taxas[k])}" style="width:64px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(byPay[k]?.tax||0)}</td></tr>`).join('')}
  </tbody></table></section>`}`;
 }
 
@@ -866,13 +870,13 @@ function vSocios(){
  return `<div class="head"><div><h1>Administração</h1><p class="sub">Divisão do lucro entre os administradores, simulador por frasco e pagamentos</p></div></div>
  <div class="two"><section class="panel"><div class="panel-h"><h2>Simulador mensal</h2></div>
   <div class="fg">
-   ${[['custo','Custo do frasco (R$)'],['preco','Preço sugerido (R$)'],['com','Comissão média (%)'],['taxa','Taxa média de pagamento (%)'],['un','Frascos por mês (un)'],['desp','Despesas fixas mês (R$)']].map(([k,l])=>`<label class="f">${l}<input id="sim-${k}" data-sim="${k}" type="number" step="0.1" value="${m[k]}"></label>`).join('')}
+   ${[['custo','Custo do frasco (R$)'],['preco','Preço sugerido (R$)'],['com','Comissão média (%)'],['taxa','Taxa média de pagamento (%)'],['un','Frascos por mês (un)'],['desp','Despesas fixas mês (R$)']].map(([k,l])=>`<label class="f">${l}<input id="sim-${k}" data-sim="${k}" type="text" inputmode="decimal" class="dec" value="${k==='un'?m[k]:fmt(m[k])}"></label>`).join('')}
   </div>
   <div class="calc"><div>Lucro por frasco<b>${Ri(porUn)}</b></div><div>Lucro do mês<b>${Ri(luc)}</b></div><div>Ponto de equilíbrio<b>${pe} un/mês</b></div></div>
   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe mês (R$)</th></tr></thead><tbody>
-  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="number" value="${s.pct}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="number" min="0" step="0.5" value="${+s.fundo||0}" title="Quanto da parte deste sócio fica no fundo" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(luc*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
+  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(luc*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
   </tbody></table>
-  <p class="note">As despesas fixas daqui também entram no Painel. Soma das participações: ${S.socios.reduce((a,s)=>a+ +s.pct,0)}%. <b>Fundo (%)</b>: quanto da parte de cada sócio fica no fundo de investimento da 3mix (ex.: 33% de participação com 1% no fundo = recebe 32%).</p>
+  <p class="note">As despesas fixas daqui também entram no Painel. Soma das participações: ${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}. <b>Fundo (%)</b>: quanto da parte de cada sócio fica no fundo de investimento da 3mix (ex.: 33% de participação com 1% no fundo = recebe 32%).</p>
  </section>
  <section class="panel"><div class="panel-h"><h2>Onde está o dinheiro</h2></div>
   <div class="list">
@@ -1009,7 +1013,7 @@ function vFundo(){
  const ent=F.filter(m=>+m.valor>0&&m.tipo!=='estorno').reduce((a,m)=>a+ +m.valor,0),sai=F.filter(m=>+m.valor<0&&m.tipo!=='estorno').reduce((a,m)=>a- +m.valor,0);
  const porSocio=S.socios.map(s=>({s,v:F.filter(m=>m.socio===s.nome&&m.tipo!=='uso').reduce((a,m)=>a+ +m.valor,0)}));
  const atual=today.toISOString().slice(0,7),prev=Math.max(0,lucroMes(atual).luc)*fundoPct()/100;
- return `<div class="head"><div><h1>Fundo de investimento</h1><p class="sub">Parte do lucro que os sócios deixam na 3mix · hoje ${fundoPct()}% do lucro líquido</p></div><div class="sp"></div><button class="btn pri" data-fmov="aporte">+ Aporte</button><button class="btn" data-fmov="uso">Registrar uso</button></div>
+ return `<div class="head"><div><h1>Fundo de investimento</h1><p class="sub">Parte do lucro que os sócios deixam na 3mix · hoje ${pc(fundoPct())} do lucro líquido</p></div><div class="sp"></div><button class="btn pri" data-fmov="aporte">+ Aporte</button><button class="btn" data-fmov="uso">Registrar uso</button></div>
  <div class="grid-kpi" style="grid-template-columns:repeat(4,minmax(0,1fr))">
   <div class="kpi hl"><span class="l">Saldo do fundo</span><span class="v">${R(fundoSaldo())}</span><span class="d">${F.length} lançamentos</span></div>
   <div class="kpi"><span class="l">Entrou</span><span class="v">${R(ent)}</span><span class="d">reinvestimentos e aportes</span></div>
@@ -1021,8 +1025,8 @@ function vFundo(){
   <label class="f">Mês<select id="f-mes" data-fmes>${meses.map(m=>`<option value="${m}" ${m===M?'selected':''}>${mesNome(m)}${mesFechado(m)?' · fechado':''}</option>`).join('')}</select></label>
   <div class="calc"><div>Vendido<b>${Ri(lm.rec)}</b></div><div>Frascos<b>${lm.un} un</b></div><div>Lucro líquido<b>${Ri(lm.luc)}</b></div></div>
   <table><thead><tr><th>Sócio</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
-  ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${s.pct}%</td><td class="n">${+s.fundo||0}%</td><td class="n">${R(base*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(base*(+s.fundo||0)/100)}</td></tr>`).join('')}
-  <tr><td><b>Total</b></td><td class="n">${S.socios.reduce((a,s)=>a+ +s.pct,0)}%</td><td class="n">${fundoPct()}%</td><td class="n">${R(base*(S.socios.reduce((a,s)=>a+ +s.pct,0)-fundoPct())/100)}</td><td class="n"><b>${R(base*fundoPct()/100)}</b></td></tr></tbody></table>
+  ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n">${pc(+s.fundo||0)}</td><td class="n">${R(base*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(base*(+s.fundo||0)/100)}</td></tr>`).join('')}
+  <tr><td><b>Total</b></td><td class="n">${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}</td><td class="n">${pc(fundoPct())}</td><td class="n">${R(base*(S.socios.reduce((a,s)=>a+ +s.pct,0)-fundoPct())/100)}</td><td class="n"><b>${R(base*fundoPct()/100)}</b></td></tr></tbody></table>
   ${lm.luc<=0?'<p class="note">Mês sem lucro: nada vai para o fundo.</p>':''}
   <div class="btnrow" style="justify-content:flex-end">${fech?'<span class="note">Para refazer, estorne os lançamentos deste mês no extrato.</span>':`<button class="btn pri" data-ffechar ${lm.luc<=0||!fundoPct()?'disabled':''}>Fechar ${mesNome(M)} e lançar no fundo</button>`}</div>
   <p class="note">A % de cada sócio é ajustada em Administração → Simulador mensal → Fundo (%).</p>
@@ -1043,7 +1047,7 @@ function vFundo(){
 function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(curUser()?.nome||''):'',valor:'',data:iso(today),descricao:''};
  modal(`<h3>${tipo==='aporte'?'Aporte no fundo':'Uso do fundo'}</h3><div class="fg">
  <label class="f full">${tipo==='aporte'?'Quem aportou':'Responsável'}<select id="fm-socio" data-fm="socio"><option value="">3mix</option>${S.socios.map(s=>`<option ${s.nome===UI.draft.socio?'selected':''}>${esc(s.nome)}</option>`).join('')}</select></label>
- <label class="f">Valor (R$)<input id="fm-valor" data-fm="valor" type="number" step="0.01" min="0" inputmode="decimal"></label>
+ <label class="f">Valor (R$)<input id="fm-valor" data-fm="valor" type="text" inputmode="decimal" class="dec" placeholder="0,00"></label>
  <label class="f">Data<input id="fm-data" data-fm="data" type="date" value="${UI.draft.data}"></label>
  <label class="f full">Descrição<input id="fm-desc" data-fm="descricao" placeholder="${tipo==='aporte'?'ex.: capital para compra de estoque':'ex.: compra de frascos, marketing, embalagens'}"></label></div>
  <p class="note">${tipo==='aporte'?'Dinheiro novo colocado pelo sócio no fundo da 3mix.':'Saída de dinheiro do fundo. Fica no extrato e no log.'}</p>
@@ -1280,15 +1284,15 @@ function mProduto(id){UI.msize='lg';UI.delArm=false;
   <label class="f">Família olfativa<select id="f-familia" data-f="familia">${Object.keys(FAM).map(g=>`<option ${g===p.familia?'selected':''}>${g}</option>`).join('')}</select></label>
   <label class="f full">Descrição curta<textarea id="f-descricao" data-f="descricao" rows="2">${esc(p.descricao)}</textarea></label>
   <div class="full pcomp"><div class="pc-t">Composição do preço</div>
-   <div class="fg pc3"><label class="f">Custo (R$)<input id="f-custo" data-f="custo" type="number" step="0.01" min="0" value="${p.custo}"></label>
-   <label class="f">Frete (%)<input id="f-frete" data-f="frete" type="number" step="0.1" min="0" value="${+p.frete||0}"></label>
+   <div class="fg pc3"><label class="f">Custo (R$)<input id="f-custo" data-f="custo" type="text" inputmode="decimal" class="dec" value="${fmt(p.custo)}"></label>
+   <label class="f">Frete (%)<input id="f-frete" data-f="frete" type="text" inputmode="decimal" class="dec" value="${fmt(+p.frete||0)}"></label>
    <label class="f">Custo final (R$)<input id="f-cf" disabled value="${fmt(custoFinal(p))}"></label></div>
-   <div class="fg pc3"><span class="pc-l">A prazo</span><label class="f">Markup (%)<input id="f-mkp" data-mk="preco" type="number" step="0.01" value="${mkp(+p.preco,custoFinal(p)).toFixed(2)}"></label>
-   <label class="f">Preço a prazo (R$)<input id="f-preco" data-f="preco" type="number" step="0.01" min="0" value="${p.preco}"></label></div>
-   <div class="fg pc3"><span class="pc-l">À vista</span><label class="f">Markup (%)<input id="f-mkv" data-mk="precoVista" type="number" step="0.01" value="${mkp(pVista(p),custoFinal(p)).toFixed(2)}"></label>
-   <label class="f">Preço à vista (R$)<input id="f-precoVista" data-f="precoVista" type="number" step="0.01" min="0" value="${pVista(p)}"></label></div>
+   <div class="fg pc3"><span class="pc-l">A prazo</span><label class="f">Markup (%)<input id="f-mkp" data-mk="preco" type="text" inputmode="decimal" class="dec" value="${fmt(mkp(+p.preco,custoFinal(p)))}"></label>
+   <label class="f">Preço a prazo (R$)<input id="f-preco" data-f="preco" type="text" inputmode="decimal" class="dec" value="${fmt(p.preco)}"></label></div>
+   <div class="fg pc3"><span class="pc-l">À vista</span><label class="f">Markup (%)<input id="f-mkv" data-mk="precoVista" type="text" inputmode="decimal" class="dec" value="${fmt(mkp(pVista(p),custoFinal(p)))}"></label>
+   <label class="f">Preço à vista (R$)<input id="f-precoVista" data-f="precoVista" type="text" inputmode="decimal" class="dec" value="${fmt(pVista(p))}"></label></div>
    <p class="note">Digite o markup e o preço se ajusta, ou digite o preço e o markup se ajusta. À vista vale para Pix, dinheiro e débito; a prazo para crédito, parcelado e link.</p></div>
-  <label class="f">Comissão base (%)<input id="f-comissao" data-f="comissao" type="number" step="0.5" value="${p.comissao}"></label>
+  <label class="f">Comissão base (%)<input id="f-comissao" data-f="comissao" type="text" inputmode="decimal" class="dec" value="${fmt(p.comissao)}"></label>
   <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
   <label class="f">Volume (ml)<input id="f-ml" data-f="ml" type="number" value="${p.ml}"></label>
   <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="uso interno, não aparece no catálogo"></label>
@@ -1300,14 +1304,14 @@ function mProduto(id){UI.msize='lg';UI.delArm=false;
 }
 function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;const cf=custoFinal(d),pv=pVista(d);
  const lp=d.preco-cf-d.preco*d.comissao/100,lv=pv-cf-pv*d.comissao/100;
- el.innerHTML=`<div>Custo final<b>${Ri(cf)}</b></div><div>Lucro a prazo<b>${Ri(lp)} · ${d.preco?(lp/d.preco*100).toFixed(0):0}%</b></div><div>Lucro à vista<b>${Ri(lv)} · ${pv?(lv/pv*100).toFixed(0):0}%</b></div>`;return;
+ el.innerHTML=`<div>Custo final<b>${Ri(cf)}</b></div><div>Lucro a prazo<b>${Ri(lp)} · ${pc(d.preco?lp/d.preco*100:0)}</b></div><div>Lucro à vista<b>${Ri(lv)} · ${pc(pv?lv/pv*100:0)}</b></div>`;return;
  el.innerHTML=`<div>Markup<b>${d.custo?(d.preco/d.custo).toFixed(2):'—'}×</b></div><div>Comissão por frasco<b>${Ri(com)}</b></div><div>Lucro por frasco<b>${Ri(luc)} · ${d.preco?(luc/d.preco*100).toFixed(0):0}%</b></div>`}
 function mEntrada(pid){UI.msize='sm';
  UI.draft={pid:pid||S.prods[0].id,qtd:12,custo:(prod(pid)||S.prods[0]).custo,data:iso(today)};
  modal(`<h3>Entrada de estoque</h3><div class="fg">
  <label class="f full">Produto<select id="e-pid" data-e="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===UI.draft.pid?'selected':''}>${p.code} · ${esc(p.nome)} (${p.estoque} un)</option>`).join('')}</select></label>
  <label class="f">Quantidade (un)<input id="e-qtd" data-e="qtd" type="number" value="12"></label>
- <label class="f">Custo unitário (R$)<input id="e-custo" data-e="custo" type="number" step="0.01" value="${UI.draft.custo}"></label>
+ <label class="f">Custo unitário (R$)<input id="e-custo" data-e="custo" type="text" inputmode="decimal" class="dec" value="${fmt(UI.draft.custo)}"></label>
  <label class="f">Data da compra<input id="e-data" data-e="data" type="date" value="${UI.draft.data}"></label></div>
  <p class="note">O custo do produto passa a ser o custo médio entre o estoque atual e esta compra.</p>
  <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveent>Registrar entrada</button></div>`);
@@ -1475,13 +1479,13 @@ document.addEventListener('click',e=>{
  if('addit' in d){UI.draft.itens.push({pid:(S.prods.find(p=>eV(UI.draft.vid,p.id)>0)||S.prods[0]).id,qtd:1});drawVenda();return}
  if(d.rmit){UI.draft.itens.splice(+d.rmit,1);drawVenda();return}
  if(d.pay){UI.draft.pag=d.pay;drawVenda();return}
- if('saveprod' in d){const x=UI.draft;['custo','frete','preco','precoVista','comissao','min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
+ if('saveprod' in d){const x=UI.draft;['custo','frete','preco','precoVista','comissao'].forEach(k=>x[k]=num(x[k]));['min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
   rodar(async()=>{let foto=x.foto||'';if(foto.startsWith('data:'))foto=await subirFoto(foto,'produtos',x.code);
    const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,preco:x.preco,preco_vista:+x.precoVista||0,comissao:x.comissao,
     estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:x.sku||''};
    if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',row);
-   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · a prazo R$ ${fmt(x.preco)} · à vista R$ ${fmt(pVista(x))} · custo R$ ${fmt(x.custo)} + frete ${x.frete}%`);UI.modal=null},'Produto salvo');return}
- if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=+x.custo||0;if(q<=0){toast('Quantidade deve ser maior que zero');return}
+   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · a prazo R$ ${fmt(x.preco)} · à vista R$ ${fmt(pVista(x))} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)}`);UI.modal=null},'Produto salvo');return}
+ if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=num(x.custo);if(q<=0){toast('Quantidade deve ser maior que zero');return}
   rodar(async()=>{await rpc('registrar_entrada',{p_pid:x.pid,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},`Entrada de ${q} un registrada`);return}
  if('savevend' in d){const nome=$('#vd-nome').value.trim();if(!nome){toast('Informe o nome');return}
   const o={nome,tel:$('#vd-tel').value.trim(),pix:$('#vd-pix').value.trim(),cidade:$('#vd-cidade').value.trim(),ativo:$('#vd-ativo').value==='1'};
@@ -1506,11 +1510,11 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
- if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','preco','precoVista','comissao'].includes(d.f)){UI.draft[d.f]=+t.value||0;const D=UI.draft,cf=custoFinal(D);
+ if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','preco','precoVista','comissao'].includes(d.f)){UI.draft[d.f]=num(t.value);const D=UI.draft,cf=custoFinal(D);
   if(d.f==='precoVista'&&!D.precoVista)D.precoVista=0;
-  $('#f-cf').value=fmt(cf);$('#f-mkp').value=mkp(+D.preco,cf).toFixed(2);if(d.f!=='precoVista'&&!(+D.precoVista>0))$('#f-precoVista').value=(+D.preco).toFixed(2);$('#f-mkv').value=mkp(pVista(D),cf).toFixed(2);pCalc()}return}
- if(d.mk){const D=UI.draft,cf=custoFinal(D),v=Math.round(cf*(1+(+t.value||0)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=v.toFixed(2);pCalc();return}
- if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid')$('#e-custo').value=prod(t.value).custo;return}
+  $('#f-cf').value=fmt(cf);$('#f-mkp').value=fmt(mkp(+D.preco,cf));if(d.f!=='precoVista'&&!(+D.precoVista>0))$('#f-precoVista').value=fmt(+D.preco);$('#f-mkv').value=fmt(mkp(pVista(D),cf));pCalc()}return}
+ if(d.mk){const D=UI.draft,cf=custoFinal(D),v=Math.round(cf*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);pCalc();return}
+ if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){$('#e-custo').value=fmt(prod(t.value).custo);UI.draft.custo=prod(t.value).custo}return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
  if(d.ck){UI.draft[d.ck]=t.value;return}
  if(d.fm){UI.draft[d.fm]=t.value;return}
@@ -1520,7 +1524,7 @@ document.addEventListener('input',e=>{
  if(t.id==='yp-dom'){S.yampi.dominio=t.value.trim();return}
  if(t.id==='yp-cupom'){S.yampi.cupom=t.value.trim().toUpperCase();return}
  if(d.cfg){S[d.cfg]=t.value.trim();return}
- if(d.tax!==undefined&&e.type==='input'){S.taxas[d.tax]=+t.value||0;return}
+ if(d.tax!==undefined&&e.type==='input'){S.taxas[d.tax]=num(t.value);return}
  if(d.sn!==undefined){S.socios[+d.sn].nome=t.value;return}
 });
 document.addEventListener('change',e=>{
@@ -1530,7 +1534,7 @@ document.addEventListener('change',e=>{
  if(t.id==='whoSel'){if(t.value==='socio'){UI.role='socio';UI.view='painel'}else if(t.value.startsWith('loja:')){UI.role='loja';UI.vid=t.value.slice(5);UI.cart={}}else{UI.role='vend';UI.vid=t.value;UI.view='inicio'}UI.modal=null;render();return}
  if(d.it!==undefined){UI.draft.itens[+d.it][d.k]=t.value;drawVenda();return}
  if(d.nv==='parcelas'||d.nv==='status'){UI.draft[d.nv]=t.value;return}
- if(d.tax!==undefined){S.taxas[d.tax]=+t.value||0;cfgSave('Taxa de pagamento alterada',`${PAY[d.tax]}: ${t.value}%`);render();return}
+ if(d.tax!==undefined){S.taxas[d.tax]=num(t.value);cfgSave('Taxa de pagamento alterada',`${PAY[d.tax]}: ${pc(num(t.value))}`);render();return}
  if(d.invloc!==undefined){UI.inv={local:t.value,cont:{}};UI.invArm=false;render();return}
  if(d.lgf){UI.lgf[d.lgf]=t.value;render();return}
  if(d.fmes!==undefined){UI.fmes=t.value;UI.ffArm=false;render();return}
@@ -1538,9 +1542,9 @@ document.addEventListener('change',e=>{
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao'}[d.k];
   upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub')render()},err=>toast(msgErro(err),4000));return}
  if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome}`)},'Foto do banner enviada'));return}
- if(d.sim){UI.sim[d.sim]=+t.value||0;if(d.sim==='desp'){S.despesas=UI.sim.desp;cfgSave('Despesas fixas alteradas',`R$ ${fmt(S.despesas)}`)}render();return}
- if(d.sf!==undefined){const so=S.socios[+d.sf],v=Math.max(0,+t.value||0);if(v>so.pct){toast(`O fundo não pode passar da participação de ${so.nome} (${so.pct}%)`);render();return}so.fundo=v;cfgSave('Fundo do sócio alterado',`${so.nome}: ${v}% do lucro fica no fundo`);render();return}
- if(d.sp!==undefined){S.socios[+d.sp].pct=+t.value||0;cfgSave('Participação alterada',`${S.socios[+d.sp].nome}: ${t.value}%`);render();return}
+ if(d.sim){UI.sim[d.sim]=num(t.value);if(d.sim==='desp'){S.despesas=UI.sim.desp;cfgSave('Despesas fixas alteradas',`R$ ${fmt(S.despesas)}`)}render();return}
+ if(d.sf!==undefined){const so=S.socios[+d.sf],v=Math.max(0,num(t.value));if(v>so.pct){toast(`O fundo não pode passar da participação de ${so.nome} (${pc(so.pct)})`);render();return}so.fundo=v;cfgSave('Fundo do sócio alterado',`${so.nome}: ${pc(v)} do lucro fica no fundo`);render();return}
+ if(d.sp!==undefined){S.socios[+d.sp].pct=num(t.value);cfgSave('Participação alterada',`${S.socios[+d.sp].nome}: ${pc(num(t.value))}`);render();return}
  if(d.uperfil){const u=S.users.find(x=>x.id===d.uperfil),nv=t.value;
   if(nv==='adm'&&S.users.filter(x=>x.perfil==='adm').length>=MAXADM){toast(`Limite de ${MAXADM} administradores`);render();return}
   rodar(async()=>{const o={perfil:nv};if(nv==='vend'&&!u.vid)o.vendedor_id=(await ins('vendedores',{nome:u.nome,ativo:u.status==='ativo'})).id;
@@ -1548,6 +1552,7 @@ document.addEventListener('change',e=>{
  if(d.f==='familia'||d.f==='foto'){$('#fPrev').innerHTML=foto(UI.draft)}
  if(t.id==='fFoto'&&t.files&&t.files[0]){lerFoto(t.files[0],900,true).then(u=>{UI.draft.foto=u;$('#f-foto').value='';$('#fPrev').innerHTML=foto(UI.draft)});return}
 });
+document.addEventListener('focusout',e=>{const t=e.target;if(t.classList&&t.classList.contains('dec')&&t.value.trim()!=='')t.value=fmt(num(t.value))});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.modal)closeModal()});
 /* formulários de login, cadastro e recuperação */
 document.addEventListener('submit',async e=>{
