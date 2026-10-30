@@ -902,21 +902,28 @@ function vEquipe(){
 }
 
 function vSocios(){
- const m=UI.sim||(UI.sim={custo:11,preco:29.9,taxa:TXY(),taxagw:+(S.taxas.taxagw)||4.5,outros:+(S.taxas.outros)||0,un:300,desp:S.despesas});
- const taxTotal=m.taxa+ m.taxagw+ m.outros;
- const porUn=m.preco-m.custo-m.preco*taxTotal/100;
- const luc=porUn*m.un-m.desp;const pe=Math.ceil(m.desp/Math.max(.01,porUn));
- const mgPct=m.preco?(m.preco-m.custo)/m.preco*100:0;const mgLiq=m.preco?(porUn/m.preco*100):0;
- return `<div class="head"><div><h1>Administração</h1><p class="sub">Divisão do lucro entre os administradores, simulador por frasco e pagamentos</p></div></div>
- <div class="two"><section class="panel"><div class="panel-h"><h2>Simulador mensal</h2></div>
-  <div class="fg">
-   ${[['custo','Custo final do frasco (R$)'],['preco','Preço ao vendedor (R$)'],['taxa','Taxa Yampi checkout (%)'],['taxagw','Taxa gateway / MP (%)'],['outros','Outros custos sobre venda (%)'],['un','Frascos vendidos por mês (un)'],['desp','Despesas fixas mês (R$)']].map(([k,l])=>`<label class="f">${l}<input id="sim-${k}" data-sim="${k}" type="text" inputmode="decimal" class="dec" value="${k==='un'?m[k]:fmt(m[k])}"></label>`).join('')}
+ const KP=kPagos(),LP=KP.filter(inPer),tp=ksum(LP);
+ const desp=S.despesas*UI.per/30;
+ const lucMes=tp.luc-desp;
+ const mgBruta=tp.rec?(tp.rec-tp.cus)/tp.rec*100:0;
+ const txPct=tp.rec?tp.tax/tp.rec*100:0;
+ const mgLiq=tp.rec?tp.luc/tp.rec*100:0;
+ const porUn=tp.un?(tp.luc/tp.un):0;
+ return `<div class="head"><div><h1>Administração</h1><p class="sub">Divisão do lucro entre os administradores, resultado do período e pagamentos</p></div><div class="sp"></div>${perTabs()}</div>
+ <div class="two"><section class="panel"><div class="panel-h"><h2>Resultado do período</h2><span class="sp"></span><span class="note">últimos ${UI.per} dias · kits pagos</span></div>
+  <div class="calc">
+   <div>Faturamento<b>${R(tp.rec)}</b><small>${U(tp.un)} frascos · ${LP.length} kits</small></div>
+   <div>Custo total<b>${R(tp.cus)}</b><small>${pc(mgBruta)} margem bruta</small></div>
+   <div>Taxas<b>${R(tp.tax)}</b><small>${pc(txPct)} sobre venda</small></div>
+   <div>Lucro bruto<b>${R(tp.luc)}</b><small>${pc(mgLiq)} margem líquida</small></div>
+   <div>Despesas fixas<b>−${R(desp)}</b><small>proporcional a ${UI.per}d</small></div>
+   <div>Lucro líquido<b>${R(lucMes)}</b><small>${tp.un?Ri(porUn)+' por frasco':'—'}</small></div>
   </div>
-  <div class="calc"><div>Margem bruta<b>${pc(mgPct)}</b></div><div>Taxas sobre venda<b>${pc(taxTotal)}</b></div><div>Margem líquida<b>${pc(mgLiq)}</b></div><div>Lucro por frasco<b>${Ri(porUn)}</b></div><div>Lucro do mês<b>${Ri(luc)}</b></div><div>Ponto de equilíbrio<b>${pe} un/mês</b></div></div>
-  <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe mês (R$)</th></tr></thead><tbody>
-  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(luc*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
+  <div class="fg" style="margin-top:12px"><label class="f">Despesas fixas mês (R$)<input id="sim-desp" data-sim="desp" type="text" inputmode="decimal" class="dec" value="${fmt(S.despesas)}"></label></div>
+  <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th></tr></thead><tbody>
+  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
   </tbody></table>
-  <p class="note">As despesas fixas daqui também entram no Painel. Soma das participações: ${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}. <b>Fundo (%)</b>: quanto da parte de cada sócio fica no fundo de investimento da 3mix (ex.: 33% de participação com 1% no fundo = recebe 32%).</p>
+  <p class="note">Despesas fixas proporcionais ao período. Soma das participações: ${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}. <b>Fundo (%)</b>: quanto da parte de cada sócio fica no fundo de investimento da 3mix.</p>
  </section>
  <section class="panel"><div class="panel-h"><h2>Onde está o dinheiro</h2></div>
   <div class="list">
@@ -1386,22 +1393,24 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
   </div>
  </div>
  <div class="pcol pcomp"><div class="pc-t">Composição do preço</div>
-  <table class="comp-tb" id="pCompTb"><thead><tr><th>Item</th><th class="n">%</th><th class="n">R$</th></tr></thead><tbody>
-   <tr><td>Custo do frasco</td><td class="n">—</td><td class="n"><input id="f-custo" data-f="custo"${D} value="${fmt(p.custo)}" style="width:80px"></td></tr>
-   <tr><td>Frete sobre custo</td><td class="n"><input id="f-frete" data-f="frete"${D} value="${fmt(+p.frete||0)}" style="width:60px"></td><td class="n" id="pc-frete-r">—</td></tr>
-   <tr><td>IPI sobre custo</td><td class="n"><input id="f-ipi" data-f="ipi"${D} value="${fmt(+p.ipi||0)}" style="width:60px"></td><td class="n" id="pc-ipi-r">—</td></tr>
-   <tr style="font-weight:700;border-top:2px solid var(--line)"><td>Custo final</td><td class="n" id="pc-cf-pct">—</td><td class="n" id="pc-cf-r">—</td></tr>
-  </tbody></table>
+  <div class="calc" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.6fr) minmax(0,.8fr);font-size:13px">
+   <b style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Custo</b><b style="font-size:11px;text-align:right;color:var(--muted)">%</b><b style="font-size:11px;text-align:right;color:var(--muted)">R$</b>
+   <span>Custo do frasco</span><span style="text-align:right">—</span><span style="text-align:right"><input id="f-custo" data-f="custo"${D} value="${fmt(p.custo)}" style="width:80px"></span>
+   <span>Frete sobre custo</span><span style="text-align:right"><input id="f-frete" data-f="frete"${D} value="${fmt(+p.frete||0)}" style="width:60px"></span><span style="text-align:right" id="pc-frete-r">—</span>
+   <span>IPI sobre custo</span><span style="text-align:right"><input id="f-ipi" data-f="ipi"${D} value="${fmt(+p.ipi||0)}" style="width:60px"></span><span style="text-align:right" id="pc-ipi-r">—</span>
+   <b>Custo final</b><b style="text-align:right" id="pc-cf-pct">—</b><b style="text-align:right" id="pc-cf-r">—</b>
+  </div>
   <div class="pc-g" style="margin-top:12px"><span></span><b>Markup (%)</b><b>Preço (R$)</b>
    <span class="pc-l">3mix → vendedor</span><label class="f"><input id="f-mk3" data-mk="precoRev"${D} value="${fmt(mkp(pRev(p),custoFinal(p)))}" title="Markup 3mix (%)"></label><label class="f"><input id="f-precoRev" data-f="precoRev"${D} value="${fmt(pRev(p))}" title="Preço ao vendedor (R$)"></label>
    <span class="pc-l">Vendedor → cliente<small>preço sugerido</small></span><label class="f"><input id="f-mkv" data-mk="preco"${D} value="${fmt(mkp(+p.preco,pRev(p)))}" title="Markup vendedor (%)"></label><label class="f"><input id="f-preco" data-f="preco"${D} value="${fmt(p.preco)}" title="Preço sugerido ao cliente (R$)"></label>
   </div>
-  <table class="comp-tb" id="pTaxTb" style="margin-top:12px"><thead><tr><th>Taxas sobre venda</th><th class="n">%</th><th class="n">R$</th></tr></thead><tbody>
-   <tr><td>Taxa gateway / MP</td><td class="n" id="pc-gw-pct">—</td><td class="n" id="pc-gw-r">—</td></tr>
-   <tr><td>Outros</td><td class="n" id="pc-out-pct">—</td><td class="n" id="pc-out-r">—</td></tr>
-   <tr style="font-weight:700;border-top:2px solid var(--line)"><td>Total taxas</td><td class="n" id="pc-tx-pct">—</td><td class="n" id="pc-tx-r">—</td></tr>
-  </tbody></table>
-  <p class="note">Taxas gateway e outros ajustáveis em Administração → Simulador (valem para todos os produtos).</p>
+  <div class="calc" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.6fr) minmax(0,.8fr);font-size:13px;margin-top:12px">
+   <b style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Taxas sobre venda</b><b style="font-size:11px;text-align:right;color:var(--muted)">%</b><b style="font-size:11px;text-align:right;color:var(--muted)">R$</b>
+   <span>Taxa gateway / MP</span><span style="text-align:right"><input id="f-taxagw" data-f="taxagw"${D} value="${fmt(+(S.taxas.taxagw)||0)}" style="width:60px"></span><span style="text-align:right" id="pc-gw-r">—</span>
+   <span>Outros</span><span style="text-align:right"><input id="f-outros" data-f="outros"${D} value="${fmt(+(S.taxas.outros)||0)}" style="width:60px"></span><span style="text-align:right" id="pc-out-r">—</span>
+   <b>Total taxas</b><b style="text-align:right" id="pc-tx-pct">—</b><b style="text-align:right" id="pc-tx-r">—</b>
+  </div>
+  <p class="note">Taxas gateway e outros valem para todos os produtos.</p>
   <div class="calc" id="pCalc"></div>
  </div>
  </div>
@@ -1423,9 +1432,7 @@ function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;
  if(s('#pc-cf-r'))s('#pc-cf-r').textContent=fmt(cf);
  if(s('#pc-cf-pct')&&rv)s('#pc-cf-pct').textContent=pc(cf/rv*100);
  /* taxas detalhadas */
- if(s('#pc-gw-pct'))s('#pc-gw-pct').textContent=pc(gwPct);
  if(s('#pc-gw-r'))s('#pc-gw-r').textContent=fmt(gwR);
- if(s('#pc-out-pct'))s('#pc-out-pct').textContent=pc(outPct);
  if(s('#pc-out-r'))s('#pc-out-r').textContent=fmt(outR);
  if(s('#pc-tx-pct'))s('#pc-tx-pct').textContent=pc(txPct);
  if(s('#pc-tx-r'))s('#pc-tx-r').textContent=fmt(txR);
@@ -1658,7 +1665,9 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
- if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','ipi','preco','precoRev'].includes(d.f)){UI.draft[d.f]=num(t.value);const D=UI.draft,cf=custoFinal(D);
+ if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','ipi','preco','precoRev','taxagw','outros'].includes(d.f)){UI.draft[d.f]=num(t.value);
+  if(d.f==='taxagw'||d.f==='outros'){S.taxas[d.f]=num(t.value);cfgSave('Taxa atualizada',`${d.f==='taxagw'?'Gateway/MP':'Outros'}: ${pc(num(t.value))}`)}
+  const D=UI.draft,cf=custoFinal(D);
   if(d.f==='precoVista'&&!D.precoVista)D.precoVista=0;
   if(d.f!=='preco')$('#f-mk3').value=fmt(mkp(+D.precoRev,cf));$('#f-mkv').value=fmt(mkp(+D.preco,+D.precoRev));pCalc()}return}
  if(d.mk){const D=UI.draft,base=d.mk==='preco'?+D.precoRev||0:custoFinal(D),v=Math.round(base*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);
@@ -1700,8 +1709,7 @@ document.addEventListener('change',e=>{
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao'}[d.k];
   upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub')render()},err=>toast(msgErro(err),4000));return}
  if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome}`)},'Foto do banner enviada'));return}
- if(d.sim){UI.sim[d.sim]=num(t.value);if(d.sim==='desp'){S.despesas=UI.sim.desp;cfgSave('Despesas fixas alteradas',`R$ ${fmt(S.despesas)}`)}
-  if(d.sim==='taxagw'||d.sim==='outros'){S.taxas[d.sim]=num(t.value);cfgSave('Taxa atualizada',`${d.sim==='taxagw'?'Gateway/MP':'Outros'}: ${pc(num(t.value))}`)}render();return}
+ if(d.sim){if(d.sim==='desp'){S.despesas=num(t.value);cfgSave('Despesas fixas alteradas',`R$ ${fmt(S.despesas)}`)}render();return}
  if(d.sf!==undefined){const so=S.socios[+d.sf],v=Math.max(0,num(t.value));if(v>so.pct){toast(`O fundo não pode passar da participação de ${so.nome} (${pc(so.pct)})`);render();return}so.fundo=v;cfgSave('Fundo do sócio alterado',`${so.nome}: ${pc(v)} do lucro fica no fundo`);render();return}
  if(d.sp!==undefined){S.socios[+d.sp].pct=num(t.value);cfgSave('Participação alterada',`${S.socios[+d.sp].nome}: ${pc(num(t.value))}`);render();return}
  if(d.uperfil){const u=S.users.find(x=>x.id===d.uperfil),nv=t.value;
