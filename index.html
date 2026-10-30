@@ -432,6 +432,7 @@ body:has(.shell.store){background:#fff}
 .sc-pz{font-size:12px;color:var(--s-mut);margin:4px 0 12px}.sc-pz .acc{width:auto;min-width:0;gap:3px}
 .pcomp{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px}
 .pc-t{font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.comp-tb{width:100%;border-collapse:collapse;font-size:13px}.comp-tb th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 6px;text-align:left;border-bottom:1px solid var(--line)}.comp-tb th.n{text-align:right}.comp-tb td{padding:5px 6px}.comp-tb td.n{text-align:right}.comp-tb input[type="text"]{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;text-align:right;font:inherit}
 .pc3{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:end}.pc-l{font-weight:700;font-size:13px;padding-bottom:10px}
 .sh-add{margin-top:auto;border:1px solid #000;background:#000;color:#fff;padding:11px;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;border-radius:2px}
 .sh-add:hover:not(:disabled){background:#fff;color:#000}
@@ -1631,7 +1632,7 @@ document.addEventListener('click',e=>{
    const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,ipi_pct:+x.ipi||0,preco:x.preco,preco_rev:x.precoRev,preco_vista:0,comissao:x.comissao,
     estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:(x.sku||'').trim(),sku_rev:(x.skuRev||'').trim()};
    if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',row);
-   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)}`);UI.modal=null},'Produto salvo');return}
+   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)} + IPI ${pc(x.ipi)}`);UI.modal=null},'Produto salvo');return}
  if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=num(x.custo);if(q<=0){toast('Quantidade deve ser maior que zero');return}
   rodar(async()=>{await rpc('registrar_entrada',{p_pid:x.pid,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},`Entrada de ${q} un registrada`);return}
  if('savevend' in d){const nome=$('#vd-nome').value.trim();if(!nome){toast('Informe o nome');return}
@@ -1657,9 +1658,9 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
- if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','preco','precoRev'].includes(d.f)){UI.draft[d.f]=num(t.value);const D=UI.draft,cf=custoFinal(D);
+ if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','ipi','preco','precoRev'].includes(d.f)){UI.draft[d.f]=num(t.value);const D=UI.draft,cf=custoFinal(D);
   if(d.f==='precoVista'&&!D.precoVista)D.precoVista=0;
-  $('#f-cf').value=fmt(cf);if(d.f!=='preco')$('#f-mk3').value=fmt(mkp(+D.precoRev,cf));$('#f-mkv').value=fmt(mkp(+D.preco,+D.precoRev));pCalc()}return}
+  if(d.f!=='preco')$('#f-mk3').value=fmt(mkp(+D.precoRev,cf));$('#f-mkv').value=fmt(mkp(+D.preco,+D.precoRev));pCalc()}return}
  if(d.mk){const D=UI.draft,base=d.mk==='preco'?+D.precoRev||0:custoFinal(D),v=Math.round(base*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);
   if(d.mk==='precoRev')$('#f-mkv').value=fmt(mkp(+D.preco,v));pCalc();return}
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){$('#e-custo').value=fmt(0);UI.draft.custo=0}return}
