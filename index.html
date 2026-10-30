@@ -631,7 +631,7 @@ const foto=p=>`<span class="bt">${bottle(FAM[p.familia]||'#7d6a95')}</span>`+(p.
 const SB_KEY='sb_publishable_Ga8cw6XuYu4ssHp-F5EvjQ_FgWiPugT';
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const VAZIO=()=>({prods:[],vend:[],vendas:[],compras:[],estV:{},precosV:{},kits:[],carts:{},socios:[],taxas:{pix:0,debito:0,credito:0,parcelado:0,dinheiro:0,link:0,taxagw:4.5,outros:0},
- niveis:[{nome:'Bronze',ate:1e12,bonus:0}],fundo:[],despesas:0,yampi:{alias:'3mix'},users:[],log:[],inventarios:[],banners:[],rank:null,pix3mix:'',whats3mix:''});
+ niveis:[{nome:'Bronze',ate:1e12,bonus:0}],fundo:[],despesas:[],yampi:{alias:'3mix'},users:[],log:[],inventarios:[],banners:[],rank:null,pix3mix:'',whats3mix:''});
 let S=VAZIO();
 const CARTK='3mix-carrinho';
 function carregaCarts(){try{S.carts=JSON.parse(localStorage.getItem(CARTK))||{}}catch(e){S.carts={}}}
@@ -639,8 +639,12 @@ function carregaCarts(){try{S.carts=JSON.parse(localStorage.getItem(CARTK))||{}}
 const save=()=>{try{localStorage.setItem(CARTK,JSON.stringify(S.carts||{}))}catch(e){}};
 function aplicaDados(d){const carts=S.carts;S={...VAZIO(),...(d||{}),carts};
  ['prods','vend','vendas','kits','compras','users','log','inventarios','banners'].forEach(k=>S[k]=S[k]||[]);S.estV=S.estV||{};S.precosV=S.precosV||{};
+ /* migra despesas: número antigo → array */
+ if(typeof S.despesas==='number'){S.despesas=S.despesas?[{nome:'Despesas gerais',valor:S.despesas}]:[];}
+ if(!Array.isArray(S.despesas))S.despesas=[];
  for(const vid in S.carts)for(const pid in S.carts[vid])if(!S.prods.some(p=>p.id===pid))delete S.carts[vid][pid];
  for(const k in _nv)delete _nv[k];MIN=Math.max(1,+S.minKit||6);}
+const totalDesp=()=>S.despesas.reduce((a,d)=>a+(+d.valor||0),0);
 async function sync(){const [{data,error},f,av]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em'),sb.from('avise_me').select('*').eq('atendido',false).order('criado_em',{ascending:false})]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[];S.avise=(av&&av.data)||[]}
 async function syncLoja(){const {data,error}=await sb.rpc('loja_publica',{p_slug:UI.slug});if(error)throw error;if(data)aplicaDados(data)}
 const msgErro=e=>String((e&&(e.message||e.error_description||e.error))||e||'Erro').replace(/^.*?ERROR:\s*/,'');
@@ -797,7 +801,7 @@ function vPainel(){
  const A=abc(L); const low=S.prods.filter(p=>p.estoque<=p.min);
  const rank=S.vend.map(v=>{const s=sum(LV.filter(x=>x.vid===v.id));return {v,...s}}).sort((a,b)=>b.rec-a.rec);
  const abertos=S.kits.filter(k=>['aguardando','informado'].includes(k.status));
- const lucMes=t.luc-S.despesas*UI.per/30;
+ const lucMes=t.luc-totalDesp()*UI.per/30;
  return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · caixa da 3mix = kits pagos pelos vendedores</p></div><div class="sp"></div>${perTabs()}</div>
  ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;return i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="equipe">Ver kits</button></div>`:''})()}
  <div class="grid-kpi">
@@ -815,7 +819,7 @@ function vPainel(){
   <section class="panel"><div class="panel-h"><h2>Divisão do lucro</h2><span class="sp"></span><span class="note">após despesas fixas</span></div>
    <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n hide-sm">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
    ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n hide-sm">${pc(+s.fundo||0)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
-   <tr><td class="note">Despesas fixas (${UI.per}d)</td><td></td><td class="hide-sm"></td><td class="n">${R(-S.despesas*UI.per/30)}</td><td></td></tr></tbody></table>
+   <tr><td class="note">Despesas (${UI.per}d)</td><td></td><td class="hide-sm"></td><td class="n">${R(-totalDesp()*UI.per/30)}</td><td></td></tr></tbody></table>
    <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
    <div class="row"><div class="grow"><div class="t">Kits aguardando pagamento</div><div class="s">${abertos.length} kits · ainda não entram no caixa</div></div><b>${R(abertos.reduce((a,k)=>a+kitVal(k),0))}</b></div>
   </section>
@@ -902,7 +906,7 @@ function vEquipe(){
 
 function vSocios(){
  const KP=kPagos(),LP=KP.filter(inPer),tp=ksum(LP);
- const desp=S.despesas*UI.per/30;
+ const desp=totalDesp()*UI.per/30;
  const lucMes=tp.luc-desp;
  const mgBruta=tp.rec?(tp.rec-tp.cus)/tp.rec*100:0;
  const txPct=tp.rec?tp.tax/tp.rec*100:0;
@@ -915,10 +919,15 @@ function vSocios(){
    <div>Custo total<b>${R(tp.cus)}</b><small>${pc(mgBruta)} margem bruta</small></div>
    <div>Taxas<b>${R(tp.tax)}</b><small>${pc(txPct)} sobre venda</small></div>
    <div>Lucro bruto<b>${R(tp.luc)}</b><small>${pc(mgLiq)} margem líquida</small></div>
-   <div>Despesas fixas<b>−${R(desp)}</b><small>proporcional a ${UI.per}d</small></div>
+   <div>Despesas<b>−${R(desp)}</b><small>proporcional a ${UI.per}d · ${S.despesas.length} ite${S.despesas.length===1?'m':'ns'}</small></div>
    <div>Lucro líquido<b>${R(lucMes)}</b><small>${tp.un?Ri(porUn)+' por frasco':'—'}</small></div>
   </div>
-  <div class="fg" style="margin-top:12px"><label class="f">Despesas fixas mês (R$)<input id="sim-desp" data-sim="desp" type="text" inputmode="decimal" class="dec" value="${fmt(S.despesas)}"></label></div>
+  <div style="margin-top:12px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:13px">Despesas mensais</b><span class="sp"></span><button class="btn sm" data-despadd>+ Despesa</button></div>
+  ${S.despesas.length?`<div class="tbl"><table><thead><tr><th>Descrição</th><th class="n">Valor (R$/mês)</th><th></th></tr></thead><tbody>
+  ${S.despesas.map((d,i)=>`<tr><td><input data-despnome="${i}" value="${esc(d.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:100%"></td><td class="n"><input data-despval="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+d.valor||0)}" style="width:80px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><button class="btn sm" data-despdel="${i}" style="color:var(--bad)" title="Excluir">✕</button></td></tr>`).join('')}
+  <tr style="font-weight:700"><td>Total</td><td class="n">${R(totalDesp())}</td><td></td></tr>
+  </tbody></table></div>`:'<p class="empty">Nenhuma despesa cadastrada.</p>'}
+  </div>
   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th></tr></thead><tbody>
   ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
   </tbody></table>
@@ -1081,7 +1090,7 @@ function vInventario(){
 const fundoSaldo=()=>(S.fundo||[]).reduce((a,m)=>a+ +m.valor,0);
 const fundoPct=()=>S.socios.reduce((a,s)=>a+(+s.fundo||0),0);
 const mesNome=m=>{const [y,mm]=m.split('-');return new Date(+y,+mm-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})};
-function lucroMes(m){const L=kPagos().filter(v=>v.data.slice(0,7)===m);const t=ksum(L);return {luc:t.luc-S.despesas,rec:t.rec,un:t.un,n:L.length}}
+function lucroMes(m){const L=kPagos().filter(v=>v.data.slice(0,7)===m);const t=ksum(L);return {luc:t.luc-totalDesp(),rec:t.rec,un:t.un,n:L.length}}
 const mesFechado=m=>(S.fundo||[]).some(x=>x.tipo==='reinvestimento'&&x.mes===m&&!x.estornado);
 const FT={reinvestimento:'Reinvestimento',aporte:'Aporte',uso:'Uso / saída',estorno:'Estorno'};
 function vFundo(){
@@ -1557,6 +1566,8 @@ document.addEventListener('click',e=>{
   closeModal();toast(fone?'Pronto! Envie a mensagem no WhatsApp que abriu':'Pronto! Você será avisado(a)');return}
  if(d.slnav){carGo(+d.slnav);return}
  if(d.sl!==undefined){carGo(0,+d.sl);return}
+ if('despadd' in d){S.despesas.push({nome:'',valor:0});cfgSave('Despesa adicionada','');render();return}
+ if(d.despdel!==undefined){const nm=S.despesas[+d.despdel]?.nome||'';S.despesas.splice(+d.despdel,1);cfgSave('Despesa excluída',nm);render();return}
  if('bnadd' in d){rodar(async()=>{await ins('banners',{ordem:S.banners.length+1,titulo:'Novo banner',botao:'Conferir'});log('Banner criado')});return}
  if(d.bndel!==undefined){const bn=S.banners[+d.bndel];rodar(async()=>{await del('banners',bn.id);log('Banner excluído',bn.tit)});return}
  if(d.lg!==undefined&&!('scroll' in d)){UI.lf.g=d.lg;render();return}
@@ -1713,7 +1724,8 @@ document.addEventListener('change',e=>{
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao'}[d.k];
   upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub')render()},err=>toast(msgErro(err),4000));return}
  if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome}`)},'Foto do banner enviada'));return}
- if(d.sim){if(d.sim==='desp'){S.despesas=num(t.value);cfgSave('Despesas fixas alteradas',`R$ ${fmt(S.despesas)}`)}render();return}
+ if(d.despnome!==undefined){S.despesas[+d.despnome].nome=t.value;cfgSave('Despesa renomeada',t.value);return}
+ if(d.despval!==undefined){S.despesas[+d.despval].valor=num(t.value);cfgSave('Valor de despesa alterado',`${S.despesas[+d.despval].nome}: R$ ${fmt(num(t.value))}`);render();return}
  if(d.sf!==undefined){const so=S.socios[+d.sf],v=Math.max(0,num(t.value));if(v>so.pct){toast(`O fundo não pode passar da participação de ${so.nome} (${pc(so.pct)})`);render();return}so.fundo=v;cfgSave('Fundo do sócio alterado',`${so.nome}: ${pc(v)} do lucro fica no fundo`);render();return}
  if(d.sp!==undefined){S.socios[+d.sp].pct=num(t.value);cfgSave('Participação alterada',`${S.socios[+d.sp].nome}: ${pc(num(t.value))}`);render();return}
  if(d.uperfil){const u=S.users.find(x=>x.id===d.uperfil),nv=t.value;
