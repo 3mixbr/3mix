@@ -629,7 +629,7 @@ const foto=p=>`<span class="bt">${bottle(FAM[p.familia]||'#7d6a95')}</span>`+(p.
    Gravação: funções do banco para estoque/vendas/kits/inventário; tabelas direto para cadastros do administrador. */
 const SB_KEY='sb_publishable_Ga8cw6XuYu4ssHp-F5EvjQ_FgWiPugT';
 const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const VAZIO=()=>({prods:[],vend:[],vendas:[],compras:[],estV:{},kits:[],carts:{},socios:[],taxas:{pix:0,debito:0,credito:0,parcelado:0,dinheiro:0,link:0},
+const VAZIO=()=>({prods:[],vend:[],vendas:[],compras:[],estV:{},precosV:{},kits:[],carts:{},socios:[],taxas:{pix:0,debito:0,credito:0,parcelado:0,dinheiro:0,link:0},
  niveis:[{nome:'Bronze',ate:1e12,bonus:0}],fundo:[],despesas:0,yampi:{alias:'3mix'},users:[],log:[],inventarios:[],banners:[],rank:null,pix3mix:'',whats3mix:''});
 let S=VAZIO();
 const CARTK='3mix-carrinho';
@@ -637,7 +637,7 @@ function carregaCarts(){try{S.carts=JSON.parse(localStorage.getItem(CARTK))||{}}
 /* só o carrinho de compra do vendedor fica no aparelho; o resto está no banco */
 const save=()=>{try{localStorage.setItem(CARTK,JSON.stringify(S.carts||{}))}catch(e){}};
 function aplicaDados(d){const carts=S.carts;S={...VAZIO(),...(d||{}),carts};
- ['prods','vend','vendas','kits','compras','users','log','inventarios','banners'].forEach(k=>S[k]=S[k]||[]);S.estV=S.estV||{};
+ ['prods','vend','vendas','kits','compras','users','log','inventarios','banners'].forEach(k=>S[k]=S[k]||[]);S.estV=S.estV||{};S.precosV=S.precosV||{};
  for(const vid in S.carts)for(const pid in S.carts[vid])if(!S.prods.some(p=>p.id===pid))delete S.carts[vid][pid];
  for(const k in _nv)delete _nv[k];MIN=Math.max(1,+S.minKit||6);}
 async function sync(){const [{data,error},f,av]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em'),sb.from('avise_me').select('*').eq('atendido',false).order('criado_em',{ascending:false})]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[];S.avise=(av&&av.data)||[]}
@@ -682,6 +682,8 @@ const precoRev=(p,vid)=>Math.round(pRev(p)*(1-nivelDe(vid,iso(today)).bonus/100)
    Um único preço de venda (preco) para todas as formas de pagamento. */
 const VISTA=['pix','dinheiro','debito'];
 const custoFinal=p=>Math.round((+p.custo||0)*(1+(+p.frete||0)/100)*100)/100;
+/* preço de venda do vendedor: personalizado ou sugerido */
+const precoVend=(p,vid)=>{const pv=((S.precosV||{})[vid]||{})[p.id]; return pv!==undefined&&+pv>0?+pv:+p.preco};
 const pVista=p=>+p.preco;
 const precoPag=(p,pag)=>VISTA.includes(pag)?pVista(p):+p.preco;
 /* preço que a 3mix cobra do vendedor (sem bônus de nível) */
@@ -695,7 +697,7 @@ const slugV=v=>v.slug||v.nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCas
 const BASE=(location.protocol==='https:'&&(location.hostname.endsWith('.vercel.app')||location.hostname.endsWith(DOMINIO)))?location.origin:'https://'+DOMINIO;
 const lojaLink=vid=>{const v=vend(vid);return `${BASE}/?loja=${encodeURIComponent(v?slugV(v):vid)}`};
 const msgGrupo=v=>{const its=S.prods.filter(p=>eV(v.id,p.id)>0);
- return `✨ *3mix Perfumes* — pronta entrega com ${v.nome.split(' ')[0]}\n\n${its.slice(0,6).map(p=>`• ${p.nome} (${p.ml} ml) — R$ ${fmt(pVista(p))}${pVista(p)<p.preco?' à vista':''}`).join('\n')}${its.length>6?`\n…e mais ${its.length-6} fragrâncias`:''}\n\n🛍️ Veja as fotos e faça seu pedido:\n${lojaLink(v.id)}`};
+ return `✨ *3mix Perfumes* — pronta entrega com ${v.nome.split(' ')[0]}\n\n${its.slice(0,6).map(p=>`• ${p.nome} (${p.ml} ml) — R$ ${fmt(precoVend(p,v.id))}`).join('\n')}${its.length>6?`\n…e mais ${its.length-6} fragrâncias`:''}\n\n🛍️ Veja as fotos e faça seu pedido:\n${lojaLink(v.id)}`};
 function copiar(t,ok){navigator.clipboard?.writeText(t).then(()=>toast(ok),()=>toast('Não foi possível copiar'))}
 
 /* ===== cálculos ===== */
@@ -859,7 +861,7 @@ function card(p,cl,admin,qty){
  const ph=foto(p);
  return `<article class="card"><div class="ph">${ph}${cl?`<span class="chip ${cl}">Curva ${cl}</span>`:''}${trophy(champRank()[p.id])}</div><div class="bd">
  <span class="code">${p.code} · ${p.genero.toUpperCase()} · ${p.ml} ML</span><span class="nm">${esc(p.nome)}</span><span class="ds">${esc(p.descricao)}</span>
- <div class="pr"><b>${Ri(p.preco)}</b><span class="chip ${q<=0?'bad':q<=lim?'warn':'good'}">${q} un</span></div>${pVista(p)<p.preco?`<span class="note">à vista ${Ri(pVista(p))}</span>`:''}</div>
+ <div class="pr"><b>${Ri(admin?p.preco:precoVend(p,UI.vid))}</b><span class="chip ${q<=0?'bad':q<=lim?'warn':'good'}">${q} un</span></div></div>
  <div class="ft">${admin?`<button class="btn sm" data-edit="${p.id}">Editar</button>`:`<button class="btn pri sm" data-vender="${p.id}" ${q<=0?'disabled':''}>Vender</button>`}<button class="btn sm" data-share="${p.id}" title="Copiar texto para o WhatsApp">Copiar</button></div></article>`;
 }
 
@@ -1021,11 +1023,11 @@ function vEstoqueV(){
  const its=S.prods.filter(p=>eV(v.id,p.id)>0).map(p=>({p,q:eV(v.id,p.id),c:precoRev(p,v.id),s:L.reduce((a,x)=>a+x.itens.filter(i=>i.pid===p.id).reduce((s,i)=>s+i.qtd,0),0)}));
  const {rows,ctl}=page('ev'+v.id,its,9);
  const K=S.kits.filter(k=>k.vid===v.id).sort((a,b)=>b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kv'+v.id,K,4);
- const valV=its.reduce((a,r)=>a+r.q*r.p.preco,0),lucV=its.reduce((a,r)=>a+r.q*(r.p.preco-r.c),0);
- return `<div class="head"><div><h1>Meu estoque</h1><p class="sub">${U(maosV(v.id))} em mãos · vale ${Ri(valV)} a preço sugerido</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
- <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$)</th><th class="n">Preço sug. (R$)</th><th class="n">Lucro/un (R$)</th></tr></thead><tbody>
- ${rows.map(r=>`<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n">${R(r.p.preco)}</td><td class="n">${R(r.p.preco-r.c)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
- </tbody></table></div>${ctl}<p class="note">Se vender tudo a preço sugerido, seu lucro é ${Ri(lucV)}.</p></section>
+ const valV=its.reduce((a,r)=>a+r.q*precoVend(r.p,v.id),0),lucV=its.reduce((a,r)=>a+r.q*(precoVend(r.p,v.id)-r.c),0);
+ return `<div class="head"><div><h1>Meu estoque</h1><p class="sub">${U(maosV(v.id))} em mãos · vale ${Ri(valV)} ao seu preço</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
+ <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$)</th><th class="n">Meu preço (R$)</th><th class="n">Lucro/un (R$)</th></tr></thead><tbody>
+ ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?'':'<small class="note" style="display:block;font-size:10px">sug.</small>'}</td><td class="n">${R(pv-r.c)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
+ </tbody></table></div>${ctl}<p class="note">Edite a coluna "Meu preço" para definir quanto cobrar do cliente. Sugerido: ${Ri(S.prods[0]?.preco||0)}.</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`${yLinkOk(k.itens,'kit')?`<a class="btn pri sm" href="${esc(yLink(k.itens,k.id,'kit',cupomKit(k.itens,v.id)))}" target="_blank" rel="noopener">Pagar</a> <button class="btn sm" data-jakit="${k.id}">Já paguei</button>`:`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button>`} <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
@@ -1214,7 +1216,7 @@ setInterval(()=>{const c=document.querySelector('[data-car]');if(!c||UI.modal||c
 {let x0=null;document.addEventListener('touchstart',e=>{x0=e.target.closest('[data-car]')?e.touches[0].clientX:null},{passive:true});
  document.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40)carGo(dx<0?1:-1)},{passive:true})}
 const qtyCtl=(pid,q,max)=>`<div class="qty"><button data-cart="${pid}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-cart="${pid}" data-d="1" aria-label="Mais um" ${q>=max?'disabled':''}>+</button></div>`;
-const prLoja=p=>pVista(p)<p.preco?`<div class="sc-pr">${R(pVista(p))}<small class="sc-vs">à vista no Pix</small></div><div class="sc-pz">ou ${Ri(p.preco)} a prazo</div>`:`<div class="sc-pr">${R(p.preco)}</div>`;
+const prLoja=(p,vid)=>{const pv=precoVend(p,vid);return `<div class="sc-pr">${R(pv)}</div>`};
 /* número de WhatsApp com DDI 55 */
 const zap=f=>{f=String(f||'').replace(/\D/g,'');return f.startsWith('55')&&f.length>11?f:'55'+f};
 function mAvise(pid){const p=prod(pid),v=vend(UI.vid);UI.msize='sm';UI.draft={pid,nome:'',tel:''};
@@ -1224,14 +1226,14 @@ function mAvise(pid){const p=prod(pid),v=vend(UI.vid);UI.msize='sm';UI.draft={pi
 function shopCard(p,vid,q,r){const max=eV(vid,p.id);
  return `<article class="sc"><button class="sc-ph" data-qv="${p.id}" aria-label="Ver ${esc(p.nome)}">${palco(p)}${r?'<span class="sc-tag">Mais vendido</span>':''}${max>0&&max<=2?'<span class="sc-tag lo">Últimas unidades</span>':''}</button>
  <div class="sc-bd"><span class="sc-brand">3MIX</span><button class="sc-nm" data-qv="${p.id}">${esc(p.nome)}</button><span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>
- ${prLoja(p)}
+ ${prLoja(p,vid)}
  <span class="sc-st ${max>0?'ok':''}">${max>0?`${max} disponíve${max>1?'is':'l'}`:'Sem estoque no momento'}</span>
  ${max<=0?`<button class="sh-add sh-avise" data-avise="${p.id}">Avise-me quando chegar</button>`:q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1">Adicionar<span class="hide-sm">&nbsp;à sacola</span></button>`}</div></article>`;
 }
 function mQV(pid){UI.qv=pid;UI.ck=false;UI.msize='lg';drawQV()}
 function drawQV(){const p=prod(UI.qv),v=vend(UI.vid),q=UI.cart[p.id]||0,max=eV(v.id,p.id);
  UI.modal=`<div class="qv">${palco(p,true)}<div class="qv-t"><span class="sc-brand">3MIX</span><h3>${esc(p.nome)}</h3>
- <span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>${p.descricao?`<p class="qv-ds">${esc(p.descricao)}</p>`:''}${prLoja(p)}
+ <span class="sc-ml">${esc(p.familia)} · ${GEN[p.genero]||p.genero} · ${p.ml} ml</span>${p.descricao?`<p class="qv-ds">${esc(p.descricao)}</p>`:''}${prLoja(p,UI.vid)}
  <p class="note">${max>0?`${max} un a pronta entrega com ${esc(v.nome.split(' ')[0])}`:'Sem estoque no momento'}</p>
  ${max<=0?`<button class="sh-add sh-avise" data-avise="${p.id}">Avise-me quando chegar</button>`:q?qtyCtl(p.id,q,max):`<button class="sh-add" data-cart="${p.id}" data-d="1">Adicionar à sacola</button>`}</div></div>
  <div class="actions"><button class="btn ghost" data-close>Continuar vendo</button>${Object.keys(UI.cart).length?'<button class="btn pri" data-checkout>Ver sacola</button>':''}</div>`;
@@ -1240,7 +1242,7 @@ function drawQV(){const p=prod(UI.qv),v=vend(UI.vid),q=UI.cart[p.id]||0,max=eV(v
 const CKP=()=>UI.publico?{pix:'Pix para o vendedor',dinheiro:'Dinheiro na entrega'}:{pix:'Pix',dinheiro:'Dinheiro'};
 function mCheckout(){UI.qv=null;UI.ck=true;UI.msize='md';UI.draft={cliente:'',tel:'',pag:'pix'};drawCheckout()}
 function drawCheckout(){
- const d=UI.draft,cp=CKP(),pg=x=>precoPag(prod(x),d.pag),tot=Object.entries(UI.cart).reduce((a,[pid,q])=>a+pg(pid)*q,0);
+ const d=UI.draft,cp=CKP(),pg=x=>precoVend(prod(x),UI.vid),tot=Object.entries(UI.cart).reduce((a,[pid,q])=>a+pg(pid)*q,0);
  UI.modal=`<h3>${UI.publico?'Sua sacola':'Registrar venda'}</h3>
  <div class="list">${Object.entries(UI.cart).map(([pid,q])=>{const p=prod(pid);return `<div class="row"><div class="grow"><div class="t">${esc(p.nome)}</div><div class="s">${Ri(pg(pid))} por un</div></div>${qtyCtl(pid,q,eV(UI.vid,pid))}<span style="min-width:110px">${R(pg(pid)*q)}</span></div>`}).join('')}
  <div class="row"><div class="grow"><div class="t">Total</div></div><span style="min-width:110px"><b>${R(tot)}</b></span></div></div>
@@ -1273,7 +1275,7 @@ function mYampiLink(its,ref,valor){UI.msize='md';const url=yLink(its,ref,'venda'
 
 /* ===== carrinho do vendedor (compra de estoque da 3mix) ===== */
 const cartV=()=>{S.carts=S.carts||{};return S.carts[UI.vid]||(S.carts[UI.vid]={})};
-function cartTot(c){let un=0,tot=0,luc=0;for(const pid in c){const p=prod(pid);if(!p)continue;const q=c[pid],pr=precoRev(p,UI.vid);un+=q;tot+=q*pr;luc+=q*(p.preco-pr)}return {un,tot,luc}}
+function cartTot(c){let un=0,tot=0,luc=0;for(const pid in c){const p=prod(pid);if(!p)continue;const q=c[pid],pr=precoRev(p,UI.vid);un+=q;tot+=q*pr;luc+=q*(precoVend(p,UI.vid)-pr)}return {un,tot,luc}}
 const falta=un=>un?(MIN-un%MIN)%MIN:MIN;
 const metaTxt=un=>!un?`Adicione ${MIN} un para fechar o pedido`:falta(un)?`Faltam ${falta(un)} un para fechar ${un+falta(un)} un`:`Pedido fechado em ${un} un`;
 const cartBtn=()=>{const n=cartTot(cartV()).un;return `<button class="cartbtn" data-carrinho aria-label="Carrinho, ${n} itens">${ic('comprar')}${n?`<span class="badge">${n}</span>`:''}</button>`};
@@ -1288,7 +1290,7 @@ function vComprar(){
 function buyCard(p,q,r){
  const ph=foto(p),pr=precoRev(p,UI.vid);
  return `<article class="card"><div class="ph">${ph}${trophy(r)}</div><div class="bd"><span class="code">${p.code} · ${p.genero.toUpperCase()} · ${p.ml} ML</span><span class="nm">${esc(p.nome)}</span>
- <div class="pr"><b>${Ri(pr)}</b><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></div><span class="note">você paga · disponível na distribuidora</span><span class="note">Vende a ${Ri(p.preco)} · lucro ${Ri(p.preco-pr)}</span></div>
+ <div class="pr"><b>${Ri(pr)}</b><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></div><span class="note">você paga · disponível na distribuidora</span><span class="note">Vende a ${Ri(precoVend(p,UI.vid))} · lucro ${Ri(precoVend(p,UI.vid)-pr)}</span></div>
  <div class="ft">${q?`<div class="qty" style="margin:0 auto"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div>`:`<button class="btn pri sm" data-bc="${p.id}" data-d="1">Adicionar<span class="hide-sm">&nbsp;ao carrinho</span></button>`}</div></article>`;
 }
 function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';const w=(S.whats3mix||'').replace(/\D/g,'');const v=vend(UI.vid);
@@ -1308,7 +1310,7 @@ function drawCarrinho(){
  const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean);
  const rows=its,ctl='';const pct=t.un?Math.round((t.un%MIN||MIN)/MIN*100):0;
  UI.modal=`<h3>Meu carrinho</h3>
- ${its.length?`<div class="list rolar">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">${Ri(pr)} por un · vende a ${Ri(p.preco)}</div></div>
+ ${its.length?`<div class="list rolar">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">${Ri(pr)} por un · vende a ${Ri(precoVend(p,UI.vid))}</div></div>
   <div class="qty"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div><span style="min-width:116px">${R(q*pr)}</span></div>`}).join('')}</div>`
  :'<p class="empty">Seu carrinho está vazio. Vá em Comprar e adicione perfumes.</p>'}
  <div class="meta"><div class="t">${metaTxt(t.un)}</div><div class="bar"><span style="width:${pct}%;${f?'':'background:var(--good)'}"></span></div><div class="note">O pedido fecha em múltiplos de ${MIN}: ${MIN}, ${MIN*2}, ${MIN*3}, ${MIN*4}…</div></div>
@@ -1327,13 +1329,13 @@ function presetKit(n,each){
 function drawKit(){
  const d=UI.draft;const rk={};abc(S.vendas.filter(v=>daysAgo(v.data)<30)).forEach((r,i)=>rk[r.p.id]=i);
  const its=S.prods.filter(p=>p.estoque>0||d.q[p.id]).sort((a,b)=>rk[a.id]-rk[b.id]);const ch=champRank();
- let tot=0,un=0,luc=0;S.prods.forEach(p=>{const q=d.q[p.id]||0,c=precoRev(p,d.vid);tot+=q*c;un+=q;luc+=q*(p.preco-c)});
+ let tot=0,un=0,luc=0;S.prods.forEach(p=>{const q=d.q[p.id]||0,c=precoRev(p,d.vid);tot+=q*c;un+=q;luc+=q*(precoVend(p,d.vid)-c)});
  const {rows,ctl}=page('kit',its,10);
  const KP={pix:'Pix',credito:'Crédito à vista',parcelado:'Crédito parcelado'};
  UI.modal=`<h3>Comprar kit</h3>
  <p class="note">Pedido mínimo de <b>${MIN} unidades</b>, pode variar os perfumes. Seu preço já vem com o desconto de revendedor do seu nível. Lista em ordem de mais vendidos.</p>
  <div class="pay"><button data-preset="1">${MIN} mais vendidos · ${MIN} un</button><button data-preset="2">${MIN} mais vendidos · ${MIN*2} un</button><button data-preset="0">Montar do zero</button></div>
- <div class="kitgrid">${rows.map(p=>`<div class="kitrow"><div style="min-width:0"><div class="t">${p.code} · ${esc(p.nome)} ${trophy(ch[p.id])}</div><div class="s note">Você paga ${Ri(precoRev(p,d.vid))} · vende a ${Ri(p.preco)} · ${p.estoque} disp.</div></div>
+ <div class="kitgrid">${rows.map(p=>`<div class="kitrow"><div style="min-width:0"><div class="t">${p.code} · ${esc(p.nome)} ${trophy(ch[p.id])}</div><div class="s note">Você paga ${Ri(precoRev(p,d.vid))} · vende a ${Ri(precoVend(p,d.vid))} · ${p.estoque} disp.</div></div>
   <div class="qty"><button data-kq="${p.id}" data-d="-1" aria-label="Menos" ${!(d.q[p.id])?'disabled':''}>−</button><span>${d.q[p.id]||0}</span><button data-kq="${p.id}" data-d="1" aria-label="Mais um" ${(d.q[p.id]||0)>=p.estoque?'disabled':''}>+</button></div></div>`).join('')}</div>${ctl}
  <div class="calc"><div>Total do pedido<b>${Ri(tot)}</b></div><div>Frascos<b>${un} un${un<MIN?` <span class="chip warn">faltam ${MIN-un}</span>`:''}</b></div><div>Lucro se vender tudo<b>${Ri(luc)}</b></div></div>
  <p class="note">O pagamento é feito na Yampi (Pix, cartão ou boleto). Quando ele é aprovado, os frascos entram no seu estoque sozinhos.</p>
@@ -1418,12 +1420,12 @@ function mVenda(){UI.msize='md';
 }
 function drawVenda(){
  const d=UI.draft;
- const v={...d,data:iso(today),itens:d.itens.map(i=>{const p=prod(i.pid);return {pid:i.pid,qtd:+i.qtd||0,preco:precoPag(p,d.pag),custo:custoFinal(p),com:p.comissao}})};
+ const v={...d,data:iso(today),itens:d.itens.map(i=>{const p=prod(i.pid);return {pid:i.pid,qtd:+i.qtd||0,preco:precoVend(p,d.vid),custo:custoFinal(p),com:p.comissao}})};
  const c=saleCalc(v);
  UI.modal=`<h3>Nova venda</h3><div class="fg">
  ${UI.role==='vend'?'':`<label class="f">Vendedor<select id="nv-vid" data-nv="vid">${S.vend.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${x.id===d.vid?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label>`}
  <label class="f ${UI.role==='vend'?'full':''}">Cliente<input id="nv-cli" data-nv="cliente" value="${esc(d.cliente)}" placeholder="Nome da cliente"></label></div>
- ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — R$ ${fmt(precoPag(p,d.pag))} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
+ ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — R$ ${fmt(precoVend(p,d.vid))} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
   <label class="f">Qtd (un)<input id="nv-q${k}" data-it="${k}" data-k="qtd" type="number" min="1" value="${i.qtd}"></label><button class="btn sm" aria-label="Remover item" data-rmit="${k}" ${d.itens.length<2?'disabled':''}>×</button></div>`).join('')}
  <button class="btn sm" data-addit style="align-self:flex-start">+ Adicionar perfume</button>
  <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYV.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
@@ -1540,7 +1542,7 @@ document.addEventListener('click',e=>{
  if('confirmck' in d){const x=UI.draft,v=vend(UI.vid),pub=!!UI.publico;if(!x.cliente.trim()){toast(pub?'Informe seu nome':'Informe o nome do cliente');return}
   for(const pid in UI.cart)if(UI.cart[pid]>eV(v.id,pid)){toast(`${prod(pid).nome}: só ${eV(v.id,pid)} un disponível`);return}
   const its=Object.entries(UI.cart).map(([pid,q])=>({pid,qtd:q}));
-  const tot=its.reduce((a,i)=>a+precoPag(prod(i.pid),x.pag)*i.qtd,0),fone=(v.tel||'').replace(/\D/g,''),first=v.nome.split(' ')[0],cli=x.cliente.trim();
+  const tot=its.reduce((a,i)=>a+precoVend(prod(i.pid),v.id)*i.qtd,0),fone=(v.tel||'').replace(/\D/g,''),first=v.nome.split(' ')[0],cli=x.cliente.trim();
   const resumo=its.map(i=>`• ${i.qtd}x ${prod(i.pid).nome}`).join('\n');
   if(!pub){let vid=null;
    rodar(async()=>{vid=await rpc('registrar_venda',{p_vid:v.id,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_parcelas:1,p_status:'pago',p_origem:'site',p_itens:its});UI.cart={};UI.ck=false;UI.modal=null},x.pag==='link'?'':'Venda registrada')
@@ -1571,7 +1573,7 @@ document.addEventListener('click',e=>{
   rodar(()=>rpc('fechar_mes',{p_mes:M,p_lucro:Math.round(lm.luc*100)/100,p_itens:its}),`${mesNome(M)} fechado · ${fmt(its.reduce((a,i)=>a+i.valor,0))} no fundo`);return}
  if(d.festorno){if(UI.feArm!==d.festorno){UI.feArm=d.festorno;b.textContent='Confirmar?';return}UI.feArm=null;rodar(()=>rpc('estornar_fundo',{p_id:d.festorno}),'Lançamento estornado');return}
  if(d.pagar){rodar(()=>rpc('marcar_pago',{p_id:d.pagar}),'Venda marcada como paga');return}
- if(d.share){const p=prod(d.share);const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(pVista(p))}${pVista(p)<p.preco?` à vista ou R$ ${fmt(p.preco)} a prazo`:''} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
+ if(d.share){const p=prod(d.share);const pv=UI.vid?precoVend(p,UI.vid):+p.preco;const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(pv)} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
   navigator.clipboard?.writeText(t).then(()=>toast('Texto copiado'),()=>toast('Não foi possível copiar'));return}
  if('addit' in d){UI.draft.itens.push({pid:(S.prods.find(p=>eV(UI.draft.vid,p.id)>0)||S.prods[0]).id,qtd:1});drawVenda();return}
  if(d.rmit){UI.draft.itens.splice(+d.rmit,1);drawVenda();return}
@@ -1603,7 +1605,7 @@ document.addEventListener('click',e=>{
   const need={};x.itens.forEach(i=>need[i.pid]=(need[i.pid]||0)+(+i.qtd||0));
   for(const pid in need){if(need[pid]>eV(x.vid,pid)){toast(`${prod(pid).nome}: só ${eV(x.vid,pid)} un em mãos`);return}}
   const its=Object.entries(need).filter(([,q])=>q>0).map(([pid,qtd])=>({pid,qtd}));
-  const tot=its.reduce((a,i)=>a+precoPag(prod(i.pid),x.pag)*i.qtd,0);let vid=null;
+  const tot=its.reduce((a,i)=>a+precoVend(prod(i.pid),x.vid)*i.qtd,0);let vid=null;
   rodar(async()=>{vid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:'',p_pag:x.pag,p_parcelas:x.pag==='parcelado'?+x.parcelas:1,p_status:x.status,p_origem:'painel',p_itens:its});UI.modal=null},x.pag==='link'?'':'Venda registrada')
    .then(ok=>{if(ok&&x.pag==='link')mYampiLink(its,vid,tot)});return}
 });
@@ -1630,6 +1632,12 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
  const t=e.target,d=t.dataset;
+ if(d.vpreco!==undefined){const v=num(t.value),pid=d.vpreco,vid=UI.vid;
+  if(!vid)return;if(!(v>=0)){toast('Preço inválido');render();return}
+  const sug=+(prod(pid)||{}).preco||0,preco=v>0?v:null;
+  rodar(async()=>{await sb.rpc('salvar_preco_vendedor',{p_vid:vid,p_pid:pid,p_preco:preco||0});
+   if(!S.precosV[vid])S.precosV[vid]={};if(preco&&preco!==sug)S.precosV[vid][pid]=preco;else delete S.precosV[vid][pid];
+   toast(preco?'Preço salvo':'Voltou ao sugerido')},preco?'Salvando preço…':'Voltando ao sugerido…');return}
  if(t.id==='yp-dom'||t.id==='yp-cupom'){cfgSave(t.id==='yp-dom'?'Domínio do checkout Yampi alterado':'Cupom de revenda alterado',t.value);render();return}
  if(t.id==='yp-alias'||d.cfg||d.sn!==undefined){cfgSave(d.cfg?(d.cfg==='pix3mix'?'Chave Pix da 3mix alterada':'WhatsApp da 3mix alterado'):d.sn!==undefined?'Nome do administrador alterado':'Alias Yampi alterado',t.value);return}
  if(t.id==='whoSel'){if(t.value==='socio'){UI.role='socio';UI.view='painel'}else if(t.value.startsWith('loja:')){UI.role='loja';UI.vid=t.value.slice(5);UI.cart={}}else{UI.role='vend';UI.vid=t.value;UI.view='inicio'}UI.modal=null;render();return}
