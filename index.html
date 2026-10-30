@@ -892,7 +892,7 @@ function vEquipe(){
  <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
  <div class="tbl"><table><thead><tr><th>Data</th><th>Vendedor</th><th class="n">Itens (un)</th><th class="n">Fragrâncias (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}</td><td>${esc(vend(k.vid)?.nome)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${U(k.itens.length)}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td>
- <td class="n" style="white-space:nowrap">${['aguardando','informado'].includes(k.status)?`<button class="btn pri sm" data-confkit="${k.id}">Confirmar pagamento</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='pago'?`<button class="btn pri sm" data-entkit="${k.id}">Marcar entregue</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
+ <td class="n" style="white-space:nowrap">${['aguardando','informado'].includes(k.status)?`${k.comprovante?`<button class="btn sm" data-vercomp="${k.id}">📎 Ver comprovante</button> `:''}<button class="btn pri sm" data-confkit="${k.id}">Confirmar pagamento</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='pago'?`<button class="btn pri sm" data-entkit="${k.id}">Marcar entregue</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
  </tbody></table></div>${kc}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
  <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
@@ -1029,7 +1029,7 @@ function vEstoqueV(){
  ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?'':'<small class="note" style="display:block;font-size:10px" title="O preço de venda fica a critério do revendedor. Este é apenas uma sugestão.">Preço sugerido ⓘ</small>'}</td><td class="n">${R(pv-r.c)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">Edite a coluna "Meu preço" para definir quanto cobrar do cliente. Sugerido: ${Ri(S.prods[0]?.preco||0)}.</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-jakit="${k.id}">Já paguei</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
@@ -1305,15 +1305,14 @@ function buyCard(p,q,r){
 async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
  const its=r.itens||[],titulo=r.reabrir?'Pagamento do kit':'Pedido realizado ✓';
  const base=`<h3>${titulo}</h3><p style="margin:0"><b>${r.un} un</b> · total ${Ri(+r.total)}</p>`;
- /* mostra modal imediatamente com loading enquanto busca o link */
- const pixHtml=S.pix3mix?`<div class="linkbox"><span class="note">Chave Pix da 3mix</span><code>${esc(S.pix3mix)}</code></div><button class="btn sm" data-copy="${esc(S.pix3mix)}">Copiar chave Pix</button>`:'';
- const rodape=`<p class="note" style="margin-top:16px">Acompanhe o status do pedido em Estoque → Meus kits.</p><div class="actions"><button class="btn pri" data-jakit="${r.id}">Já paguei</button></div>`;
- if(yLinkOk(its,'kit')){modal(base+`<p class="note">Gerando link de pagamento na Yampi...</p>`+pixHtml+rodape);
+ const comprovanteHtml=`<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px"><p class="note" style="margin:0 0 8px;font-weight:700">Pagou por fora? Envie o comprovante:</p><label class="btn sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="file" accept="image/*" data-compkit="${r.id}" hidden>📎 Enviar comprovante</label></div>`;
+ const rodape=`<p class="note" style="margin-top:16px">Acompanhe o status do pedido em Estoque → Meus kits.</p>`;
+ if(yLinkOk(its,'kit')){modal(base+`<p class="note">Gerando link de pagamento na Yampi...</p>`+comprovanteHtml+rodape);
   try{const url=await yLinkAsync(its,r.id,'kit',cupomKit(its,UI.vid));
    modal(base+`<a class="btn pri" href="${esc(url)}" target="_blank" rel="noopener">Pagar na Yampi · Pix ou cartão</a><p class="note">Pagamento pela Yampi com o cupom de revenda já aplicado.${S.yampi.webhook?' Aprovado o pagamento, os frascos entram no seu estoque automaticamente.':''}</p>`
-   +(S.pix3mix?'<div class="note" style="font-weight:700;margin-top:12px">Ou pague por Pix direto:</div>'+pixHtml:'')+rodape)}
-  catch(e){modal(base+`<p class="note">Não foi possível gerar o link: ${esc(e.message)}. Use o Pix abaixo ou fale com a 3mix.</p>`+(pixHtml||'<p class="note">A 3mix vai te passar a forma de pagamento.</p>')+rodape)}}
- else{modal(base+(pixHtml||'<p class="note">A 3mix vai te passar a forma de pagamento.</p>')+rodape)}}
+   +comprovanteHtml+rodape)}
+  catch(e){modal(base+`<p class="note">Não foi possível gerar o link: ${esc(e.message)}. Fale com a 3mix ou envie o comprovante abaixo.</p>`+comprovanteHtml+rodape)}}
+ else{modal(base+'<p class="note">A 3mix vai te passar a forma de pagamento.</p>'+comprovanteHtml+rodape)}}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
@@ -1535,6 +1534,12 @@ document.addEventListener('click',e=>{
   UI.cartOpen=false;let r=null;
   rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
  if(d.cancelkit){if(UI.ckArm!==d.cancelkit){UI.ckArm=d.cancelkit;b.textContent='Confirmar?';return}UI.ckArm=null;rodar(()=>rpc('cancelar_kit',{p_id:d.cancelkit}),'Kit cancelado · frascos voltaram ao estoque central');return}
+ if(d.vercomp){const k=S.kits.find(x=>x.id===d.vercomp);if(k&&k.comprovante){UI.msize='md';
+  const{data}=sb.storage.from('comprovantes').getPublicUrl(k.comprovante);
+  const url=data?.publicUrl||'';
+  /* bucket privado — gera signed URL */
+  rodar(async()=>{const{data:signed,error}=await sb.storage.from('comprovantes').createSignedUrl(k.comprovante,300);if(error)throw error;
+   modal(`<h3>Comprovante</h3><p class="note">${esc(vend(k.vid)?.nome||'')} · ${Ri(+k.total)}</p><img src="${esc(signed.signedUrl)}" style="max-width:100%;border-radius:12px;margin:12px 0"><div class="actions"><button class="btn pri" data-confkit="${k.id}">Confirmar pagamento</button><button class="btn" data-close>Fechar</button></div>`)});return}return}
  if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · kit a entregar');return}
  if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
@@ -1673,6 +1678,11 @@ document.addEventListener('change',e=>{
    await upd('perfis',o,u.id);log('Perfil alterado',`${u.nome} → ${PERFIL[nv]}`)},`${u.nome.split(' ')[0]} agora é ${PERFIL[nv]}`);return}
  if(d.f==='familia'||d.f==='foto'){$('#fPrev').innerHTML=foto(UI.draft)}
  if(t.id==='fFoto'&&t.files&&t.files[0]){lerFoto(t.files[0],900,true).then(u=>{UI.draft.foto=u;$('#f-foto').value='';$('#fPrev').innerHTML=foto(UI.draft)});return}
+ /* upload de comprovante de kit */
+ if(d.compkit&&t.files&&t.files[0]){const file=t.files[0],kid=d.compkit;
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=`${kid}/${Date.now()}.${ext}`;
+  rodar(async()=>{const{error}=await sb.storage.from('comprovantes').upload(path,file,{upsert:true});if(error)throw error;
+   await rpc('informar_pagamento_kit',{p_id:kid,p_comprovante:path});UI.modal=null},'Comprovante enviado · a 3mix vai conferir');return}
 });
 /* campos de valor e %: digitação da direita para a esquerda, sempre com 2 casas (1 → 0,01 · 1050 → 10,50) */
 const fimCursor=t=>{const n=t.value.length;try{t.setSelectionRange(n,n)}catch(_){}};
