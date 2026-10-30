@@ -432,7 +432,7 @@ body:has(.shell.store){background:#fff}
 .sc-pz{font-size:12px;color:var(--s-mut);margin:4px 0 12px}.sc-pz .acc{width:auto;min-width:0;gap:3px}
 .pcomp{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px}
 .pc-t{font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.comp-tb{width:100%;border-collapse:collapse;font-size:13px}.comp-tb th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:4px 6px;text-align:left;border-bottom:1px solid var(--line)}.comp-tb th.n{text-align:right}.comp-tb td{padding:5px 6px}.comp-tb td.n{text-align:right}.comp-tb input[type="text"]{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;text-align:right;font:inherit}
+.pc-box{grid-template-columns:minmax(0,1.2fr) minmax(0,.6fr) minmax(0,.8fr)!important;font-size:11px!important;padding:8px 10px!important;gap:4px 6px!important}.pc-box b{font-size:12px!important}.pc-box .pc-h{font-size:10px!important;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.pc-box .n{text-align:right}.pc-box input[type="text"]{font-size:11px;padding:2px 4px}
 .pc3{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:end}.pc-l{font-weight:700;font-size:13px;padding-bottom:10px}
 .sh-add{margin-top:auto;border:1px solid #000;background:#000;color:#fff;padding:11px;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;border-radius:2px}
 .sh-add:hover:not(:disabled){background:#fff;color:#000}
@@ -1392,26 +1392,26 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <label class="f s3">Foto ambientada da loja (opcional)<input id="f-fotoamb" data-f="fotoAmb" value="${esc(p.fotoAmb||'')}" placeholder="frasco em cena, ex.: N01-amb.jpg"></label>
   </div>
  </div>
- <div class="pcol pcomp"><div class="pc-t">Composição do preço</div>
-  <div class="calc" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.6fr) minmax(0,.8fr);font-size:13px">
-   <b style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Custo</b><b style="font-size:11px;text-align:right;color:var(--muted)">%</b><b style="font-size:11px;text-align:right;color:var(--muted)">R$</b>
-   <span>Custo do frasco</span><span style="text-align:right">—</span><span style="text-align:right"><input id="f-custo" data-f="custo"${D} value="${fmt(p.custo)}" style="width:80px"></span>
-   <span>Frete sobre custo</span><span style="text-align:right"><input id="f-frete" data-f="frete"${D} value="${fmt(+p.frete||0)}" style="width:60px"></span><span style="text-align:right" id="pc-frete-r">—</span>
-   <span>IPI sobre custo</span><span style="text-align:right"><input id="f-ipi" data-f="ipi"${D} value="${fmt(+p.ipi||0)}" style="width:60px"></span><span style="text-align:right" id="pc-ipi-r">—</span>
-   <b>Custo final</b><b style="text-align:right" id="pc-cf-pct">—</b><b style="text-align:right" id="pc-cf-r">—</b>
+ <div class="pcol pcomp"><div class="pc-t" style="font-size:11px">Composição do preço</div>
+  <div class="calc pc-box">
+   <b class="pc-h">Custo</b><b class="pc-h n">%</b><b class="pc-h n">R$</b>
+   <span>Custo do frasco</span><span class="n">—</span><span class="n"><input id="f-custo" data-f="custo"${D} value="${fmt(p.custo)}" style="width:70px"></span>
+   <span>Frete</span><span class="n"><input id="f-frete" data-f="frete"${D} value="${fmt(+p.frete||0)}" style="width:54px"></span><span class="n" id="pc-frete-r">—</span>
+   <span>IPI</span><span class="n"><input id="f-ipi" data-f="ipi"${D} value="${fmt(+p.ipi||0)}" style="width:54px"></span><span class="n" id="pc-ipi-r">—</span>
+   <b>Custo final</b><b class="n" id="pc-cf-pct">—</b><b class="n" id="pc-cf-r">—</b>
   </div>
-  <div class="pc-g" style="margin-top:12px"><span></span><b>Markup (%)</b><b>Preço (R$)</b>
+  <div class="pc-g" style="margin-top:10px"><span></span><b>Markup (%)</b><b>Preço (R$)</b>
    <span class="pc-l">3mix → vendedor</span><label class="f"><input id="f-mk3" data-mk="precoRev"${D} value="${fmt(mkp(pRev(p),custoFinal(p)))}" title="Markup 3mix (%)"></label><label class="f"><input id="f-precoRev" data-f="precoRev"${D} value="${fmt(pRev(p))}" title="Preço ao vendedor (R$)"></label>
    <span class="pc-l">Vendedor → cliente<small>preço sugerido</small></span><label class="f"><input id="f-mkv" data-mk="preco"${D} value="${fmt(mkp(+p.preco,pRev(p)))}" title="Markup vendedor (%)"></label><label class="f"><input id="f-preco" data-f="preco"${D} value="${fmt(p.preco)}" title="Preço sugerido ao cliente (R$)"></label>
   </div>
-  <div class="calc" style="grid-template-columns:minmax(0,1.2fr) minmax(0,.6fr) minmax(0,.8fr);font-size:13px;margin-top:12px">
-   <b style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Taxas sobre venda</b><b style="font-size:11px;text-align:right;color:var(--muted)">%</b><b style="font-size:11px;text-align:right;color:var(--muted)">R$</b>
-   <span>Taxa gateway / MP</span><span style="text-align:right"><input id="f-taxagw" data-f="taxagw"${D} value="${fmt(+(S.taxas.taxagw)||0)}" style="width:60px"></span><span style="text-align:right" id="pc-gw-r">—</span>
-   <span>Outros</span><span style="text-align:right"><input id="f-outros" data-f="outros"${D} value="${fmt(+(S.taxas.outros)||0)}" style="width:60px"></span><span style="text-align:right" id="pc-out-r">—</span>
-   <b>Total taxas</b><b style="text-align:right" id="pc-tx-pct">—</b><b style="text-align:right" id="pc-tx-r">—</b>
+  <div class="calc pc-box" style="margin-top:10px">
+   <b class="pc-h">Taxas sobre venda</b><b class="pc-h n">%</b><b class="pc-h n">R$</b>
+   <span>Yampi checkout</span><span class="n" id="pc-ym-pct">—</span><span class="n" id="pc-ym-r">—</span>
+   <span>Gateway / MP</span><span class="n"><input id="f-taxagw" data-f="taxagw"${D} value="${fmt(+(S.taxas.taxagw)||0)}" style="width:54px"></span><span class="n" id="pc-gw-r">—</span>
+   <span>Outros</span><span class="n"><input id="f-outros" data-f="outros"${D} value="${fmt(+(S.taxas.outros)||0)}" style="width:54px"></span><span class="n" id="pc-out-r">—</span>
+   <b>Total taxas</b><b class="n" id="pc-tx-pct">—</b><b class="n" id="pc-tx-r">—</b>
   </div>
-  <p class="note">Taxas gateway e outros valem para todos os produtos.</p>
-  <div class="calc" id="pCalc"></div>
+  <div class="calc pc-box" style="margin-top:10px" id="pCalc"></div>
  </div>
  </div>
  <div class="actions">${id?`<button class="btn" data-delprod="${p.id}" style="color:var(--bad);margin-right:auto">Excluir produto</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveprod="${p.id}">Salvar produto</button></div>`);
@@ -1421,10 +1421,10 @@ function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;
  const c=+d.custo||0, frPct=+d.frete||0, ipPct=+d.ipi||0;
  const frR=Math.round(c*frPct)/100, ipR=Math.round(c*ipPct)/100;
  const cf=custoFinal(d);
- const rv=+d.precoRev||0,l3=rv-cf,lv2=(+d.preco||0)-rv;
- const gwPct=+(S.taxas.taxagw)||0, outPct=+(S.taxas.outros)||0;
- const gwR=Math.round(rv*gwPct)/100, outR=Math.round(rv*outPct)/100;
- const txPct=TXALL(),txR=Math.round(rv*txPct)/100,l3liq=l3-txR;
+ const rv=+d.precoRev||0, ganho=rv-cf, lv=(+d.preco||0)-rv;
+ const ymPct=TXY(), gwPct=+(S.taxas.taxagw)||0, outPct=+(S.taxas.outros)||0;
+ const ymR=Math.round(rv*ymPct)/100, gwR=Math.round(rv*gwPct)/100, outR=Math.round(rv*outPct)/100;
+ const txPct=TXALL(), txR=Math.round(rv*txPct)/100, liq=ganho-txR;
  /* custo detalhado */
  const s=id=>$(id);
  if(s('#pc-frete-r'))s('#pc-frete-r').textContent=fmt(frR);
@@ -1432,12 +1432,18 @@ function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;
  if(s('#pc-cf-r'))s('#pc-cf-r').textContent=fmt(cf);
  if(s('#pc-cf-pct')&&rv)s('#pc-cf-pct').textContent=pc(cf/rv*100);
  /* taxas detalhadas */
+ if(s('#pc-ym-pct'))s('#pc-ym-pct').textContent=pc(ymPct);
+ if(s('#pc-ym-r'))s('#pc-ym-r').textContent=fmt(ymR);
  if(s('#pc-gw-r'))s('#pc-gw-r').textContent=fmt(gwR);
  if(s('#pc-out-r'))s('#pc-out-r').textContent=fmt(outR);
  if(s('#pc-tx-pct'))s('#pc-tx-pct').textContent=pc(txPct);
  if(s('#pc-tx-r'))s('#pc-tx-r').textContent=fmt(txR);
- /* resumo */
- el.innerHTML=`<div>Lucro bruto 3mix<b>${Ri(l3)}</b><small>${pc(rv?l3/rv*100:0)} do preço ao vendedor</small></div><div>Taxas (${pc(txPct)})<b>−${Ri(txR)}</b></div><div>Lucro líquido 3mix<b>${Ri(l3liq)}</b><small>${pc(rv?l3liq/rv*100:0)} do preço ao vendedor</small></div><div>Lucro vendedor<b>${Ri(lv2)}</b><small>${pc(d.preco?lv2/d.preco*100:0)} do sugerido</small></div>`}
+ /* resumo: ganho - taxas = lucro por frasco */
+ el.innerHTML=`<b class="pc-h" style="grid-column:1/-1">Por frasco</b>
+  <span>Ganho bruto</span><span class="n">${pc(rv?ganho/rv*100:0)}</span><b class="n">${fmt(ganho)}</b>
+  <span>Taxas</span><span class="n">${pc(txPct)}</span><b class="n">−${fmt(txR)}</b>
+  <span><b>Lucro 3mix</b></span><span class="n">${pc(rv?liq/rv*100:0)}</span><b class="n">${fmt(liq)}</b>
+  <span>Lucro vendedor</span><span class="n">${pc(d.preco?lv/d.preco*100:0)}</span><b class="n">${fmt(lv)}</b>`}
 function mEntrada(pid){UI.msize='sm';
  UI.draft={pid:pid||S.prods[0].id,qtd:0,custo:0,data:iso(today)};
  modal(`<h3>Entrada de estoque</h3><div class="fg">
