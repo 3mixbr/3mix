@@ -1392,7 +1392,13 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <span class="pc-l">3mix → vendedor</span><label class="f"><input id="f-mk3" data-mk="precoRev"${D} value="${fmt(mkp(pRev(p),custoFinal(p)))}" title="Markup 3mix (%)"></label><label class="f"><input id="f-precoRev" data-f="precoRev"${D} value="${fmt(pRev(p))}" title="Preço ao vendedor (R$)"></label>
    <span class="pc-l">Vendedor → cliente<small>preço sugerido</small></span><label class="f"><input id="f-mkv" data-mk="preco"${D} value="${fmt(mkp(+p.preco,pRev(p)))}" title="Markup vendedor (%)"></label><label class="f"><input id="f-preco" data-f="preco"${D} value="${fmt(p.preco)}" title="Preço sugerido ao cliente (R$)"></label>
   </div>
-  <p class="note">O markup da 3mix é sobre o custo final; o do vendedor, sobre o preço que ele paga. Digite o markup ou o preço: o outro se ajusta.</p>
+  <div class="fg pc3" style="margin-top:12px"><label class="f">Taxa gateway (%)
+   <input disabled style="text-align:right" value="${fmt(+(S.taxas.taxagw)||0)}" title="Definida em Administração → Simulador"></label>
+   <label class="f">Outros (%)
+   <input disabled style="text-align:right" value="${fmt(+(S.taxas.outros)||0)}" title="Definido em Administração → Simulador"></label>
+   <label class="f">Taxas totais (%)
+   <input disabled style="text-align:right" value="${fmt(TXY()+(+(S.taxas.taxagw)||0)+(+(S.taxas.outros)||0))}" title="Yampi + gateway + outros"></label></div>
+  <p class="note">O markup da 3mix é sobre o custo final; o do vendedor, sobre o preço que ele paga. Taxas ajustáveis em Administração → Simulador.</p>
   <div class="calc" id="pCalc"></div>
  </div>
  </div>
@@ -1401,8 +1407,8 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
 }
 function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;const cf=custoFinal(d);
  const rv=+d.precoRev||0,l3=rv-cf,lv2=(+d.preco||0)-rv;
- el.innerHTML=`<div>Lucro 3mix / frasco<b>${Ri(l3)}</b><small>${pc(rv?l3/rv*100:0)} do preço ao vendedor</small></div><div>Lucro vendedor / frasco<b>${Ri(lv2)}</b><small>${pc(d.preco?lv2/d.preco*100:0)} do sugerido</small></div>`;return;
- el.innerHTML=`<div>Markup<b>${d.custo?(d.preco/d.custo).toFixed(2):'—'}×</b></div><div>Comissão por frasco<b>${Ri(com)}</b></div><div>Lucro por frasco<b>${Ri(luc)} · ${d.preco?(luc/d.preco*100).toFixed(0):0}%</b></div>`}
+ const txPct=TXALL(),txR=rv*txPct/100,l3liq=l3-txR;
+ el.innerHTML=`<div>Lucro bruto 3mix<b>${Ri(l3)}</b><small>${pc(rv?l3/rv*100:0)} do preço ao vendedor</small></div><div>Taxas (${pc(txPct)})<b>−${Ri(txR)}</b><small>Yampi + gateway + outros</small></div><div>Lucro líquido 3mix<b>${Ri(l3liq)}</b><small>${pc(rv?l3liq/rv*100:0)} do preço ao vendedor</small></div><div>Lucro vendedor<b>${Ri(lv2)}</b><small>${pc(d.preco?lv2/d.preco*100:0)} do sugerido</small></div>`}
 function mEntrada(pid){UI.msize='sm';
  UI.draft={pid:pid||S.prods[0].id,qtd:0,custo:0,data:iso(today)};
  modal(`<h3>Entrada de estoque</h3><div class="fg">
