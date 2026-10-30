@@ -722,8 +722,7 @@ function nivelDe(vid,ref){
 }
 const inPer=v=>daysAgo(v.data)<UI.per;
 /* caixa da 3mix = só os kits pagos pelos vendedores (a venda ao cliente é dinheiro do vendedor) */
-const TXY=()=>+S.taxas.link||0;
-const TXALL=()=>TXY()+(+S.taxas.taxagw||0)+(+S.taxas.outros||0);
+const TXALL=()=>(+S.taxas.taxagw||0)+(+S.taxas.outros||0);
 function kitCalc(k){let rec=0,cus=0,un=0;k.itens.forEach(i=>{const p=prod(i.pid);rec+=i.preco*i.qtd;cus+=(p?custoFinal(p):0)*i.qtd;un+=i.qtd});const tax=rec*TXALL()/100;return {rec,cus,com:0,tax,un,luc:rec-cus-tax}}
 const kPagos=()=>S.kits.filter(k=>KPAGO.includes(k.status));
 function ksum(list){return list.reduce((a,k)=>{const c=kitCalc(k);for(const x in c)a[x]+=c[x];return a},{rec:0,cus:0,com:0,tax:0,un:0,luc:0})}
@@ -1399,6 +1398,7 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <span>Frete</span><span class="n"><input id="f-frete" data-f="frete"${D} value="${fmt(+p.frete||0)}" style="width:54px"></span><span class="n" id="pc-frete-r">—</span>
    <span>IPI</span><span class="n"><input id="f-ipi" data-f="ipi"${D} value="${fmt(+p.ipi||0)}" style="width:54px"></span><span class="n" id="pc-ipi-r">—</span>
    <b>Custo final</b><b class="n" id="pc-cf-pct">—</b><b class="n" id="pc-cf-r">—</b>
+   <span class="note">CMV</span><span class="n note" id="pc-cmv">—</span><span class="n"></span>
   </div>
   <div class="pc-g" style="margin-top:10px"><span></span><b>Markup (%)</b><b>Preço (R$)</b>
    <span class="pc-l">3mix → vendedor</span><label class="f"><input id="f-mk3" data-mk="precoRev"${D} value="${fmt(mkp(pRev(p),custoFinal(p)))}" title="Markup 3mix (%)"></label><label class="f"><input id="f-precoRev" data-f="precoRev"${D} value="${fmt(pRev(p))}" title="Preço ao vendedor (R$)"></label>
@@ -1406,7 +1406,6 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
   </div>
   <div class="calc pc-box" style="margin-top:10px">
    <b class="pc-h">Taxas sobre venda</b><b class="pc-h n">%</b><b class="pc-h n">R$</b>
-   <span>Yampi checkout</span><span class="n" id="pc-ym-pct">—</span><span class="n" id="pc-ym-r">—</span>
    <span>Gateway / MP</span><span class="n"><input id="f-taxagw" data-f="taxagw"${D} value="${fmt(+(S.taxas.taxagw)||0)}" style="width:54px"></span><span class="n" id="pc-gw-r">—</span>
    <span>Outros</span><span class="n"><input id="f-outros" data-f="outros"${D} value="${fmt(+(S.taxas.outros)||0)}" style="width:54px"></span><span class="n" id="pc-out-r">—</span>
    <b>Total taxas</b><b class="n" id="pc-tx-pct">—</b><b class="n" id="pc-tx-r">—</b>
@@ -1422,18 +1421,17 @@ function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;
  const frR=Math.round(c*frPct)/100, ipR=Math.round(c*ipPct)/100;
  const cf=custoFinal(d);
  const rv=+d.precoRev||0, ganho=rv-cf, lv=(+d.preco||0)-rv;
- const ymPct=TXY(), gwPct=+(S.taxas.taxagw)||0, outPct=+(S.taxas.outros)||0;
- const ymR=Math.round(rv*ymPct)/100, gwR=Math.round(rv*gwPct)/100, outR=Math.round(rv*outPct)/100;
+ const gwPct=+(S.taxas.taxagw)||0, outPct=+(S.taxas.outros)||0;
+ const gwR=Math.round(rv*gwPct)/100, outR=Math.round(rv*outPct)/100;
  const txPct=TXALL(), txR=Math.round(rv*txPct)/100, liq=ganho-txR;
  /* custo detalhado */
  const s=id=>$(id);
  if(s('#pc-frete-r'))s('#pc-frete-r').textContent=fmt(frR);
  if(s('#pc-ipi-r'))s('#pc-ipi-r').textContent=fmt(ipR);
  if(s('#pc-cf-r'))s('#pc-cf-r').textContent=fmt(cf);
- if(s('#pc-cf-pct')&&rv)s('#pc-cf-pct').textContent=pc(cf/rv*100);
+ if(s('#pc-cf-pct'))s('#pc-cf-pct').textContent=frPct+ipPct?pc(frPct+ipPct):'';
+ if(s('#pc-cmv'))s('#pc-cmv').textContent=rv?pc(cf/rv*100):'—';
  /* taxas detalhadas */
- if(s('#pc-ym-pct'))s('#pc-ym-pct').textContent=pc(ymPct);
- if(s('#pc-ym-r'))s('#pc-ym-r').textContent=fmt(ymR);
  if(s('#pc-gw-r'))s('#pc-gw-r').textContent=fmt(gwR);
  if(s('#pc-out-r'))s('#pc-out-r').textContent=fmt(outR);
  if(s('#pc-tx-pct'))s('#pc-tx-pct').textContent=pc(txPct);
