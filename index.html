@@ -950,10 +950,10 @@ function vSocios(){
   <label class="f">Taxa da Yampi por pagamento (%)<input id="tx-link" data-tax="link" type="text" inputmode="decimal" class="dec" value="${fmt(S.taxas.link||0)}"></label>
   <label class="f">Prefixo do cupom de nível<input id="yp-cupom" data-ycupom value="${esc(S.yampi.cupom??'NIVEL')}" placeholder="NIVEL"></label>
   <label class="f">Produtos com token Yampi<input id="yp-sku" disabled value="${S.prods.filter(p=>p.skuRev).length} de ${S.prods.length}"></label></div>
-  <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'kit')?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o domínio e o token de cada produto para gerar os links</span>'}</div>
+  <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'kit')?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o alias e o token de cada produto para gerar os links</span>'}</div>
   <ol class="steps">
    <li><b>A Yampi é só para os kits</b> (o vendedor pagando a 3mix). A venda do vendedor ao cliente é só Pix ou dinheiro, direto para o vendedor, e não passa pela conta da 3mix.</li>
-   <li><b>Um produto por perfume na Yampi</b>, com o <b>preço ao vendedor</b> (ex.: R$ 29,90). Copie o <b>Link de compra</b> de cada um: o token é a última parte (ex.: <code>.../r/<b>AABBJJ</b></code>). Cole em Produtos → Editar → "Token Yampi (kit)".</li>
+   <li><b>Um produto por perfume na Yampi</b>, com o <b>preço ao vendedor</b> (ex.: R$ 29,90). Copie o <b>SKU</b> de cada produto na Yampi e cole em Produtos → Editar → "Token Yampi (kit)".</li>
    <li><b>Cupons de nível:</b> crie na Yampi cupons percentuais para os níveis com bônus: ${S.niveis.filter(n=>+n.bonus>0).map(n=>`<b>${esc(S.yampi.cupom??'NIVEL')}${String(n.bonus).replace('.',',')}</b> (${pc(n.bonus)} · ${esc(n.nome)})`).join(', ')||'nenhum nível tem bônus'}. </li>
    <li><b>Baixa automática:</b> em Supabase → Edge Functions → Secrets, cadastre <code>YAMPI_TOKEN</code> e <code>YAMPI_SECRET</code> (Yampi → Perfil → Credenciais de API). Depois clique em "Ativar baixa automática": o 3mix passa a receber o aviso de pedido pago e dá baixa sozinho no kit.</li>
    <li><b>Sem baixa automática</b> tudo continua funcionando: o administrador confirma o kit e o vendedor marca a venda como paga.</li>
@@ -1029,7 +1029,7 @@ function vEstoqueV(){
  ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?'':'<small class="note" style="display:block;font-size:10px" title="O preço de venda fica a critério do revendedor. Este é apenas uma sugestão.">Preço sugerido ⓘ</small>'}</td><td class="n">${R(pv-r.c)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">Edite a coluna "Meu preço" para definir quanto cobrar do cliente. Sugerido: ${Ri(S.prods[0]?.preco||0)}.</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`${yLinkOk(k.itens,'kit')?`<a class="btn pri sm" href="${esc(yLink(k.itens,k.id,'kit',cupomKit(k.itens,v.id)))}" target="_blank" rel="noopener">Pagar</a> <button class="btn sm" data-jakit="${k.id}">Já paguei</button>`:`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button>`} <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-jakit="${k.id}">Já paguei</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
@@ -1173,7 +1173,7 @@ function vLoja(){
  const tit=f.g==='top'?'Mais vendidos':f.g?GEN[f.g]:'Todos os perfumes';
  return `<div class="shop">
  ${UI.publico?'':`<div class="sh-own"><span>Você está vendo a sua loja como o cliente vê. Vendas feitas aqui baixam do seu estoque em mãos.</span><button class="btn sm" data-voltar>Voltar ao painel</button></div>`}
- <div class="sh-promo"><span>Pronta entrega em ${cid}</span><span class="hide-sm">Pague no Pix, cartão ou boleto</span><span class="hide-sm">Atendimento com ${first} pelo WhatsApp</span></div>
+ <div class="sh-promo"><span>Pronta entrega em ${cid}</span><span class="hide-sm">Pague no Pix ou cartão</span><span class="hide-sm">Atendimento com ${first} pelo WhatsApp</span></div>
  <header class="sh-top"><div class="sh-logo">3MIX<small>Perfumaria</small></div>
   <label class="sh-sbox">${ic('busca')}<input class="sh-search" type="search" data-lq placeholder="Buscar perfume, família…" value="${esc(f.q)}" aria-label="Buscar"></label>
   <div class="sh-ico">${fone?`<a href="https://wa.me/55${fone}" target="_blank" rel="noopener" aria-label="WhatsApp de ${first}">${ic('whats')}<span>Atendimento</span></a>`:''}
@@ -1183,7 +1183,7 @@ function vLoja(){
  ${duo.length===2?`<div class="sh-duo">${duo.map(([g,t,s,p])=>`<button class="sh-tile" data-lg="${g}" data-scroll><div class="tl-t"><b>${t}</b><span>${s}</span><u>Conferir</u></div><div class="tl-img">${foto(p)}</div></button>`).join('')}</div>`:''}
  <section id="sh-col" class="sh-col"><div class="sh-colh"><h2>${tit}</h2><span>${its.length} ${its.length===1?'produto':'produtos'}</span></div>
   <div class="sh-grid">${rows.map(p=>shopCard(p,v.id,cart[p.id]||0,ch[p.id])).join('')||'<p class="empty">Nenhum perfume encontrado.</p>'}</div>${its.length>8?ctl:''}</section>
- <div class="sh-trust"><div>${ic('estoque')}<b>Pronta entrega</b><span>em ${cid}</span></div><div>${ic('vendas')}<b>Pagamento seguro</b><span>Pix, cartão ou boleto</span></div><div>${ic('whats')}<b>Atendimento pessoal</b><span>com ${first} pelo WhatsApp</span></div></div>
+ <div class="sh-trust"><div>${ic('estoque')}<b>Pronta entrega</b><span>em ${cid}</span></div><div>${ic('vendas')}<b>Pagamento seguro</b><span>Pix ou cartão</span></div><div>${ic('whats')}<b>Atendimento pessoal</b><span>com ${first} pelo WhatsApp</span></div></div>
  <footer class="sh-foot"><div class="sh-logo">3MIX<small>Perfumaria</small></div><span>Loja de ${esc(v.nome)}${v.cidade?' · '+esc(v.cidade):''}</span></footer>
  ${fone?`<a class="sh-zap${un?' sobe':''}" href="https://wa.me/${zap(fone)}?text=${encodeURIComponent('Olá '+v.nome.split(' ')[0]+'! Vim pela sua loja 3mix e gostaria de ajuda.')}" target="_blank" rel="noopener" aria-label="Falar com ${first} no WhatsApp">${ic('whats')}<span>Fale comigo</span></a>`:''}
  ${un?`<div class="cartbar sh-bar"><b>${un} un</b><span>${Ri(tot)}</span><span class="sp"></span><button class="btn pri" data-checkout>Ver sacola</button></div>`:''}
@@ -1253,25 +1253,34 @@ function drawCheckout(){
 }
 
 /* ===== pagamento Yampi =====
-   Versão final: o app chama uma função no servidor (Supabase) que faz
-   POST https://api.dooki.com.br/v2/{alias}/checkout/payment-link com os SKUs
-   (headers User-Token e User-Secret-Key, que nunca ficam no app) e recebe o link_url.
+   O app chama a edge function yampi?acao=link que cria um Payment Link via API Yampi
+   (POST /v2/{alias}/checkout/payment-link) e devolve a URL de pagamento.
    A Yampi avisa o pagamento pelo webhook order.paid e a função marca a venda como paga. */
-/* link de compra da Yampi: https://<domínio>/r/TOKEN:qtd,TOKEN:qtd — leva o código do kit/venda em utm_content,
-   que volta no aviso de pedido pago e permite a baixa automática */
 const yTok=(p,tipo)=>String((tipo==='kit'?p.skuRev:p.sku)||'').trim();
-const yLinkOk=(its,tipo)=>!!(S.yampi&&S.yampi.dominio&&its.length&&its.every(i=>prod(i.pid)&&yTok(prod(i.pid),tipo)));
-function yLink(its,ref,tipo,cupom){if(!yLinkOk(its,tipo))return '';const dom=String(S.yampi.dominio).replace(/^https?:\/\//,'').replace(/\/+$/,'');
- return `https://${dom}/r/${its.map(i=>encodeURIComponent(yTok(prod(i.pid),tipo))+':'+i.qtd).join(',')}?utm_source=3mix&utm_medium=${tipo}&utm_campaign=3mix-app&utm_content=${ref}${cupom?'&promocode='+encodeURIComponent(cupom):''}`}
+const yLinkOk=(its,tipo)=>!!(S.yampi&&S.yampi.alias&&its.length&&its.every(i=>prod(i.pid)&&yTok(prod(i.pid),tipo)));
+async function yLinkAsync(its,ref,tipo,cupom){
+ if(!yLinkOk(its,tipo))return '';
+ const skus=its.map(i=>{const p=prod(i.pid);return{sku:yTok(p,tipo),qtd:i.qtd}});
+ const sess=await sb.auth.getSession();const tk=sess?.data?.session?.access_token||'';
+ const r=await fetch(SB_URL+'/functions/v1/yampi?acao=link',{method:'POST',
+  headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
+  body:JSON.stringify({itens:skus,ref,tipo,cupom:cupom||''})});
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(j.error||'Erro ao gerar link');
+ return j.url||''}
 /* cupom do kit: só o bônus do nível (ex.: NIVEL2 = 2% de desconto no preço ao vendedor) */
 function cupomKit(its,vid){const b=+nivelDe(vid,iso(today)).bonus||0;return b>0?`${S.yampi.cupom??'NIVEL'}${String(b).replace('.',',')}`:''}
 /* link para o vendedor mandar ao cliente (venda com pagamento pela Yampi) */
-function mYampiLink(its,ref,valor){UI.msize='md';const url=yLink(its,ref,'venda');
- modal(`<h3>Link de pagamento</h3>
- ${url?`<p style="margin:0">Mande para o cliente pagar ${Ri(valor)} com Pix, cartão ou boleto. A venda fica "A receber" e vira "Pago" sozinha quando a Yampi aprovar${S.yampi.webhook?'':' (ative a baixa automática em Administração)'}.</p>
- <div class="linkbox"><code>${esc(url)}</code></div><div class="btnrow"><button class="btn pri sm" data-copy="${esc(url)}">Copiar link</button><a class="btn sm" href="https://wa.me/?text=${encodeURIComponent('Segue o link para pagamento do seu pedido 3mix: '+url)}" target="_blank" rel="noopener">Enviar no WhatsApp</a></div>`
- :`<p class="note">Não dá para gerar o link: falta o domínio do checkout ou o token Yampi de algum produto (Administração → Pagamentos · Yampi). A venda ficou "A receber".</p>`}
- <div class="actions"><button class="btn" data-close>Fechar</button></div>`)}
+async function mYampiLink(its,ref,valor){UI.msize='md';
+ modal(`<h3>Link de pagamento</h3><p>Gerando link na Yampi...</p>`);
+ try{const url=await yLinkAsync(its,ref,'venda');
+  modal(`<h3>Link de pagamento</h3>
+  <p style="margin:0">Mande para o cliente pagar ${Ri(valor)} com Pix ou cartão. A venda fica "A receber" e vira "Pago" sozinha quando a Yampi aprovar${S.yampi.webhook?'':' (ative a baixa automática em Administração)'}.</p>
+  <div class="linkbox"><code>${esc(url)}</code></div><div class="btnrow"><button class="btn pri sm" data-copy="${esc(url)}">Copiar link</button><a class="btn sm" href="https://wa.me/?text=${encodeURIComponent('Segue o link para pagamento do seu pedido 3mix: '+url)}" target="_blank" rel="noopener">Enviar no WhatsApp</a></div>
+  <div class="actions"><button class="btn" data-close>Fechar</button></div>`)}
+ catch(e){modal(`<h3>Link de pagamento</h3>
+  <p class="note">Não dá para gerar o link: ${esc(e.message||'erro desconhecido')}. A venda ficou "A receber".</p>
+  <div class="actions"><button class="btn" data-close>Fechar</button></div>`)}}
 
 /* ===== carrinho do vendedor (compra de estoque da 3mix) ===== */
 const cartV=()=>{S.carts=S.carts||{};return S.carts[UI.vid]||(S.carts[UI.vid]={})};
@@ -1293,14 +1302,18 @@ function buyCard(p,q,r){
  <div class="pr"><b>${Ri(pr)}</b><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></div><span class="note">você paga · disponível na distribuidora</span><span class="note">Vende a ${Ri(precoVend(p,UI.vid))} · lucro ${Ri(precoVend(p,UI.vid)-pr)}</span></div>
  <div class="ft">${q?`<div class="qty" style="margin:0 auto"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div>`:`<button class="btn pri sm" data-bc="${p.id}" data-d="1">Adicionar<span class="hide-sm">&nbsp;ao carrinho</span></button>`}</div></article>`;
 }
-function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
- const its=r.itens||[],url=yLink(its,r.id,'kit',cupomKit(its,UI.vid));
- modal(`<h3>${r.reabrir?'Pagamento do kit':'Pedido realizado ✓'}</h3>
- <p style="margin:0"><b>${r.un} un</b> · total ${Ri(+r.total)}</p>
- ${url?`<a class="btn pri" href="${esc(url)}" target="_blank" rel="noopener">Pagar na Yampi · Pix, cartão ou boleto</a><p class="note">Pagamento pela Yampi com o cupom de revenda já aplicado.${S.yampi.webhook?' Aprovado o pagamento, os frascos entram no seu estoque automaticamente.':''}</p>`:''}
- ${S.pix3mix?`${url?'<div class="note" style="font-weight:700;margin-top:12px">Ou pague por Pix direto:</div>':''}<div class="linkbox"><span class="note">Chave Pix da 3mix</span><code>${esc(S.pix3mix)}</code></div><button class="btn sm" data-copy="${esc(S.pix3mix)}">Copiar chave Pix</button>`:(!url?'<p class="note">A 3mix vai te passar a forma de pagamento.</p>':'')}
- <p class="note" style="margin-top:16px">Acompanhe o status do pedido em Estoque → Meus kits.</p>
- <div class="actions"><button class="btn pri" data-jakit="${r.id}">Já paguei</button></div>`)}
+async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
+ const its=r.itens||[],titulo=r.reabrir?'Pagamento do kit':'Pedido realizado ✓';
+ const base=`<h3>${titulo}</h3><p style="margin:0"><b>${r.un} un</b> · total ${Ri(+r.total)}</p>`;
+ /* mostra modal imediatamente com loading enquanto busca o link */
+ const pixHtml=S.pix3mix?`<div class="linkbox"><span class="note">Chave Pix da 3mix</span><code>${esc(S.pix3mix)}</code></div><button class="btn sm" data-copy="${esc(S.pix3mix)}">Copiar chave Pix</button>`:'';
+ const rodape=`<p class="note" style="margin-top:16px">Acompanhe o status do pedido em Estoque → Meus kits.</p><div class="actions"><button class="btn pri" data-jakit="${r.id}">Já paguei</button></div>`;
+ if(yLinkOk(its,'kit')){modal(base+`<p class="note">Gerando link de pagamento na Yampi...</p>`+pixHtml+rodape);
+  try{const url=await yLinkAsync(its,r.id,'kit',cupomKit(its,UI.vid));
+   modal(base+`<a class="btn pri" href="${esc(url)}" target="_blank" rel="noopener">Pagar na Yampi · Pix ou cartão</a><p class="note">Pagamento pela Yampi com o cupom de revenda já aplicado.${S.yampi.webhook?' Aprovado o pagamento, os frascos entram no seu estoque automaticamente.':''}</p>`
+   +(S.pix3mix?'<div class="note" style="font-weight:700;margin-top:12px">Ou pague por Pix direto:</div>'+pixHtml:'')+rodape)}
+  catch(e){modal(base+`<p class="note">Não foi possível gerar o link: ${esc(e.message)}. Use o Pix abaixo ou fale com a 3mix.</p>`+(pixHtml||'<p class="note">A 3mix vai te passar a forma de pagamento.</p>')+rodape)}}
+ else{modal(base+(pixHtml||'<p class="note">A 3mix vai te passar a forma de pagamento.</p>')+rodape)}}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
@@ -1336,7 +1349,7 @@ function drawKit(){
  <div class="kitgrid">${rows.map(p=>`<div class="kitrow"><div style="min-width:0"><div class="t">${p.code} · ${esc(p.nome)} ${trophy(ch[p.id])}</div><div class="s note">Você paga ${Ri(precoRev(p,d.vid))} · vende a ${Ri(precoVend(p,d.vid))} · ${p.estoque} disp.</div></div>
   <div class="qty"><button data-kq="${p.id}" data-d="-1" aria-label="Menos" ${!(d.q[p.id])?'disabled':''}>−</button><span>${d.q[p.id]||0}</span><button data-kq="${p.id}" data-d="1" aria-label="Mais um" ${(d.q[p.id]||0)>=p.estoque?'disabled':''}>+</button></div></div>`).join('')}</div>${ctl}
  <div class="calc"><div>Total do pedido<b>${Ri(tot)}</b></div><div>Frascos<b>${un} un${un<MIN?` <span class="chip warn">faltam ${MIN-un}</span>`:''}</b></div><div>Lucro se vender tudo<b>${Ri(luc)}</b></div></div>
- <p class="note">O pagamento é feito na Yampi (Pix, cartão ou boleto). Quando ele é aprovado, os frascos entram no seu estoque sozinhos.</p>
+ <p class="note">O pagamento é feito na Yampi (Pix ou cartão). Quando ele é aprovado, os frascos entram no seu estoque sozinhos.</p>
  <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savekit ${un<MIN?'disabled':''}>Ir para o pagamento</button></div>`;
  render();
 }
@@ -1523,7 +1536,7 @@ document.addEventListener('click',e=>{
   rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
  if(d.cancelkit){if(UI.ckArm!==d.cancelkit){UI.ckArm=d.cancelkit;b.textContent='Confirmar?';return}UI.ckArm=null;rodar(()=>rpc('cancelar_kit',{p_id:d.cancelkit}),'Kit cancelado · frascos voltaram ao estoque central');return}
  if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · kit a entregar');return}
- if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);if(!yLinkOk(k.itens,'kit'))toast('Pagamento online (Yampi) ainda não configurado pela 3mix: use o Pix',4000);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
+ if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
  if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;b.textContent='Confirmar entrega?';return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
  if(d.cancv){if(UI.cvArm!==d.cancv){UI.cvArm=d.cancv;b.textContent='Cancelar?';return}UI.cvArm=null;rodar(()=>rpc('cancelar_venda',{p_id:d.cancv}),'Venda cancelada · frascos voltaram ao estoque');return}
@@ -1545,8 +1558,8 @@ document.addEventListener('click',e=>{
   if(!pub){let vid=null;
    rodar(async()=>{vid=await rpc('registrar_venda',{p_vid:v.id,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_parcelas:1,p_status:'pago',p_origem:'site',p_itens:its});UI.cart={};UI.ck=false;UI.modal=null},x.pag==='link'?'':'Venda registrada')
     .then(ok=>{if(ok&&x.pag==='link')mYampiLink(its,vid,tot)});return}
-  let ped=null;rodar(async()=>{ped=await rpc('pedido_loja',{p_slug:UI.slug,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_itens:its});UI.cart={};UI.ck=false}).then(ok=>{if(!ok)return;
-   if(x.pag==='link'){const url=yLink(its,ped.id,'loja');if(url){location.href=url;return}}
+  let ped=null;rodar(async()=>{ped=await rpc('pedido_loja',{p_slug:UI.slug,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_itens:its});UI.cart={};UI.ck=false}).then(async ok=>{if(!ok)return;
+   if(x.pag==='link'){try{const url=await yLinkAsync(its,ped.id,'loja');if(url){location.href=url;return}}catch(e){toast(e.message||'Erro ao gerar link',4000)}}
    const msg=`Olá ${first}! Fiz um pedido na sua loja 3mix:\n${resumo}\nTotal: R$ ${fmt(tot)}\nPagamento: ${x.pag==='pix'?'Pix':x.pag==='link'?'online':'na entrega'}\n— ${cli}`;
    UI.msize='md';UI.modal=`<h3>Pedido enviado</h3><p style="margin:0">${esc(first)} recebeu seu pedido de ${Ri(tot)} e vai combinar a entrega com você.</p>
    ${x.pag==='pix'&&v.pix?`<div class="linkbox"><span class="note">Chave Pix de ${esc(first)}</span><code>${esc(v.pix)}</code></div><button class="btn sm" data-copy="${esc(v.pix)}">Copiar chave Pix</button>`:''}
