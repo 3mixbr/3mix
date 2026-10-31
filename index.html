@@ -218,6 +218,16 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .relogio{font-size:11px;font-weight:700;color:var(--warn);white-space:nowrap}.relogio.fim{color:var(--bad)}
 .reserva{margin-top:10px;background:var(--accent-soft);border-radius:10px;padding:8px 10px;font-size:12.5px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}.reserva small{flex-basis:100%;color:var(--muted);font-size:11px}.reserva .relogio{font-size:12.5px}
 .pixqr{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.pixqr .qr{width:168px;height:168px;flex:none;background:#fff;border-radius:10px;padding:4px;border:1px solid var(--line)}.pixqr .qr svg{width:100%;height:100%;display:block}.pixtx{flex:1;min-width:180px}
+.receb{margin-top:8px;display:flex;flex-direction:column;font-size:12px;line-height:1.35;background:var(--sunk);border-radius:8px;padding:6px 8px}.receb span{color:var(--muted);font-size:11px}.receb span:first-child{text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+.sugv{display:block;font-size:10px;white-space:nowrap}.sugv button{border:0;background:transparent;color:var(--accent);font-weight:700;padding:0 2px;font-size:10px;text-decoration:underline}
+.ksit{margin-top:4px;font-size:11.5px;color:var(--muted);max-width:260px;white-space:normal;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.cxres{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--sunk);border-radius:10px;padding:10px 12px}.cxres span{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.cxres b{font-size:13px}
+.cxinfo{margin-top:8px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:12.5px}
+.cxsec{margin-top:14px;display:flex;flex-direction:column}.cxsec>b{font-size:13px;margin-bottom:6px}.cxsec textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;resize:vertical}
+.cxmot{display:flex;gap:6px}.cxmot select,.cxmot input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px}
+.cxpay{grid-template-columns:repeat(2,minmax(0,1fr))}
+.motlist{display:flex;flex-wrap:wrap;gap:6px}.mot{display:inline-flex;align-items:center;gap:4px;background:var(--sunk);border-radius:999px;padding:4px 6px 4px 12px;font-size:12.5px}.mot button{border:0;background:transparent;color:var(--muted);padding:0 4px;font-size:11px}.mot button:hover{color:var(--bad)}
+@container (max-width:720px){.cxres{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .mpbox{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
 @container (max-width:720px){.model{grid-template-columns:1fr}.calc,.calc.c4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ---------- Login (mesmo desenho do sistema Elo: arte à esquerda, formulário à direita) ---------- */
@@ -907,7 +917,7 @@ function vEquipe(){
  </tbody></table></div>${ctl}</section>
  <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
  <div class="tbl"><table><thead><tr><th>Data</th><th>Vendedor</th><th class="n">Itens (un)</th><th class="n">Fragrâncias (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td>${esc(vend(k.vid)?.nome)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${U(k.itens.length)}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}${k.status==='aguardando'?'<br>'+relogio(kitExp(k)):''}</td>
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td>${esc(vend(k.vid)?.nome)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${U(k.itens.length)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td>
  <td class="n" style="white-space:nowrap">${['aguardando','informado'].includes(k.status)?`${k.comprovante?`<button class="btn sm" data-vercomp="${k.id}">📎 Ver comprovante</button> `:''}<button class="btn pri sm" data-confkit="${k.id}">Confirmar pagamento</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='pago'?`<button class="btn pri sm" data-entkit="${k.id}">Marcar entregue</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
  </tbody></table></div>${kc}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
@@ -954,6 +964,10 @@ function vSocios(){
    .map(([t,s])=>`<div class="row"><div class="grow"><div class="t">${t}</div><div class="s">${s}</div></div></div>`).join('')}
   </div>
  </section></div>
+ <section class="panel"><div class="panel-h"><h2>Motivos de cancelamento</h2><span class="sp"></span><span class="note">aparecem na lista ao cancelar um kit</span></div>
+  <div class="motlist">${(S.motivosCancel||[]).map((m,i)=>`<span class="mot">${esc(m)}<button data-motdel="${i}" title="Excluir motivo" aria-label="Excluir ${esc(m)}">✕</button></span>`).join('')||'<span class="note">Nenhum motivo.</span>'}</div>
+  <div class="cxmot" style="margin-top:10px;max-width:420px"><input id="mot-novo" maxlength="60" placeholder="Novo motivo"><button class="btn sm" data-motadd>+ Motivo</button></div>
+ </section>
  <section class="panel"><div class="panel-h"><h2>Compra de estoque pelo vendedor</h2></div>
   <div class="fg"><label class="f">Pedido mínimo (frascos)<input id="cfg-min" data-minkit type="number" min="1" max="100" inputmode="numeric" value="${MIN}" style="text-align:right"></label>
   <label class="f">Reserva do pedido (horas)<input id="cfg-res" data-reserva type="text" inputmode="decimal" class="dec" value="${fmt(RES_H())}" style="text-align:right"></label>
@@ -975,7 +989,10 @@ function vSocios(){
  </section>
  <section class="panel"><div class="panel-h"><h2>Pagamentos dos kits</h2><span class="sp"></span><span class="note">1º Pix direto (sem taxa) · 2º Mercado Pago</span></div>
   <div class="fg"><label class="f">Chave Pix da 3mix<input id="cfg-pix" data-cfg="pix3mix" value="${esc(S.pix3mix||'')}" placeholder="CNPJ, e-mail ou telefone"></label>
+  <label class="f">Nome do recebedor (igual ao banco)<input id="cfg-pixnome" data-cfg="pixNome" value="${esc(S.pixNome||'')}" maxlength="25" placeholder="razão social ou nome fantasia"></label>
+  <label class="f">Cidade do recebedor<input id="cfg-pixcid" data-cfg="pixCidade" value="${esc(S.pixCidade||'')}" maxlength="15" placeholder="Macaé"></label>
   <label class="f">WhatsApp da 3mix (comprovantes)<input id="cfg-whats" data-cfg="whats3mix" value="${esc(S.whats3mix||'')}" inputmode="tel" placeholder="(22) 99999-9999"></label></div>
+  <p class="note">O nome e a cidade vão dentro do QR Code e do Pix copia e cola. O banco do vendedor mostra o nome que está cadastrado na conta da chave; use o mesmo para não gerar desconfiança. Máximo de 25 letras no nome.</p>
   <ol class="steps">
    <li><b>1º Pix direto (sem taxa):</b> na tela de pagamento o vendedor vê primeiro o código "Pix copia e cola" com o valor do kit já preenchido, paga na chave da 3mix e envia o comprovante pelo app. O administrador confere em Vendedores → Kits e confirma.</li>
    <li><b>2º Mercado Pago:</b> abaixo do Pix fica o botão do checkout do Mercado Pago, com todas as formas (cartão, Pix, etc.). Aprovado o pagamento, o kit é confirmado sozinho. A taxa é a do campo "Gateway / MP" no cadastro do produto.</li>
@@ -1081,13 +1098,19 @@ function vEstoqueV(){
  const its=S.prods.filter(p=>eV(v.id,p.id)>0).map(p=>({p,q:eV(v.id,p.id),c:precoRev(p,v.id),s:L.reduce((a,x)=>a+x.itens.filter(i=>i.pid===p.id).reduce((s,i)=>s+i.qtd,0),0)}));
  const {rows,ctl}=page('ev'+v.id,its,9);
  const K=S.kits.filter(k=>k.vid===v.id).sort((a,b)=>b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kv'+v.id,K,4);
- const valV=its.reduce((a,r)=>a+r.q*precoVend(r.p,v.id),0),lucV=its.reduce((a,r)=>a+r.q*(precoVend(r.p,v.id)-r.c),0);
- return `<div class="head"><div><h1>Meu estoque</h1><p class="sub">${U(maosV(v.id))} em mãos · vale ${Ri(valV)} ao seu preço</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
- <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$)</th><th class="n">Meu preço (R$)</th><th class="n">Lucro/un (R$)</th><th></th></tr></thead><tbody>
- ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?'':'<small class="note" style="display:block;font-size:10px" title="O preço de venda fica a critério do revendedor. Este é apenas uma sugestão.">Preço sugerido ⓘ</small>'}</td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}">Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
- </tbody></table></div>${ctl}<p class="note">Edite a coluna "Meu preço" para definir quanto cobrar do cliente. Sugerido: ${Ri(S.prods[0]?.preco||0)}.</p></section>
+ const valV=its.reduce((a,r)=>a+r.q*precoVend(r.p,v.id),0),lucV=its.reduce((a,r)=>a+r.q*(precoVend(r.p,v.id)-r.c),0),cusV=its.reduce((a,r)=>a+r.q*r.c,0);
+ return `<div class="head"><div><h1>Meu estoque</h1><p class="sub">Perfumes que estão com você para vender</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
+ <div class="grid-kpi" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+  <div class="kpi"><span class="l">Em mãos</span><span class="v">${U(maosV(v.id))}</span><span class="d">${its.length} perfume${its.length===1?'':'s'}</span></div>
+  <div class="kpi"><span class="l">Custo total</span><span class="v">${R(cusV)}</span><span class="d">o que você pagou</span></div>
+  <div class="kpi"><span class="l">Valor de venda</span><span class="v">${R(valV)}</span><span class="d">ao seu preço</span></div>
+  <div class="kpi hl"><span class="l">Lucro previsto</span><span class="v">${R(lucV)}</span><span class="d">se vender tudo</span></div>
+ </div>
+ <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$/un)</th><th class="n">Meu preço (R$/un)</th><th class="n">Lucro (R$/un)</th><th></th></tr></thead><tbody>
+ ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?`<small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} · ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button></small>`:'<small class="note sugv" title="O preço de venda fica a critério do revendedor. Este é apenas uma sugestão.">Preço sugerido ⓘ</small>'}</td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}">Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
+ </tbody></table></div>${ctl}<p class="note">💡 <b>Meu preço</b> é quanto você cobra do cliente e é o que aparece na sua loja online. O <b>preço sugerido</b> é a referência da 3mix e continua aparecendo embaixo do seu preço, para você comparar. Cobrar acima do sugerido aumenta seu lucro, mas pode afastar o cliente. Para voltar ao sugerido, clique em "usar".</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}${k.status==='aguardando'?'<br>'+relogio(kitExp(k)):''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-altkit="${k.id}" title="Volta os perfumes para o carrinho para você mudar">Alterar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-altkit="${k.id}" title="Volta os perfumes para o carrinho para você mudar">Alterar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
@@ -1325,10 +1348,12 @@ async function mpLink(kitId){
 function pixChave(t){t=String(t||'').trim();if(!t)return '';if(t.includes('@'))return t.toLowerCase();if(/^[0-9a-f-]{32,36}$/i.test(t))return t.toLowerCase();
  const d=t.replace(/\D/g,'');if(t.startsWith('+'))return '+'+d;if(d.length===14)return d;if(d.length===11&&/[().\s]/.test(t)&&!/\d{3}\.\d{3}\.\d{3}-\d{2}/.test(t))return '+55'+d;return d}
 function crc16(s){let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=c&0x8000?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,'0')}
+const pixTxt=(t,n)=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9 .&-]/g,'').trim().toUpperCase().slice(0,n);
+const cnpjFmt=t=>{const d=String(t||'').replace(/\D/g,'');return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):String(t||'')};
 function pixCopiaCola(valor,ref){const k=pixChave(S.pix3mix);if(!k)return '';
  const f=(id,v)=>id+String(v.length).padStart(2,'0')+v;
  const tx=String(ref||'').replace(/[^A-Za-z0-9]/g,'').slice(0,25)||'***';
- const p=f('00','01')+f('26',f('00','br.gov.bcb.pix')+f('01',k))+f('52','0000')+f('53','986')+f('54',(+valor).toFixed(2))+f('58','BR')+f('59','3MIX')+f('60','MACAE')+f('62',f('05',tx))+'6304';
+ const p=f('00','01')+f('26',f('00','br.gov.bcb.pix')+f('01',k))+f('52','0000')+f('53','986')+f('54',(+valor).toFixed(2))+f('58','BR')+f('59',pixTxt(S.pixNome,25)||'3MIX')+f('60',pixTxt(S.pixCidade,15)||'MACAE')+f('62',f('05',tx))+'6304';
  return p+crc16(p)}
 
 /* ===== carrinho do vendedor (compra de estoque da 3mix) ===== */
@@ -1369,7 +1394,7 @@ async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
  const cc=pixCopiaCola(r.total,r.id);
  const pixHtml=cc?`<div style="margin-top:12px"><p style="margin:0 0 6px;font-weight:700">1. Pix direto para a 3mix · recomendado</p>
   <div class="pixqr"><div class="qr">${qrSvg(cc)}</div><div class="pixtx"><p class="note" style="margin:0 0 6px">Abra o app do seu banco e <b>leia o QR Code</b>, ou copie o código e use "Pix copia e cola". O valor de <b>${Ri(+r.total)}</b> já vai preenchido.</p>
-  <button class="btn pri sm" data-copy="${esc(cc)}">Copiar código Pix</button><p class="note" style="margin:6px 0 0">Recebedor: 3mix · chave ${esc(S.pix3mix)}</p></div></div>
+  <button class="btn pri sm" data-copy="${esc(cc)}">Copiar código Pix</button><div class="receb"><span>Recebedor</span><b>${esc(S.pixNome||'3MIX')}</b><span>${pixChave(S.pix3mix).replace(/\D/g,'').length===14&&!/[@+]/.test(S.pix3mix)?'CNPJ '+esc(cnpjFmt(S.pix3mix)):'Chave '+esc(S.pix3mix)}</span></div></div></div>
   ${comprovanteHtml}</div>`
   :'<p class="note">A 3mix vai te passar a chave Pix.</p>'+comprovanteHtml;
  const adm=curUser()?.perfil==='adm';
@@ -1381,6 +1406,53 @@ async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
  let st;try{st={url:await mpLink(r.id)}}catch(e){const m=String(e.message||'');st=/não configurado|ainda não/i.test(m)?'off':{erro:m||'erro desconhecido'}}
  if(UI.kitPg===r.id&&UI.modal)modal(base+pixHtml+mp(st)+rodape)}
 const fmtH=h=>{h=+h;const H=Math.floor(h),M=Math.round((h-H)*60);return (H?H+(H>1?' horas':' hora'):'')+(H&&M?' e ':'')+(M?M+' min':'')||'0 min'};
+/* situação do kit: chip + relógio da reserva + motivo do cancelamento + devolução */
+function kitSit(k){const adm=curUser()?.perfil==='adm',c=k.cancel||{};let s=KST[k.status]||'';
+ if(k.status==='aguardando')s+='<br>'+relogio(kitExp(k));
+ if(k.status==='cancelado'){s+=`<div class="ksit">${esc(c.motivo||'sem motivo')}${c.obs?` · <i>${esc(c.obs)}</i>`:''}</div>`;
+  if(c.dev==='pendente')s+=`<div class="ksit"><span class="chip warn">Devolver ${Ri(+c.valor||+k.total)}</span>${adm?` <button class="btn sm" data-devreg="${k.id}">Registrar devolução</button>`:' <span class="note">a 3mix vai devolver</span>'}</div>`;
+  if(c.dev==='feita')s+=`<div class="ksit"><span class="chip good">Devolvido ${Ri(+c.valor||+k.total)} · ${esc(c.forma||'')}</span>${c.comp?` <button class="btn sm" data-verdev="${k.id}">📎 Comprovante</button>`:''}</div>`}
+ return s}
+/* abre foto ou PDF do bucket privado de comprovantes */
+async function verArq(path,titulo,sub,acoes){UI.msize='md';
+ const{data,error}=await sb.storage.from('comprovantes').createSignedUrl(path,300);if(error)throw error;const u=data.signedUrl;
+ modal(`<h3>${titulo}</h3>${sub?`<p class="note">${sub}</p>`:''}${/\.pdf$/i.test(path)?`<p><a class="btn pri" href="${esc(u)}" target="_blank" rel="noopener">Abrir PDF</a></p>`:`<img src="${esc(u)}" alt="" style="max-width:100%;border-radius:12px;margin:12px 0">`}<div class="actions">${acoes||''}<button class="btn" data-close>Fechar</button></div>`)}
+/* ===== cancelamento do kit: motivo, observação, devolução do dinheiro e comprovante ===== */
+const DEVF=['Não houve pagamento','Pix para o vendedor','Estorno no Mercado Pago','Dinheiro'];
+function mCancelKit(kid){const k=S.kits.find(x=>x.id===kid);if(!k)return;const adm=curUser()?.perfil==='adm';
+ UI.cx={kid,motivo:'',obs:'',forma:adm&&k.status!=='aguardando'?'Pix para o vendedor':'Não houve pagamento',valor:+k.total,novo:false};drawCancel()}
+function cxLer(){const g=id=>$(id);if(!UI.cx)return;if(g('#cx-motivo'))UI.cx.motivo=g('#cx-motivo').value;if(g('#cx-obs'))UI.cx.obs=g('#cx-obs').value;if(g('#cx-valor'))UI.cx.valor=num(g('#cx-valor').value)}
+function drawCancel(){const x=UI.cx,k=S.kits.find(y=>y.id===x.kid);if(!k)return;const adm=curUser()?.perfil==='adm',v=vend(k.vid)||{};UI.msize='md';
+ const un=k.itens.reduce((a,i)=>a+i.qtd,0),M=S.motivosCancel||[];
+ const pago={aguardando:'aguardando pagamento',informado:'comprovante enviado',pago:'pago, a entregar'}[k.status]||k.status;
+ const dev=adm?`<div class="cxsec"><b>Devolução do dinheiro</b>
+  <div class="pay cxpay">${DEVF.map(f=>`<button data-cxforma="${esc(f)}" aria-pressed="${x.forma===f}">${f}</button>`).join('')}</div>
+  ${x.forma==='Não houve pagamento'?`<p class="note" style="margin:6px 0 0">Nada a devolver: o vendedor não pagou este kit.</p>`:`
+  <div class="fg" style="margin-top:8px"><label class="f">Valor devolvido (R$)<input id="cx-valor" type="text" inputmode="decimal" class="dec" value="${fmt(x.valor)}" style="text-align:right"></label>
+  <label class="f">Comprovante da devolução (opcional)<input id="cx-file" type="file" accept="image/*,application/pdf"></label></div>
+  ${x.forma==='Pix para o vendedor'?(v.pix?`<div class="receb" style="margin-top:8px"><span>Chave Pix do vendedor</span><b>${esc(v.pix)}</b><span>${esc(v.nome||'')} · <button class="btn sm" data-copy="${esc(v.pix)}" style="padding:1px 8px">Copiar chave</button></span></div>`:'<p class="note" style="margin:6px 0 0">O vendedor não tem chave Pix cadastrada (Vendedores → Editar).</p>'):''}
+  ${x.forma==='Estorno no Mercado Pago'?'<p class="note" style="margin:6px 0 0">Faça o estorno no painel do Mercado Pago (Atividade → pagamento → Devolver) e anexe o comprovante.</p>':''}
+  <p class="note" style="margin:6px 0 0">Sem comprovante agora, a devolução fica <b>pendente</b> e você anexa depois pelo botão "Registrar devolução".</p>`}</div>`:'';
+ modal(`<h3>Cancelar pedido de kit</h3>
+ <div class="cxres"><div><span>Vendedor</span><b>${esc(v.nome||'')}</b></div><div><span>Frascos</span><b>${un} un</b></div><div><span>Valor</span><b>${Ri(+k.total)}</b></div><div><span>Situação</span><b>${pago}</b></div></div>
+ <div class="cxinfo">↩ ${un===1?'O frasco volta':`Os ${un} frascos voltam`} para o estoque central da distribuidora.</div>
+ <div class="cxsec"><b>Motivo do cancelamento</b>
+  <div class="cxmot"><select id="cx-motivo"><option value="">Escolha o motivo…</option>${M.map(m=>`<option ${m===x.motivo?'selected':''}>${esc(m)}</option>`).join('')}</select>${adm?`<button class="btn sm" data-cxnovo title="Criar novo motivo">+</button>`:''}</div>
+  ${x.novo?`<div class="cxmot" style="margin-top:6px"><input id="cx-novo" maxlength="60" placeholder="Novo motivo"><button class="btn pri sm" data-cxadd>Adicionar</button></div>`:''}
+  <label class="f" style="margin-top:8px">Observação<textarea id="cx-obs" rows="2" maxlength="500" placeholder="Detalhes do cancelamento (opcional)">${esc(x.obs)}</textarea></label></div>
+ ${dev}
+ <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn" data-cxok style="background:var(--bad);color:#fff;border-color:var(--bad)">Cancelar pedido</button></div>`)}
+/* devolução registrada depois do cancelamento */
+function mDevolucao(kid){const k=S.kits.find(x=>x.id===kid);if(!k)return;const v=vend(k.vid)||{},c=k.cancel||{};UI.msize='sm';
+ UI.dv={kid,forma:c.forma&&c.forma!=='Não houve pagamento'?c.forma:'Pix para o vendedor'};
+ modal(`<h3>Registrar devolução</h3><p class="note">${esc(v.nome||'')} · kit de ${Ri(+k.total)} · cancelado: ${esc(c.motivo||'')}</p>
+ <div class="fg"><label class="f full">Forma<select id="dv-forma">${DEVF.slice(1).map(f=>`<option ${f===UI.dv.forma?'selected':''}>${f}</option>`).join('')}</select></label>
+ <label class="f">Valor devolvido (R$)<input id="dv-valor" type="text" inputmode="decimal" class="dec" value="${fmt(+c.valor||+k.total)}" style="text-align:right"></label>
+ <label class="f">Comprovante<input id="dv-file" type="file" accept="image/*,application/pdf"></label></div>
+ ${v.pix?`<div class="receb"><span>Chave Pix do vendedor</span><b>${esc(v.pix)}</b><span><button class="btn sm" data-copy="${esc(v.pix)}" style="padding:1px 8px">Copiar chave</button></span></div>`:''}
+ <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn pri" data-dvok>Salvar devolução</button></div>`)}
+async function subirDev(kid,file){if(!file)return null;const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=`dev/${kid}/${Date.now()}.${ext}`;
+ const{error}=await sb.storage.from('comprovantes').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error;return path}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
@@ -1637,16 +1709,34 @@ document.addEventListener('click',e=>{
   if(!un||un%MIN){toast(metaTxt(un));return}
   UI.cartOpen=false;let r=null;
   rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
- if(d.cancelkit){if(UI.ckArm!==d.cancelkit){UI.ckArm=d.cancelkit;b.textContent='Confirmar?';return}UI.ckArm=null;rodar(()=>rpc('cancelar_kit',{p_id:d.cancelkit}),'Kit cancelado · frascos voltaram ao estoque central');return}
+ if(d.cancelkit){mCancelKit(d.cancelkit);return}
+ if('motadd' in d||d.motdel!==undefined){const L=[...(S.motivosCancel||[])];let det;
+  if('motadd' in d){const n=($('#mot-novo')?.value||'').trim();if(!n){toast('Escreva o motivo');return}if(L.some(m=>m.toLowerCase()===n.toLowerCase())){toast('Esse motivo já existe');return}L.push(n);det='Motivo de cancelamento criado: '+n}
+  else{det='Motivo de cancelamento excluído: '+L[+d.motdel];L.splice(+d.motdel,1)}
+  rodar(async()=>{await upd('config',{motivos_cancel:L},1);log(det,'')});return}
+ if(d.cxforma){cxLer();UI.cx.forma=d.cxforma;drawCancel();return}
+ if('cxnovo' in d){cxLer();UI.cx.novo=!UI.cx.novo;drawCancel();setTimeout(()=>$('#cx-novo')?.focus(),30);return}
+ if('cxadd' in d){cxLer();const n=($('#cx-novo')?.value||'').trim();if(!n){toast('Escreva o motivo');return}
+  const L=[...(S.motivosCancel||[])];if(!L.some(m=>m.toLowerCase()===n.toLowerCase()))L.push(n);
+  sb.from('config').update({motivos_cancel:L}).eq('id',1).then(({error})=>{if(error){toast(msgErro(error),4000);return}S.motivosCancel=L;UI.cx.motivo=n;UI.cx.novo=false;log('Motivo de cancelamento criado',n);drawCancel()});return}
+ if('cxok' in d){cxLer();const x=UI.cx,adm=curUser()?.perfil==='adm';if(!x.motivo){toast('Escolha o motivo do cancelamento');return}
+  const temDev=adm&&x.forma!=='Não houve pagamento',file=temDev?$('#cx-file')?.files?.[0]:null;
+  if(temDev&&!(x.valor>0)){toast('Informe o valor devolvido');return}
+  rodar(async()=>{const comp=await subirDev(x.kid,file);
+   await rpc('cancelar_kit',{p_id:x.kid,p_motivo:x.motivo,p_obs:x.obs||null,p_dev_forma:adm?x.forma:null,p_dev_valor:temDev?x.valor:null,p_dev_comprovante:comp});UI.modal=null;UI.cx=null},
+   temDev?(file?'Kit cancelado · devolução registrada · frascos de volta ao estoque':'Kit cancelado · devolução pendente · frascos de volta ao estoque'):'Kit cancelado · frascos voltaram ao estoque central');return}
+ if(d.devreg){mDevolucao(d.devreg);return}
+ if('dvok' in d){const kid=UI.dv.kid,forma=$('#dv-forma').value,valor=num($('#dv-valor').value),file=$('#dv-file')?.files?.[0];if(!(valor>0)){toast('Informe o valor devolvido');return}
+  rodar(async()=>{const comp=await subirDev(kid,file);await rpc('registrar_devolucao',{p_id:kid,p_forma:forma,p_valor:valor,p_comprovante:comp});UI.modal=null},'Devolução registrada');return}
+ if(d.verdev){const k=S.kits.find(x=>x.id===d.verdev);if(k?.cancel?.comp)rodar(()=>verArq(k.cancel.comp,'Comprovante da devolução',`${esc(vend(k.vid)?.nome||'')} · ${Ri(+(k.cancel.valor||k.total))} · ${esc(k.cancel.forma||'')}`));return}
  if(d.vercomp){const k=S.kits.find(x=>x.id===d.vercomp);if(k&&k.comprovante){UI.msize='md';
   const{data}=sb.storage.from('comprovantes').getPublicUrl(k.comprovante);
   const url=data?.publicUrl||'';
   /* bucket privado — gera signed URL */
-  rodar(async()=>{const{data:signed,error}=await sb.storage.from('comprovantes').createSignedUrl(k.comprovante,300);if(error)throw error;
-   modal(`<h3>Comprovante</h3><p class="note">${esc(vend(k.vid)?.nome||'')} · ${Ri(+k.total)}</p><img src="${esc(signed.signedUrl)}" style="max-width:100%;border-radius:12px;margin:12px 0"><div class="actions"><button class="btn pri" data-confkit="${k.id}">Confirmar pagamento</button><button class="btn" data-close>Fechar</button></div>`)});return}return}
+  rodar(()=>verArq(k.comprovante,'Comprovante de pagamento',`${esc(vend(k.vid)?.nome||'')} · ${Ri(+k.total)}`,`<button class="btn" data-cancelkit="${k.id}">Cancelar pedido</button><button class="btn pri" data-confkit="${k.id}">Confirmar pagamento</button>`));return}return}
  if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · kit a entregar');return}
  if(d.altkit){const k=S.kits.find(x=>x.id===d.altkit);if(!k||k.status!=='aguardando'){toast('Só dá para alterar kit aguardando pagamento');return}
-  rodar(async()=>{await rpc('cancelar_kit',{p_id:k.id});const c=cartV();for(const k2 in c)delete c[k2];k.itens.forEach(i=>c[i.pid]=(c[i.pid]||0)+i.qtd);save()},'Kit voltou para o carrinho · ajuste e envie de novo')
+  rodar(async()=>{await rpc('cancelar_kit',{p_id:k.id,p_motivo:'Alterado pelo vendedor (pedido refeito)'});const c=cartV();for(const k2 in c)delete c[k2];k.itens.forEach(i=>c[i.pid]=(c[i.pid]||0)+i.qtd);save()},'Kit voltou para o carrinho · ajuste e envie de novo')
    .then(ok=>{if(ok){UI.view='comprar';mCarrinho()}});return}
  if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,criado:k.criado,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
@@ -1759,6 +1849,8 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
  const t=e.target,d=t.dataset;
+ if(d.vprecosug){const pid=d.vprecosug,vid=UI.vid;if(!vid)return;
+  rodar(async()=>{await sb.rpc('salvar_preco_vendedor',{p_vid:vid,p_pid:pid,p_preco:0});if(S.precosV[vid])delete S.precosV[vid][pid]},'Voltou ao preço sugerido');return}
  if(d.vpreco!==undefined){const v=num(t.value),pid=d.vpreco,vid=UI.vid;
   if(!vid)return;if(!(v>=0)){toast('Preço inválido');render();return}
   const sug=+(prod(pid)||{}).preco||0,preco=v>0?v:null;
@@ -1766,7 +1858,7 @@ document.addEventListener('change',e=>{
    if(!S.precosV[vid])S.precosV[vid]={};if(preco&&preco!==sug)S.precosV[vid][pid]=preco;else delete S.precosV[vid][pid];
    toast(preco?'Preço salvo':'Voltou ao sugerido')},preco?'Salvando preço…':'Voltando ao sugerido…');return}
  if(t.id==='yp-dom'||t.id==='yp-cupom'){cfgSave(t.id==='yp-dom'?'Domínio do checkout Yampi alterado':'Cupom de revenda alterado',t.value);render();return}
- if(t.id==='yp-alias'||d.cfg||d.sn!==undefined){cfgSave(d.cfg?(d.cfg==='pix3mix'?'Chave Pix da 3mix alterada':'WhatsApp da 3mix alterado'):d.sn!==undefined?'Nome do administrador alterado':'Alias Yampi alterado',t.value);return}
+ if(t.id==='yp-alias'||d.cfg||d.sn!==undefined){cfgSave(d.cfg?({pix3mix:'Chave Pix da 3mix alterada',pixNome:'Nome do recebedor Pix alterado',pixCidade:'Cidade do recebedor Pix alterada'}[d.cfg]||'WhatsApp da 3mix alterado'):d.sn!==undefined?'Nome do administrador alterado':'Alias Yampi alterado',t.value);return}
  if(t.id==='whoSel'){if(t.value==='socio'){UI.role='socio';UI.view='painel'}else if(t.value.startsWith('loja:')){UI.role='loja';UI.vid=t.value.slice(5);UI.cart={}}else{UI.role='vend';UI.vid=t.value;UI.view='inicio'}UI.modal=null;render();return}
  if(d.it!==undefined){UI.draft.itens[+d.it][d.k]=t.value;drawVenda();return}
  if(d.nv==='parcelas'||d.nv==='status'){UI.draft[d.nv]=t.value;return}
@@ -1844,7 +1936,7 @@ function lerFoto(file,max,alfa){return new Promise((res,rej)=>{const r=new FileR
  const c=document.createElement('canvas');const k=Math.min(1,max/Math.max(img.width,img.height));c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
  const g=c.getContext('2d');const png=alfa&&file.type==='image/png';if(!png){g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height)}g.drawImage(img,0,0,c.width,c.height);res(png?c.toDataURL('image/png'):c.toDataURL('image/jpeg',.85))};img.src=r.result};r.readAsDataURL(file)})}
 /* grava taxas, administradores, despesas, Yampi e contatos da 3mix */
-function cfgSave(acao,det){sb.from('config').update({taxas:S.taxas,socios:S.socios,despesas:S.despesas,yampi:S.yampi,pix_3mix:S.pix3mix||'',whats_3mix:S.whats3mix||''}).eq('id',1)
+function cfgSave(acao,det){sb.from('config').update({taxas:S.taxas,socios:S.socios,despesas:S.despesas,yampi:S.yampi,pix_3mix:S.pix3mix||'',pix_nome:(S.pixNome||'3MIX').slice(0,25),pix_cidade:(S.pixCidade||'MACAE').slice(0,15),whats_3mix:S.whats3mix||''}).eq('id',1)
  .then(({error})=>{if(error){toast(msgErro(error),4000);return}log(acao,det||'')})}
 function mSenha(rec,inicial){UI.msize='sm';modal(`<h3>${rec?'Crie sua nova senha':'Trocar senha'}</h3>
  ${inicial?'<p class="note">Você entrou com a senha inicial 123456. Crie uma senha só sua.</p>':''}
