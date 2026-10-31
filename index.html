@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>3mix</title>
+<link rel="icon" href="Logo_3mix.png">
+<link rel="apple-touch-icon" href="Logo_3mix.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
@@ -248,7 +250,16 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .lp-left{background:linear-gradient(150deg,#131921 0%,#1d2733 55%,#2b3a4c 100%);color:#fff;padding:clamp(28px,10vh,110px) 56px 36px;display:flex;flex-direction:column;position:relative;overflow:hidden}
 .lp-left::after{content:"";position:absolute;right:-120px;bottom:-140px;width:420px;height:420px;border-radius:50%;background:rgba(255,153,0,.08)}
 .lp-logo{font-weight:800;font-size:46px;letter-spacing:-.05em;line-height:1;margin-bottom:34px;color:#fff}
-.lp-logo span{color:#ff9900}
+.lp-logo span{color:#ff9900}.lp-logo .lp-fb{color:#fff}
+/* logo da empresa (Logo_3mix.png na mesma pasta do index.html) */
+.logo-img{display:block;width:auto;max-width:100%;object-fit:contain}
+.logo-img.on-dark{background:#fff;border-radius:10px;padding:4px 8px;box-sizing:content-box}
+.lp-logo .logo-img{height:72px}
+.brand .logo-img{height:30px;padding:2px 6px;border-radius:8px}
+.brand{display:flex;align-items:center;gap:10px}
+.sh-top .sh-logo .logo-img{height:56px}
+.sh-foot .sh-logo .logo-img{height:40px}
+@container (max-width:720px){.sh-top .sh-logo .logo-img{height:42px}.brand .logo-img{height:26px}}
 .lp-kicker{font-size:11.5px;letter-spacing:.14em;font-weight:700;color:#ffb84d;margin-bottom:14px}
 .lp-title{font-size:40px;line-height:1.12;font-weight:800;letter-spacing:-.02em;margin:0 0 14px;color:#fff}
 .lp-sub{font-size:15px;color:rgba(255,255,255,.78);margin:0 0 30px;max-width:420px}
@@ -526,7 +537,7 @@ input.dec{text-align:right}
 
 <div id="login" class="lp" hidden>
   <div class="lp-left">
-    <div class="lp-logo"><span>3</span>mix</div>
+    <div class="lp-logo"><img class="logo-img on-dark" src="Logo_3mix.png" alt="3mix" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="lp-fb" hidden><span>3</span>mix</span></div>
     <div class="lp-kicker">◆ PERFUMES · VENDA DIRETA</div>
     <h1 class="lp-title">Seu perfume.<br>Sua venda. Seu lucro.</h1>
     <p class="lp-sub">Catálogo, estoque, vendas e resultados da rede 3mix num só lugar.</p>
@@ -538,7 +549,7 @@ input.dec{text-align:right}
     <div class="lp-foot">3mix Perfumes · Elo Sistemas</div>
   </div>
   <div class="lp-right"><div class="lp-form">
-    <div class="lp-sistema"><div class="lp-mark">3</div><div><b>3mix</b><span>Perfumes · Venda direta</span></div></div>
+    <div class="lp-sistema"><img class="logo-img" src="Logo_3mix.png" alt="3mix" style="height:56px" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="lp-mark" hidden>3</div><div><b>3mix</b><span>Perfumes · Venda direta</span></div></div>
 
     <form id="fLogin" class="lp-f" novalidate>
       <h2>Entrar</h2>
@@ -567,7 +578,7 @@ input.dec{text-align:right}
 </div>
 
 <header class="topbar">
-  <div class="brand">3mix<small>perfumes · venda direta</small></div>
+  <div class="brand"><img class="logo-img on-dark" src="Logo_3mix.png" alt="3mix" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>3mix</span><small>perfumes · venda direta</small></div>
   <div class="sp"></div>
   <div class="who" id="userBox"></div>
 </header>
@@ -1262,7 +1273,7 @@ function vLoja(){
  return `<div class="shop">
  ${UI.publico?'':`<div class="sh-own"><span>Você está vendo a sua loja como o cliente vê. Vendas feitas aqui baixam do seu estoque em mãos.</span><button class="btn sm" data-voltar>Voltar ao painel</button></div>`}
  <div class="sh-promo"><span>Pronta entrega em ${cid}</span><span class="hide-sm">Pague no Pix ou em dinheiro</span><span class="hide-sm">Atendimento com ${first} pelo WhatsApp</span></div>
- <header class="sh-top"><div class="sh-logo">3MIX<small>Perfumaria</small></div>
+ <header class="sh-top"><div class="sh-logo"><img class="logo-img" src="Logo_3mix.png" alt="3mix" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>3MIX<small>Perfumaria</small></span></div>
   <label class="sh-sbox">${ic('busca')}<input class="sh-search" type="search" data-lq placeholder="Buscar perfume, família…" value="${esc(f.q)}" aria-label="Buscar"></label>
   <div class="sh-ico">${fone?`<a href="https://wa.me/55${fone}" target="_blank" rel="noopener" aria-label="WhatsApp de ${first}">${ic('whats')}<span>Atendimento</span></a>`:''}
   <button data-checkout ${un?'':'disabled'} aria-label="Sacola, ${un} itens">${ic('comprar')}<span>Sacola</span>${un?`<i class="badge">${un}</i>`:''}</button></div></header>
@@ -1272,7 +1283,7 @@ function vLoja(){
  <section id="sh-col" class="sh-col"><div class="sh-colh"><h2>${tit}</h2><span>${its.length} ${its.length===1?'produto':'produtos'}</span></div>
   <div class="sh-grid">${rows.map(p=>shopCard(p,v.id,cart[p.id]||0,ch[p.id])).join('')||'<p class="empty">Nenhum perfume encontrado.</p>'}</div>${its.length>8?ctl:''}</section>
  <div class="sh-trust"><div>${ic('estoque')}<b>Pronta entrega</b><span>em ${cid}</span></div><div>${ic('vendas')}<b>Pagamento fácil</b><span>Pix ou dinheiro na entrega</span></div><div>${ic('whats')}<b>Atendimento pessoal</b><span>com ${first} pelo WhatsApp</span></div></div>
- <footer class="sh-foot"><div class="sh-logo">3MIX<small>Perfumaria</small></div><span>Loja de ${esc(v.nome)}${v.cidade?' · '+esc(v.cidade):''}</span></footer>
+ <footer class="sh-foot"><div class="sh-logo"><img class="logo-img on-dark" src="Logo_3mix.png" alt="3mix" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>3MIX<small>Perfumaria</small></span></div><span>Loja de ${esc(v.nome)}${v.cidade?' · '+esc(v.cidade):''}</span></footer>
  ${fone?`<a class="sh-zap${un?' sobe':''}" href="https://wa.me/${zap(fone)}?text=${encodeURIComponent('Olá '+v.nome.split(' ')[0]+'! Vim pela sua loja 3mix e gostaria de ajuda.')}" target="_blank" rel="noopener" aria-label="Falar com ${first} no WhatsApp">${ic('whats')}<span>Fale comigo</span></a>`:''}
  ${un?`<div class="cartbar sh-bar"><b>${un} un</b><span>${Ri(tot)}</span><span class="sp"></span><button class="btn pri" data-checkout>Ver sacola</button></div>`:''}
  </div>`;
