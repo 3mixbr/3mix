@@ -546,26 +546,8 @@ input.dec{text-align:right}
       <button class="btn pri" type="submit">Entrar</button>
       <div class="lp-links">
         <button type="button" class="lp-link" data-authform="rec">Esqueci minha senha</button>
-        <span>Não tem uma conta? <button type="button" class="lp-link" data-authform="cad">Cadastre-se</button></span>
+        <span>Não tem acesso? Fale com a distribuidora 3mix.</span>
       </div>
-    </form>
-
-    <form id="fCad" class="lp-f" novalidate hidden>
-      <h2>Criar conta</h2>
-      <p class="lp-sub2">Preencha seus dados para solicitar o acesso.</p>
-      <div class="lp-erro" id="cErr" hidden></div>
-      <div class="lp-row"><label for="cNome">Nome<input id="cNome" autocomplete="given-name" maxlength="40"></label><label for="cSobrenome">Sobrenome<input id="cSobrenome" autocomplete="family-name" maxlength="60"></label></div>
-      <label for="cTel">WhatsApp<input id="cTel" inputmode="tel" placeholder="(22) 99999-9999"></label>
-      <div class="lp-row"><label for="c-cep">CEP<input id="c-cep" data-cep="c" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code"></label><label for="c-num">Número<input id="c-num" maxlength="20"></label></div>
-      <span id="c-cepst" class="cepst">Digite o CEP para preencher o endereço. <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei o CEP</a></span>
-      <label for="c-logr">Rua<input id="c-logr" maxlength="120" autocomplete="address-line1"></label>
-      <div class="lp-row"><label for="c-compl">Complemento<input id="c-compl" maxlength="60" placeholder="apto, bloco…"></label><label for="c-bairro">Bairro<input id="c-bairro" maxlength="60"></label></div>
-      <div class="lp-row"><label for="c-cidade">Cidade<input id="c-cidade" maxlength="60"></label><label for="c-uf">UF<input id="c-uf" maxlength="2" style="text-transform:uppercase"></label></div>
-      <label for="cEmail">E-mail<input type="email" id="cEmail" placeholder="Digite seu e-mail"></label>
-      <div class="lp-row"><label for="cSenha">Senha<input type="password" id="cSenha" placeholder="Mínimo 6"></label><label for="cSenha2">Confirmar senha<input type="password" id="cSenha2"></label></div>
-      <div class="lp-info">Depois do cadastro, <b>seu acesso passa por aprovação</b>. Você recebe o aviso assim que for liberado.</div>
-      <button class="btn pri" type="submit">Cadastrar</button>
-      <div class="lp-links"><span>Já tem uma conta? <button type="button" class="lp-link" data-authform="login">Faça login</button></span></div>
     </form>
 
     <form id="fRec" class="lp-f" novalidate hidden>
@@ -1675,7 +1657,7 @@ const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas
 function curUser(){return S.users.find(u=>u.id===UI.user&&u.status==='ativo')||null}
 function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
  if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}}
-function showAuth(k){['login','cad','rec'].forEach(x=>$({login:'#fLogin',cad:'#fCad',rec:'#fRec'}[x]).hidden=x!==k);document.querySelectorAll('.lp-erro,.lp-ok').forEach(e=>e.hidden=true)}
+function showAuth(k){['login','rec'].forEach(x=>$({login:'#fLogin',rec:'#fRec'}[x]).hidden=x!==k);document.querySelectorAll('.lp-erro,.lp-ok').forEach(e=>e.hidden=true)}
 function authMsg(id,t){const e=$(id);e.textContent=t;e.hidden=false}
 const navList=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log']]:NAVS[UI.role];
 function render(){
@@ -1971,18 +1953,6 @@ document.addEventListener('submit',async e=>{
    const m=await entrarPerfil(p);if(m)return authMsg('#lErr',m);
    log('Entrou no sistema',em);render();if(se==='123456')mSenha(false,true);
   }catch(err){authMsg('#lErr',msgErro(err))}finally{trava(false)}
-  return}
- if(f.id==='fCad'){$('#cErr').hidden=true;const nome=v('#cNome'),sobrenome=v('#cSobrenome'),em=v('#cEmail').toLowerCase(),s1=$('#cSenha').value,s2=$('#cSenha2').value,E=endLer('c');
-  if(!nome||!sobrenome||!em||!v('#cTel'))return authMsg('#cErr','Preencha nome, sobrenome, WhatsApp e e-mail.');
-  if(!E.cidade||!E.uf)return authMsg('#cErr','Informe o CEP ou digite a cidade e a UF.');
-  if(E.cep&&E.cep.length!==8)return authMsg('#cErr','O CEP precisa ter 8 números.');
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return authMsg('#cErr','E-mail inválido.');
-  if(s1.length<6)return authMsg('#cErr','A senha precisa ter pelo menos 6 caracteres.');
-  if(s1!==s2)return authMsg('#cErr','As senhas não conferem.');
-  trava(true);
-  try{await fnAcessos({acao:'cadastro',nome,sobrenome,email:em,tel:v('#cTel'),senha:s1,...E});
-   f.reset();showAuth('login');$('#lEmail').value=em;authMsg('#lOk','Cadastro enviado. Assim que for aprovado, você já pode entrar.');
-  }catch(err){authMsg('#cErr',msgErro(err))}finally{trava(false)}
   return}
  if(f.id==='fRec'){const em=v('#rEmail').toLowerCase();if(!em)return;trava(true);
   try{await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname})}catch(_){}
