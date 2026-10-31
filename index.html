@@ -214,7 +214,8 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .model{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .model .panel h4{margin:0;font-size:15px}
 .model .panel p{margin:0;color:var(--muted);font-size:13px}
-@container (max-width:720px){.model{grid-template-columns:1fr}.calc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.calc.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@container (max-width:720px){.model{grid-template-columns:1fr}.calc,.calc.c4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* ---------- Login (mesmo desenho do sistema Elo: arte à esquerda, formulário à direita) ---------- */
 .lp{min-height:100%;display:grid;grid-template-columns:1fr 1fr;background:var(--surface)}
 .lp-left{background:linear-gradient(150deg,#131921 0%,#1d2733 55%,#2b3a4c 100%);color:#fff;padding:clamp(28px,10vh,110px) 56px 36px;display:flex;flex-direction:column;position:relative;overflow:hidden}
@@ -674,7 +675,7 @@ const UI={role:'socio',vid:'v0',view:'painel',per:30,pages:{},device:'site',tab:
 
 /* venda do vendedor ao cliente: só Pix ou dinheiro (direto para o vendedor) */
 const PAYV=['pix','dinheiro'];
-const PAY={pix:'Pix',debito:'Débito',credito:'Crédito à vista',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link Yampi'};
+const PAY={pix:'Pix',debito:'Débito',credito:'Crédito à vista',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link online'};
 const prod=id=>S.prods.find(p=>p.id===id);
 const vend=id=>S.vend.find(v=>v.id===id);
 /* estoque individual de cada vendedor */
@@ -851,12 +852,13 @@ function vProdutos(){
    return `<tr><td><span class="chip ${r.cl}">${r.cl}</span></td><td><button class="btn ghost sm" style="padding:0;border:0" data-edit="${p.id}"><b>${p.code}</b>&nbsp;${esc(p.nome)}</button></td>
    <td class="n">${R(custoFinal(p))}</td><td class="n">${R(pRev(p))}</td><td class="n">${R(p.preco)}</td><td class="n">${P(mg)}</td><td class="n hide-sm">${P(p.comissao)}</td><td class="n hide-sm">${R(r.rec)}</td><td class="n hide-sm">${U(r.un)}</td>
    <td class="n"><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></td><td class="n hide-sm">${U(emRev(p.id))}</td><td class="hide-sm">${br(p.ultimaCompra)}</td><td class="n hide-sm">${cob}</td></tr>`}).join('')}
-  </tbody></table></div>${ctl}<p class="note">Margem 3mix = preço ao vendedor − custo final, antes das taxas (Yampi + gateway + outros). Cobertura = estoque ÷ média diária de saída em kits.</p></section>`;
+  </tbody></table></div>${ctl}<p class="note">Margem 3mix = preço ao vendedor − custo final, antes das taxas (gateway + outros). Cobertura = estoque ÷ média diária de saída em kits.</p></section>`;
  }else{
   const C=[...S.compras].sort((a,b)=>b.data.localeCompare(a.data));const {rows,ctl}=page('cmp',C,10);
-  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>Data da compra</th><th>Produto</th><th class="n">Qtd (un)</th><th class="n">Custo unit. (R$)</th><th class="n">Total (R$)</th></tr></thead><tbody>
-  ${rows.map(c=>{const p=prod(c.pid);return `<tr><td>${br(c.data)}</td><td>${p.code} · ${esc(p.nome)}</td><td class="n">${U(c.qtd)}</td><td class="n">${R(c.custo)}</td><td class="n">${R(c.custo*c.qtd)}</td></tr>`}).join('')}
-  </tbody></table></div>${ctl}</section>`;
+  body=`<section class="panel"><div class="tbl"><table><thead><tr><th>Data da compra</th><th>Produto</th><th class="n">Qtd (un)</th><th class="n">Custo unit. (R$)</th><th class="n">Total (R$)</th><th></th></tr></thead><tbody>
+  ${rows.map(c=>{const p=prod(c.pid)||{code:'?',nome:''};return `<tr><td>${br(c.data)}</td><td>${p.code} · ${esc(p.nome)}</td><td class="n">${U(c.qtd)}</td><td class="n">${R(c.custo)}</td><td class="n">${R(c.custo*c.qtd)}</td>
+  <td class="n" style="white-space:nowrap"><button class="btn sm" data-entedit="${c.id}">Editar</button> <button class="btn sm" data-entdel="${c.id}" style="color:var(--bad)" title="Excluir entrada e tirar as unidades do estoque">✕</button></td></tr>`}).join('')||'<tr><td colspan="6" class="empty">Nenhuma entrada.</td></tr>'}
+  </tbody></table></div>${ctl}<p class="note">Editar ou excluir uma entrada corrige o estoque central e o custo médio do produto. Não é possível excluir se as unidades já saíram do estoque central.</p></section>`;
  }
  return `<div class="head"><div><h1>Produtos</h1><p class="sub">${S.prods.length} fragrâncias · ${S.prods.reduce((a,p)=>a+p.estoque,0)} un em estoque · ${Ri(S.prods.reduce((a,p)=>a+p.estoque*p.custo,0))} a custo</p></div><div class="sp"></div>
  <button class="btn" data-entrada="">+ Entrada de estoque</button><button class="btn pri" data-edit="">+ Novo produto</button></div>${tabs}${body}`;
@@ -961,21 +963,14 @@ function vSocios(){
   </div></div>`).join('')||'<p class="empty">Nenhum banner.</p>'}
   <p class="note">Banner sem foto usa um fundo de cor com os perfumes do público escolhido. Banner de um público sem produto à venda não aparece na loja.</p>
  </section>
- <section class="panel"><div class="panel-h"><h2>Pagamentos · Yampi</h2><span class="sp"></span><span class="note">somente kits</span>&nbsp;${S.yampi.webhook?'<span class="chip good">baixa automática ativa</span>':'<span class="chip warn">baixa automática desligada</span>'}</div>
-  <div class="fg"><label class="f">Chave Pix da 3mix (pagamento dos kits)<input id="cfg-pix" data-cfg="pix3mix" value="${esc(S.pix3mix||'')}" placeholder="CNPJ, e-mail ou telefone"></label>
-  <label class="f">WhatsApp da 3mix (comprovantes)<input id="cfg-whats" data-cfg="whats3mix" value="${esc(S.whats3mix||'')}" inputmode="tel" placeholder="(22) 99999-9999"></label>
-  <label class="f">Alias da loja na Yampi<input id="yp-alias" data-yalias value="${esc(S.yampi.alias||'')}" placeholder="aparece no endereço do painel Yampi"></label>
-  <label class="f">Domínio do checkout Yampi<input id="yp-dom" data-ydom value="${esc(S.yampi.dominio||'')}" placeholder="ex.: seguro.3mix.com.br"></label>
-  <label class="f">Taxa da Yampi por pagamento (%)<input id="tx-link" data-tax="link" type="text" inputmode="decimal" class="dec" value="${fmt(S.taxas.link||0)}"></label>
-  <label class="f">Prefixo do cupom de nível<input id="yp-cupom" data-ycupom value="${esc(S.yampi.cupom??'NIVEL')}" placeholder="NIVEL"></label>
-  <label class="f">Produtos com token Yampi<input id="yp-sku" disabled value="${S.prods.filter(p=>p.skuRev).length} de ${S.prods.length}"></label></div>
-  <div class="btnrow"><button class="btn ${S.yampi.webhook?'':'pri'} sm" data-ysetup>${S.yampi.webhook?'Reativar baixa automática':'Ativar baixa automática'}</button>${yLinkOk(S.prods.map(p=>({pid:p.id,qtd:1})),'kit')?'<span class="note">links de pagamento prontos</span>':'<span class="note">preencha o alias e o token de cada produto para gerar os links</span>'}</div>
+ <section class="panel"><div class="panel-h"><h2>Pagamentos dos kits</h2><span class="sp"></span><span class="note">1º Pix direto (sem taxa) · 2º Mercado Pago</span></div>
+  <div class="fg"><label class="f">Chave Pix da 3mix<input id="cfg-pix" data-cfg="pix3mix" value="${esc(S.pix3mix||'')}" placeholder="CNPJ, e-mail ou telefone"></label>
+  <label class="f">WhatsApp da 3mix (comprovantes)<input id="cfg-whats" data-cfg="whats3mix" value="${esc(S.whats3mix||'')}" inputmode="tel" placeholder="(22) 99999-9999"></label></div>
   <ol class="steps">
-   <li><b>A Yampi é só para os kits</b> (o vendedor pagando a 3mix). A venda do vendedor ao cliente é só Pix ou dinheiro, direto para o vendedor, e não passa pela conta da 3mix.</li>
-   <li><b>Um produto por perfume na Yampi</b>, com o <b>preço ao vendedor</b> (ex.: R$ 29,90). Copie o <b>SKU</b> de cada produto na Yampi e cole em Produtos → Editar → "Token Yampi (kit)".</li>
-   <li><b>Cupons de nível:</b> crie na Yampi cupons percentuais para os níveis com bônus: ${S.niveis.filter(n=>+n.bonus>0).map(n=>`<b>${esc(S.yampi.cupom??'NIVEL')}${String(n.bonus).replace('.',',')}</b> (${pc(n.bonus)} · ${esc(n.nome)})`).join(', ')||'nenhum nível tem bônus'}. </li>
-   <li><b>Baixa automática:</b> em Supabase → Edge Functions → Secrets, cadastre <code>YAMPI_TOKEN</code> e <code>YAMPI_SECRET</code> (Yampi → Perfil → Credenciais de API). Depois clique em "Ativar baixa automática": o 3mix passa a receber o aviso de pedido pago e dá baixa sozinho no kit.</li>
-   <li><b>Sem baixa automática</b> tudo continua funcionando: o administrador confirma o kit e o vendedor marca a venda como paga.</li>
+   <li><b>1º Pix direto (sem taxa):</b> na tela de pagamento o vendedor vê primeiro o código "Pix copia e cola" com o valor do kit já preenchido, paga na chave da 3mix e envia o comprovante pelo app. O administrador confere em Vendedores → Kits e confirma.</li>
+   <li><b>2º Mercado Pago:</b> abaixo do Pix fica o botão do checkout do Mercado Pago, com todas as formas (cartão, Pix, etc.). Aprovado o pagamento, o kit é confirmado sozinho. A taxa é a do campo "Gateway / MP" no cadastro do produto.</li>
+   <li><b>Para ligar o cartão:</b> no Mercado Pago, em Suas integrações → Credenciais de produção, copie o <b>Access Token</b>. Cole em Supabase → Edge Functions → Secrets com o nome <code>MP_ACCESS_TOKEN</code>. Não mande o token por mensagem.</li>
+   <li><b>Desconto do nível</b> já vem calculado no valor do kit. Não existe cupom.</li>
   </ol>
  </section>`;
 }
@@ -1008,6 +1003,15 @@ function vAvise(){const A=S.avise||[];if(!A.length)return '';const {rows,ctl}=pa
  <td><a href="https://wa.me/${zap(a.tel)}?text=${encodeURIComponent(`Olá ${a.nome}! O perfume ${p?.nome||''} que você pediu chegou na 3mix.`)}" target="_blank" rel="noopener">${esc(a.tel)}</a></td>
  <td class="hide-sm">${esc(vend(a.vendedor_id)?.nome||'—')}</td><td class="n"><button class="btn sm" data-avok="${a.id}">Avisado</button></td></tr>`}).join('')}
  </tbody></table></div>${ctl}</section>`}
+/* clientes da loja do vendedor que pediram "avise-me quando chegar" */
+function vAviseV(vid){const A=(S.avise||[]).filter(a=>a.vendedor_id===vid);if(!A.length)return '';const {rows,ctl}=page('avisev'+vid,A,5);
+ return `<section class="panel"><div class="panel-h"><h2>Clientes esperando perfume</h2><span class="sp"></span><span class="chip warn">${A.length} pedido${A.length>1?'s':''}</span></div>
+ <div class="tbl"><table><thead><tr><th>Data</th><th>Perfume</th><th>Cliente</th><th class="n">Distribuidora (un)</th><th></th></tr></thead><tbody>
+ ${rows.map(a=>{const p=prod(a.produto_id)||{code:'?',nome:'',estoque:0};const msg=`Olá ${a.nome}! O perfume ${p.nome} que você pediu na minha loja 3mix chegou. Quer que eu separe para você?`;
+  return `<tr><td>${br(a.criado_em)}</td><td><b>${p.code}</b> ${esc(p.nome)}</td><td>${esc(a.nome)}<div class="note">${esc(a.tel)}</div></td>
+  <td class="n"><span class="chip ${p.estoque>0?'good':'bad'}">${p.estoque} un</span></td>
+  <td class="n" style="white-space:nowrap">${p.estoque>0&&eV(vid,p.id)<=0?`<button class="btn sm" data-kit6="${p.id}">Pedir</button> `:''}<a class="btn sm" href="https://wa.me/${zap(a.tel)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">WhatsApp</a> <button class="btn pri sm" data-avok="${a.id}">Avisado</button></td></tr>`}).join('')}
+ </tbody></table></div>${ctl}<p class="note">Peça o perfume na distribuidora, avise o cliente pelo WhatsApp e marque como avisado.</p></section>`}
 function vInicio(){
  const v=vend(UI.vid);const M=monthSales(v.id);const t=sum(M);const n=nivelDe(v.id,iso(today));
  const idx=S.niveis.indexOf(n);const next=S.niveis[idx+1];
@@ -1023,6 +1027,7 @@ function vInicio(){
   <div class="btnrow"><button class="btn pri sm" data-copymsg>Copiar mensagem p/ grupos</button><button class="btn sm" data-copylink>Copiar só o link</button><button class="btn sm" data-verloja>Ver minha loja</button></div>
   <p class="note">A loja mostra só os perfumes que você tem em mãos (${U(maosV(v.id))}). O pedido do cliente baixa do seu estoque e aparece em Vendas como "A receber".</p>
  </section>
+ ${vAviseV(v.id)}
  <div class="grid-kpi" style="grid-template-columns:repeat(3,minmax(0,1fr))">
   <div class="kpi hl"><span class="l">Vendido em ${today.toLocaleDateString('pt-BR',{month:'long'})}</span><span class="v">${R(t.rec)}</span><span class="d">${U(t.un)} · ${M.length} vendas</span></div>
   <div class="kpi"><span class="l">Meu lucro</span><span class="v">${R(t.com)}</span><span class="d">${Ri(pend)} já recebido</span></div>
@@ -1033,10 +1038,6 @@ function vInicio(){
   <div class="list">${rows.map(x=>`<div class="row"><span class="av">${ini(x.cliente)}</span><div class="grow"><div class="t">${esc(x.cliente)}</div><div class="s">Última compra ${br(x.data)} · ${x.itens.map(i=>esc(prod(i.pid).nome)).join(', ')}</div></div><span class="chip warn">${daysAgo(x.data)} dias</span></div>`).join('')||'<p class="empty">Nenhum cliente parado.</p>'}</div>${reat.length>5?ctl:''}
  </section>`;
 }
-function vCatalogo(){
- const {rows,ctl}=page('vcat',[...S.prods].filter(p=>+p.preco>0).sort((a,b)=>(eV(UI.vid,b.id)>0)-(eV(UI.vid,a.id)>0)||a.code.localeCompare(b.code)),8);
- return `<div class="head"><div><h1>Catálogo</h1><p class="sub">Todos os perfumes da 3mix. Os que estão com você aparecem primeiro, com a quantidade em mãos; os outros você pede em Comprar.</p></div></div><div class="cat">${rows.map(p=>card(p,null,false,eV(UI.vid,p.id))).join('')||'<p class="empty">Sem estoque. Compre um kit para começar.</p>'}</div>${ctl}`;
-}
 function vEstoqueV(){
  const v=vend(UI.vid);const L=S.vendas.filter(x=>x.vid===v.id&&daysAgo(x.data)<30);
  const its=S.prods.filter(p=>eV(v.id,p.id)>0).map(p=>({p,q:eV(v.id,p.id),c:precoRev(p,v.id),s:L.reduce((a,x)=>a+x.itens.filter(i=>i.pid===p.id).reduce((s,i)=>s+i.qtd,0),0)}));
@@ -1044,11 +1045,11 @@ function vEstoqueV(){
  const K=S.kits.filter(k=>k.vid===v.id).sort((a,b)=>b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kv'+v.id,K,4);
  const valV=its.reduce((a,r)=>a+r.q*precoVend(r.p,v.id),0),lucV=its.reduce((a,r)=>a+r.q*(precoVend(r.p,v.id)-r.c),0);
  return `<div class="head"><div><h1>Meu estoque</h1><p class="sub">${U(maosV(v.id))} em mãos · vale ${Ri(valV)} ao seu preço</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
- <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$)</th><th class="n">Meu preço (R$)</th><th class="n">Lucro/un (R$)</th></tr></thead><tbody>
- ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?'':'<small class="note" style="display:block;font-size:10px" title="O preço de venda fica a critério do revendedor. Este é apenas uma sugestão.">Preço sugerido ⓘ</small>'}</td><td class="n">${R(pv-r.c)}</td></tr>`}).join('')||'<tr><td colspan="6" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
+ <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$)</th><th class="n">Meu preço (R$)</th><th class="n">Lucro/un (R$)</th><th></th></tr></thead><tbody>
+ ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?'':'<small class="note" style="display:block;font-size:10px" title="O preço de venda fica a critério do revendedor. Este é apenas uma sugestão.">Preço sugerido ⓘ</small>'}</td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}">Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">Edite a coluna "Meu preço" para definir quanto cobrar do cliente. Sugerido: ${Ri(S.prods[0]?.preco||0)}.</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
+ ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${KST[k.status]||''}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-altkit="${k.id}" title="Volta os perfumes para o carrinho para você mudar">Alterar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
@@ -1271,35 +1272,26 @@ function drawCheckout(){
  render();
 }
 
-/* ===== pagamento Yampi =====
-   O app chama a edge function yampi?acao=link que cria um Payment Link via API Yampi
-   (POST /v2/{alias}/checkout/payment-link) e devolve a URL de pagamento.
-   A Yampi avisa o pagamento pelo webhook order.paid e a função marca a venda como paga. */
-const yTok=(p,tipo)=>String((tipo==='kit'?p.skuRev:p.sku)||'').trim();
-const yLinkOk=(its,tipo)=>!!(S.yampi&&S.yampi.alias&&its.length&&its.every(i=>prod(i.pid)&&yTok(prod(i.pid),tipo)));
-async function yLinkAsync(its,ref,tipo,cupom){
- if(!yLinkOk(its,tipo))return '';
- const skus=its.map(i=>{const p=prod(i.pid);return{sku:yTok(p,tipo),qtd:i.qtd}});
+/* ===== pagamento dos kits · Mercado Pago =====
+   O app chama a edge function mp?acao=link com o id do kit; o valor vem do banco (já com o bônus do nível).
+   O Mercado Pago avisa o pagamento e a função dá baixa no kit sozinha. */
+async function mpLink(kitId){
  const sess=await sb.auth.getSession();const tk=sess?.data?.session?.access_token||'';
- const r=await fetch(SB_URL+'/functions/v1/yampi?acao=link',{method:'POST',
+ const r=await fetch(SB_URL+'/functions/v1/mp?acao=link',{method:'POST',
   headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
-  body:JSON.stringify({itens:skus,ref,tipo,cupom:cupom||''})});
+  body:JSON.stringify({kit:kitId,volta:location.origin+location.pathname})});
  const j=await r.json().catch(()=>({}));
- if(!r.ok)throw new Error(j.error||'Erro ao gerar link');
- return j.url||''}
-/* cupom do kit: só o bônus do nível (ex.: NIVEL2 = 2% de desconto no preço ao vendedor) */
-function cupomKit(its,vid){const b=+nivelDe(vid,iso(today)).bonus||0;return b>0?`${S.yampi.cupom??'NIVEL'}${String(b).replace('.',',')}`:''}
-/* link para o vendedor mandar ao cliente (venda com pagamento pela Yampi) */
-async function mYampiLink(its,ref,valor){UI.msize='md';
- modal(`<h3>Link de pagamento</h3><p>Gerando link na Yampi...</p>`);
- try{const url=await yLinkAsync(its,ref,'venda');
-  modal(`<h3>Link de pagamento</h3>
-  <p style="margin:0">Mande para o cliente pagar ${Ri(valor)} com Pix ou cartão. A venda fica "A receber" e vira "Pago" sozinha quando a Yampi aprovar${S.yampi.webhook?'':' (ative a baixa automática em Administração)'}.</p>
-  <div class="linkbox"><code>${esc(url)}</code></div><div class="btnrow"><button class="btn pri sm" data-copy="${esc(url)}">Copiar link</button><a class="btn sm" href="https://wa.me/?text=${encodeURIComponent('Segue o link para pagamento do seu pedido 3mix: '+url)}" target="_blank" rel="noopener">Enviar no WhatsApp</a></div>
-  <div class="actions"><button class="btn" data-close>Fechar</button></div>`)}
- catch(e){modal(`<h3>Link de pagamento</h3>
-  <p class="note">Não dá para gerar o link: ${esc(e.message||'erro desconhecido')}. A venda ficou "A receber".</p>
-  <div class="actions"><button class="btn" data-close>Fechar</button></div>`)}}
+ if(!r.ok||!j.url)throw new Error(j.error||'Erro ao gerar link');
+ return j.url}
+/* Pix copia e cola (BR Code estático do Banco Central) com o valor do kit — pago direto na chave da 3mix, sem taxa */
+function pixChave(t){t=String(t||'').trim();if(!t)return '';if(t.includes('@'))return t.toLowerCase();if(/^[0-9a-f-]{32,36}$/i.test(t))return t.toLowerCase();
+ const d=t.replace(/\D/g,'');if(t.startsWith('+'))return '+'+d;if(d.length===14)return d;if(d.length===11&&/[().\s]/.test(t)&&!/\d{3}\.\d{3}\.\d{3}-\d{2}/.test(t))return '+55'+d;return d}
+function crc16(s){let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=c&0x8000?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,'0')}
+function pixCopiaCola(valor,ref){const k=pixChave(S.pix3mix);if(!k)return '';
+ const f=(id,v)=>id+String(v.length).padStart(2,'0')+v;
+ const tx=String(ref||'').replace(/[^A-Za-z0-9]/g,'').slice(0,25)||'***';
+ const p=f('00','01')+f('26',f('00','br.gov.bcb.pix')+f('01',k))+f('52','0000')+f('53','986')+f('54',(+valor).toFixed(2))+f('58','BR')+f('59','3MIX')+f('60','MACAE')+f('62',f('05',tx))+'6304';
+ return p+crc16(p)}
 
 /* ===== carrinho do vendedor (compra de estoque da 3mix) ===== */
 const cartV=()=>{S.carts=S.carts||{};return S.carts[UI.vid]||(S.carts[UI.vid]={})};
@@ -1324,14 +1316,18 @@ function buyCard(p,q,r){
 async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
  const its=r.itens||[],titulo=r.reabrir?'Pagamento do kit':'Pedido realizado ✓';
  const base=`<h3>${titulo}</h3><p style="margin:0"><b>${r.un} un</b> · total ${Ri(+r.total)}</p>`;
- const comprovanteHtml=`<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px"><p class="note" style="margin:0 0 8px;font-weight:700">Pagou por fora? Envie o comprovante:</p><label class="btn sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="file" accept="image/*" data-compkit="${r.id}" hidden>📎 Enviar comprovante</label></div>`;
+ const comprovanteHtml=`<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px"><p class="note" style="margin:0 0 8px;font-weight:700">Pagou por Pix? Envie o comprovante:</p><label class="btn sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="file" accept="image/*" data-compkit="${r.id}" hidden>📎 Enviar comprovante</label></div>`;
  const rodape=`<p class="note" style="margin-top:16px">Acompanhe o status do pedido em Estoque → Meus kits.</p>`;
- if(yLinkOk(its,'kit')){modal(base+`<p class="note">Gerando link de pagamento na Yampi...</p>`+comprovanteHtml+rodape);
-  try{const url=await yLinkAsync(its,r.id,'kit',cupomKit(its,UI.vid));
-   modal(base+`<a class="btn pri" href="${esc(url)}" target="_blank" rel="noopener">Pagar na Yampi · Pix ou cartão</a><p class="note">Pagamento pela Yampi com o cupom de revenda já aplicado.${S.yampi.webhook?' Aprovado o pagamento, os frascos entram no seu estoque automaticamente.':''}</p>`
-   +comprovanteHtml+rodape)}
-  catch(e){modal(base+`<p class="note">Não foi possível gerar o link: ${esc(e.message)}. Fale com a 3mix ou envie o comprovante abaixo.</p>`+comprovanteHtml+rodape)}}
- else{modal(base+'<p class="note">A 3mix vai te passar a forma de pagamento.</p>'+comprovanteHtml+rodape)}}
+ const cc=pixCopiaCola(r.total,r.id);
+ const pixHtml=cc?`<div style="margin-top:12px"><p style="margin:0 0 6px;font-weight:700">1. Pix direto para a 3mix · recomendado</p>
+  <p class="note" style="margin:0 0 6px">Copie o código, cole no app do seu banco em "Pix copia e cola" (o valor de ${Ri(+r.total)} já vai preenchido) e depois envie o comprovante abaixo.</p>
+  <div class="linkbox"><code style="word-break:break-all;font-size:11px">${esc(cc)}</code></div>
+  <div class="btnrow"><button class="btn pri sm" data-copy="${esc(cc)}">Copiar código Pix</button><span class="note">Chave: ${esc(S.pix3mix)} · 3mix</span></div></div>`
+  :'<p class="note">A 3mix vai te passar a chave Pix.</p>';
+ const cartao=url=>`<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px"><p style="margin:0 0 6px;font-weight:700">2. Ou pague pelo Mercado Pago</p>${url?`<a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener">Ir para o Mercado Pago · cartão, Pix e outros</a><p class="note" style="margin:6px 0 0">Aprovado o pagamento, o kit é confirmado sozinho. Não precisa enviar comprovante.</p>`:`<p class="note" style="margin:0">${url===null?'Gerando link...':'Mercado Pago indisponível no momento. Use o Pix acima.'}</p>`}</div>`;
+ modal(base+pixHtml+comprovanteHtml+cartao(null)+rodape);
+ let url='';try{url=await mpLink(r.id)}catch(e){url=''}
+ if(UI.kitPg===r.id&&UI.modal)modal(base+pixHtml+comprovanteHtml+cartao(url)+rodape)}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
@@ -1339,11 +1335,11 @@ function drawCarrinho(){
  const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean);
  const rows=its,ctl='';const pct=t.un?Math.round((t.un%MIN||MIN)/MIN*100):0;
  UI.modal=`<h3>Meu carrinho</h3>
- ${its.length?`<div class="list rolar">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">${Ri(pr)} por un · vende a ${Ri(precoVend(p,UI.vid))}</div></div>
+ ${its.length?`<div class="list rolar">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">você paga ${Ri(pr)}/un · vende a ${Ri(precoVend(p,UI.vid))}/un</div></div>
   <div class="qty"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div><span style="min-width:116px">${R(q*pr)}</span></div>`}).join('')}</div>`
  :'<p class="empty">Seu carrinho está vazio. Vá em Comprar e adicione perfumes.</p>'}
  <div class="meta"><div class="t">${metaTxt(t.un)}</div><div class="bar"><span style="width:${pct}%;${f?'':'background:var(--good)'}"></span></div></div>
- <div class="calc"><div>Total<b>${Ri(t.tot)}</b></div><div>Frascos<b>${t.un} un</b></div><div>Lucro se vender tudo<b>${Ri(t.luc)}</b></div></div>
+ <div class="calc c4"><div>Frascos<b>${t.un} un</b></div><div>Você paga<b>${Ri(t.tot)}</b></div><div>Você vende por<b>${Ri(t.tot+t.luc)}</b></div><div>Seu lucro<b>${Ri(t.luc)}</b></div></div>
  <div class="actions"><button class="btn ghost" data-close>Continuar comprando</button><button class="btn pri" data-fecharcarrinho ${!t.un||f?'disabled':''}>Enviar pedido</button></div>`;
  render();
 }
@@ -1366,8 +1362,8 @@ function drawKit(){
  <div class="pay"><button data-preset="1">${MIN} mais vendidos · ${MIN} un</button><button data-preset="2">${MIN} mais vendidos · ${MIN*2} un</button><button data-preset="0">Montar do zero</button></div>
  <div class="kitgrid">${rows.map(p=>`<div class="kitrow"><div style="min-width:0"><div class="t">${p.code} · ${esc(p.nome)} ${trophy(ch[p.id])}</div><div class="s note">Você paga ${Ri(precoRev(p,d.vid))} · vende a ${Ri(precoVend(p,d.vid))} · ${p.estoque} disp.</div></div>
   <div class="qty"><button data-kq="${p.id}" data-d="-1" aria-label="Menos" ${!(d.q[p.id])?'disabled':''}>−</button><span>${d.q[p.id]||0}</span><button data-kq="${p.id}" data-d="1" aria-label="Mais um" ${(d.q[p.id]||0)>=p.estoque?'disabled':''}>+</button></div></div>`).join('')}</div>${ctl}
- <div class="calc"><div>Total do pedido<b>${Ri(tot)}</b></div><div>Frascos<b>${un} un${un<MIN?` <span class="chip warn">faltam ${MIN-un}</span>`:''}</b></div><div>Lucro se vender tudo<b>${Ri(luc)}</b></div></div>
- <p class="note">O pagamento é feito na Yampi (Pix ou cartão). Quando ele é aprovado, os frascos entram no seu estoque sozinhos.</p>
+ <div class="calc c4"><div>Frascos<b>${un} un${un<MIN?` <span class="chip warn">faltam ${MIN-un}</span>`:''}</b></div><div>Você paga<b>${Ri(tot)}</b></div><div>Você vende por<b>${Ri(tot+luc)}</b></div><div>Seu lucro<b>${Ri(luc)}</b></div></div>
+ <p class="note">Pague por Pix direto na chave da 3mix (sem taxa) ou pelo Mercado Pago. Confirmado o pagamento, a 3mix separa e entrega seus frascos.</p>
  <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savekit ${un<MIN?'disabled':''}>Ir para o pagamento</button></div>`;
  render();
 }
@@ -1394,9 +1390,9 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <label class="f">Família olfativa<select id="f-familia" data-f="familia">${Object.keys(FAM).map(g=>`<option ${g===p.familia?'selected':''}>${g}</option>`).join('')}</select></label>
    <label class="f">Volume (ml)<input id="f-ml" data-f="ml" type="number" value="${p.ml}"></label>
    <label class="f s3">Descrição curta<input id="f-descricao" data-f="descricao" value="${esc(p.descricao)}" placeholder="aparece na loja do vendedor"></label>
+   <label class="f">Estoque central (un)<input id="f-estoque" data-f="estoque" type="number" min="0" inputmode="numeric" value="${+p.estoque||0}" title="Ajuste manual: fica registrado como inventário"></label>
    <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
    <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="não aparece na loja"></label>
-   <label class="f">Token Yampi (kit)<input id="f-skurev" data-f="skuRev" value="${esc(p.skuRev||'')}" placeholder="ex.: AABBJJ"></label>
    <label class="f s3">Foto ambientada da loja (opcional)<input id="f-fotoamb" data-f="fotoAmb" value="${esc(p.fotoAmb||'')}" placeholder="frasco em cena, ex.: N01-amb.jpg"></label>
   </div>
  </div>
@@ -1451,15 +1447,17 @@ function pCalc(){const d=UI.draft;const el=$('#pCalc');if(!el)return;
   <span>Taxas</span><span class="n">${pc(txPct)}</span><b class="n">−${fmt(txR)}</b>
   <span><b>Lucro 3mix</b></span><span class="n">${pc(rv?liq/rv*100:0)}</span><b class="n">${fmt(liq)}</b>
   <span>Lucro vendedor</span><span class="n">${pc(d.preco?lv/d.preco*100:0)}</span><b class="n">${fmt(lv)}</b>`}
-function mEntrada(pid){UI.msize='sm';
- UI.draft={pid:pid||S.prods[0].id,qtd:0,custo:0,data:iso(today)};
- modal(`<h3>Entrada de estoque</h3><div class="fg">
- <label class="f full">Produto<select id="e-pid" data-e="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===UI.draft.pid?'selected':''}>${p.code} · ${esc(p.nome)} (${p.estoque} un)</option>`).join('')}</select></label>
- <label class="f">Quantidade (un)<input id="e-qtd" data-e="qtd" type="number" min="0" inputmode="numeric" value="0"></label>
+function mEntrada(pid,eid){UI.msize='sm';
+ const E=eid?S.compras.find(c=>c.id===eid):null;
+ const p0=pid||E?.pid||S.prods[0].id;
+ UI.draft=E?{id:E.id,pid:E.pid,qtd:E.qtd,custo:+E.custo,data:E.data}:{pid:p0,qtd:0,custo:+(prod(p0)?.custo)||0,data:iso(today)};
+ modal(`<h3>${E?'Editar entrada':'Entrada de estoque'}</h3><div class="fg">
+ <label class="f full">Produto<select id="e-pid" data-e="pid" ${E?'disabled':''}>${S.prods.map(p=>`<option value="${p.id}" ${p.id===UI.draft.pid?'selected':''}>${p.code} · ${esc(p.nome)} (${p.estoque} un)</option>`).join('')}</select></label>
+ <label class="f">Quantidade (un)<input id="e-qtd" data-e="qtd" type="number" min="0" inputmode="numeric" value="${UI.draft.qtd}"></label>
  <label class="f">Custo unitário (R$)<input id="e-custo" data-e="custo" type="text" inputmode="decimal" class="dec" value="${fmt(UI.draft.custo)}"></label>
  <label class="f">Data da compra<input id="e-data" data-e="data" type="date" value="${UI.draft.data}"></label></div>
- <p class="note">O custo do produto passa a ser o custo médio entre o estoque atual e esta compra.</p>
- <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveent>Registrar entrada</button></div>`);
+ <p class="note">${E?'O estoque central e o custo médio do produto são recalculados com os novos valores.':'O custo do produto passa a ser o custo médio entre o estoque atual e esta compra.'}</p>
+ <div class="actions">${E?`<button class="btn" data-entdel="${E.id}" style="color:var(--bad);margin-right:auto">Excluir entrada</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveent>${E?'Salvar alteração':'Registrar entrada'}</button></div>`);
 }
 function mVend(id){UI.msize='sm';
  const v=id?vend(id):{id:'',nome:'',cidade:'Macaé',tel:'',ativo:true};
@@ -1494,7 +1492,7 @@ function drawVenda(){
  <label class="f">Status<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber (fiado)</option></select></label>
  <p class="note">Sai do estoque em mãos de ${esc(vend(d.vid)?.nome.split(' ')[0])}.</p>
  <div class="calc"><div>Total<b>${Ri(c.rec)}</b></div><div>${UI.role==='vend'?'Meu lucro':'Ganho revendedor'}<b>${Ri(c.com)}</b></div><div>${UI.role==='vend'?'Itens':'Lucro'}<b>${UI.role==='vend'?c.un+' un':'R$ '+fmt(c.luc)}</b></div></div>
- ${d.pag==='link'?`<p class="note">Gera um link de pagamento da Yampi para mandar ao cliente. A venda vira "Pago" sozinha quando o pagamento é aprovado.</p>`:''}
+ 
  <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevenda>Registrar venda</button></div>`;
  render();
 }
@@ -1502,7 +1500,7 @@ function toast(t){const el=document.createElement('div');el.className='toast';el
 
 /* ===== render ===== */
 const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['equipe','Vendedores'],['socios','Administração']],
-            vend:[['inicio','Início'],['catalogo','Catálogo'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas']],loja:[]};
+            vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas']],loja:[]};
 function curUser(){return S.users.find(u=>u.id===UI.user&&u.status==='ativo')||null}
 function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
  if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}}
@@ -1522,7 +1520,7 @@ function render(){
  let h='';
  if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:()=>vVendas(),equipe:vEquipe,socios:vSocios,acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
- else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vCatalogo,vendas:()=>vVendas(UI.vid),vender:vInicio}[UI.view]();
+ else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,vendas:()=>vVendas(UI.vid),vender:vInicio}[UI.view]();
  $('#main').innerHTML=h;
  document.querySelector('.scrim')?.remove();
  if(UI.modal){const s=document.createElement('div');s.className='scrim';s.innerHTML=`<div class="sheet ${UI.msize||'md'}" role="dialog" aria-modal="true">${UI.modal}</div>`;$('#shell').appendChild(s);pCalc()}
@@ -1552,12 +1550,11 @@ document.addEventListener('click',e=>{
  if(d.kq){const p=prod(d.kq);UI.draft.q[d.kq]=Math.max(0,Math.min(p.estoque,(UI.draft.q[d.kq]||0)+ +d.d));drawKit();return}
  if(d.kit6){const c=cartV();c[d.kit6]=Math.min(prod(d.kit6).estoque,(c[d.kit6]||0)+1);save();render();toast(`No carrinho · ${metaTxt(cartTot(c).un)}`);return}
  if(d.vender){mVenda();if(!UI.draft||!UI.draft.itens)return;UI.draft.itens=[{pid:d.vender,qtd:1}];drawVenda();return}
- if('ysetup' in d){rodar(async()=>{const {data,error}=await sb.functions.invoke('yampi?acao=setup',{body:{}});if(error){let m=error.message;try{const j=await error.context.json();m=j.error||m}catch(_){}throw new Error(m)}if(data&&data.error)throw new Error(data.error)},'Baixa automática da Yampi ativada');return}
  if(d.cart){UI.cart[d.cart]=Math.max(0,Math.min(eV(UI.vid,d.cart),(UI.cart[d.cart]||0)+ +d.d));if(!UI.cart[d.cart])delete UI.cart[d.cart];
   if(UI.qv&&UI.modal)drawQV();else if(UI.ck){if(Object.keys(UI.cart).length)drawCheckout();else closeModal()}else render();return}
  if(d.qv){mQV(d.qv);return}
  if(d.avise){mAvise(d.avise);return}
- if(d.avok){rodar(async()=>{await upd('avise_me',{atendido:true},d.avok);log('Cliente avisado da reposição','')},'Marcado como avisado');return}
+ if(d.avok){rodar(async()=>{await rpc('avise_atendido',{p_id:d.avok})},'Marcado como avisado');return}
  if('avisesave' in d){const x=UI.draft,v=vend(UI.vid),p=prod(x.pid),tel=String(x.tel||'').replace(/\D/g,'');
   if(!String(x.nome||'').trim()||tel.length<10){toast('Informe seu nome e WhatsApp com DDD');return}
   const msg=`Olá ${v.nome.split(' ')[0]}! Quero ser avisado(a) quando chegar o perfume *${p.nome}* (${p.ml} ml).\nNome: ${x.nome.trim()}\nWhatsApp: ${x.tel}`;
@@ -1594,6 +1591,9 @@ document.addEventListener('click',e=>{
   rodar(async()=>{const{data:signed,error}=await sb.storage.from('comprovantes').createSignedUrl(k.comprovante,300);if(error)throw error;
    modal(`<h3>Comprovante</h3><p class="note">${esc(vend(k.vid)?.nome||'')} · ${Ri(+k.total)}</p><img src="${esc(signed.signedUrl)}" style="max-width:100%;border-radius:12px;margin:12px 0"><div class="actions"><button class="btn pri" data-confkit="${k.id}">Confirmar pagamento</button><button class="btn" data-close>Fechar</button></div>`)});return}return}
  if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;rodar(()=>rpc('confirmar_kit',{p_id:d.confkit}),'Pagamento confirmado · kit a entregar');return}
+ if(d.altkit){const k=S.kits.find(x=>x.id===d.altkit);if(!k||k.status!=='aguardando'){toast('Só dá para alterar kit aguardando pagamento');return}
+  rodar(async()=>{await rpc('cancelar_kit',{p_id:k.id});const c=cartV();for(const k2 in c)delete c[k2];k.itens.forEach(i=>c[i.pid]=(c[i.pid]||0)+i.qtd);save()},'Kit voltou para o carrinho · ajuste e envie de novo')
+   .then(ok=>{if(ok){UI.view='comprar';mCarrinho()}});return}
  if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
  if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;b.textContent='Confirmar entrega?';return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
@@ -1613,12 +1613,10 @@ document.addEventListener('click',e=>{
   const its=Object.entries(UI.cart).map(([pid,q])=>({pid,qtd:q}));
   const tot=its.reduce((a,i)=>a+precoVend(prod(i.pid),v.id)*i.qtd,0),fone=(v.tel||'').replace(/\D/g,''),first=v.nome.split(' ')[0],cli=x.cliente.trim();
   const resumo=its.map(i=>`• ${i.qtd}x ${prod(i.pid).nome}`).join('\n');
-  if(!pub){let vid=null;
-   rodar(async()=>{vid=await rpc('registrar_venda',{p_vid:v.id,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_parcelas:1,p_status:'pago',p_origem:'site',p_itens:its});UI.cart={};UI.ck=false;UI.modal=null},x.pag==='link'?'':'Venda registrada')
-    .then(ok=>{if(ok&&x.pag==='link')mYampiLink(its,vid,tot)});return}
-  let ped=null;rodar(async()=>{ped=await rpc('pedido_loja',{p_slug:UI.slug,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_itens:its});UI.cart={};UI.ck=false}).then(async ok=>{if(!ok)return;
-   if(x.pag==='link'){try{const url=await yLinkAsync(its,ped.id,'loja');if(url){location.href=url;return}}catch(e){toast(e.message||'Erro ao gerar link',4000)}}
-   const msg=`Olá ${first}! Fiz um pedido na sua loja 3mix:\n${resumo}\nTotal: R$ ${fmt(tot)}\nPagamento: ${x.pag==='pix'?'Pix':x.pag==='link'?'online':'na entrega'}\n— ${cli}`;
+  if(!pub){
+   rodar(async()=>{await rpc('registrar_venda',{p_vid:v.id,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_parcelas:1,p_status:'pago',p_origem:'site',p_itens:its});UI.cart={};UI.ck=false;UI.modal=null},'Venda registrada');return}
+  rodar(async()=>{await rpc('pedido_loja',{p_slug:UI.slug,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_itens:its});UI.cart={};UI.ck=false}).then(async ok=>{if(!ok)return;
+   const msg=`Olá ${first}! Fiz um pedido na sua loja 3mix:\n${resumo}\nTotal: R$ ${fmt(tot)}\nPagamento: ${x.pag==='pix'?'Pix':'na entrega'}\n— ${cli}`;
    UI.msize='md';UI.modal=`<h3>Pedido enviado</h3><p style="margin:0">${esc(first)} recebeu seu pedido de ${Ri(tot)} e vai combinar a entrega com você.</p>
    ${x.pag==='pix'&&v.pix?`<div class="linkbox"><span class="note">Chave Pix de ${esc(first)}</span><code>${esc(v.pix)}</code></div><button class="btn sm" data-copy="${esc(v.pix)}">Copiar chave Pix</button>`:''}
    ${fone?`<a class="btn pri" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Avisar ${esc(first)} no WhatsApp</a>`:''}
@@ -1653,10 +1651,16 @@ document.addEventListener('click',e=>{
   rodar(async()=>{let foto=x.foto||'';if(foto.startsWith('data:'))foto=await subirFoto(foto,'produtos',x.code);
    const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,ipi_pct:+x.ipi||0,preco:x.preco,preco_rev:x.precoRev,preco_vista:0,comissao:x.comissao,
     estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:(x.sku||'').trim(),sku_rev:(x.skuRev||'').trim()};
-   if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',row);
+   const est=Math.max(0,Math.round(+x.estoque||0)),antes=d.saveprod?(+prod(d.saveprod)?.estoque||0):0;
+   if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',{...row,estoque:est});
+   if(d.saveprod&&est!==antes)await rpc('aplicar_inventario',{p_local:'central',p_itens:[{pid:d.saveprod,cont:est}]});
    log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)} + IPI ${pc(x.ipi)}`);UI.modal=null},'Produto salvo');return}
  if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=num(x.custo);if(q<=0){toast('Quantidade deve ser maior que zero');return}
+  if(x.id){rodar(async()=>{await rpc('editar_entrada',{p_id:x.id,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},'Entrada corrigida');return}
   rodar(async()=>{await rpc('registrar_entrada',{p_pid:x.pid,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},`Entrada de ${q} un registrada`);return}
+ if(d.entedit){mEntrada(null,d.entedit);return}
+ if(d.entdel){if(UI.entArm!==d.entdel){UI.entArm=d.entdel;b.textContent='Confirmar exclusão?';setTimeout(()=>{if(UI.entArm===d.entdel){UI.entArm=null;render()}},4000);return}
+  UI.entArm=null;const c=S.compras.find(x=>x.id===d.entdel);rodar(async()=>{await rpc('excluir_entrada',{p_id:d.entdel});UI.modal=null},`Entrada excluída · ${c?c.qtd:''} un retiradas do estoque`);return}
  if('savevend' in d){const nome=$('#vd-nome').value.trim();if(!nome){toast('Informe o nome');return}
   const o={nome,tel:$('#vd-tel').value.trim(),pix:$('#vd-pix').value.trim(),cidade:$('#vd-cidade').value.trim(),ativo:$('#vd-ativo').value==='1'};
   const em=$('#vd-email').value.trim().toLowerCase();
@@ -1674,9 +1678,7 @@ document.addEventListener('click',e=>{
   const need={};x.itens.forEach(i=>need[i.pid]=(need[i.pid]||0)+(+i.qtd||0));
   for(const pid in need){if(need[pid]>eV(x.vid,pid)){toast(`${prod(pid).nome}: só ${eV(x.vid,pid)} un em mãos`);return}}
   const its=Object.entries(need).filter(([,q])=>q>0).map(([pid,qtd])=>({pid,qtd}));
-  const tot=its.reduce((a,i)=>a+precoVend(prod(i.pid),x.vid)*i.qtd,0);let vid=null;
-  rodar(async()=>{vid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:'',p_pag:x.pag,p_parcelas:x.pag==='parcelado'?+x.parcelas:1,p_status:x.status,p_origem:'painel',p_itens:its});UI.modal=null},x.pag==='link'?'':'Venda registrada')
-   .then(ok=>{if(ok&&x.pag==='link')mYampiLink(its,vid,tot)});return}
+  rodar(async()=>{await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:'',p_pag:x.pag,p_parcelas:x.pag==='parcelado'?+x.parcelas:1,p_status:x.status,p_origem:'painel',p_itens:its});UI.modal=null},'Venda registrada');return}
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
@@ -1687,7 +1689,7 @@ document.addEventListener('input',e=>{
   if(d.f!=='preco')$('#f-mk3').value=fmt(mkp(+D.precoRev,cf));$('#f-mkv').value=fmt(mkp(+D.preco,+D.precoRev));pCalc()}return}
  if(d.mk){const D=UI.draft,base=d.mk==='preco'?+D.precoRev||0:custoFinal(D),v=Math.round(base*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);
   if(d.mk==='precoRev')$('#f-mkv').value=fmt(mkp(+D.preco,v));pCalc();return}
- if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){$('#e-custo').value=fmt(0);UI.draft.custo=0}return}
+ if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){const c=+(prod(t.value)?.custo)||0;$('#e-custo').value=fmt(c);UI.draft.custo=c}return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
  if(d.ck){UI.draft[d.ck]=t.value;return}
  if(d.av){UI.draft[d.av]=t.value;return}
@@ -1737,7 +1739,7 @@ document.addEventListener('change',e=>{
  /* upload de comprovante de kit */
  if(d.compkit&&t.files&&t.files[0]){const file=t.files[0],kid=d.compkit;
   const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=`${kid}/${Date.now()}.${ext}`;
-  rodar(async()=>{const{error}=await sb.storage.from('comprovantes').upload(path,file,{upsert:true});if(error)throw error;
+  rodar(async()=>{const{error}=await sb.storage.from('comprovantes').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error;
    await rpc('informar_pagamento_kit',{p_id:kid,p_comprovante:path});UI.modal=null},'Comprovante enviado · a 3mix vai conferir');return}
 });
 /* campos de valor e %: digitação da direita para a esquerda, sempre com 2 casas (1 → 0,01 · 1050 → 10,50) */
