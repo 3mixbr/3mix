@@ -369,6 +369,8 @@ body:has(.shell.store){background:#fff}
 .shell.store .btn.pri{background:#000;border-color:#000;color:#fff;border-radius:2px;text-transform:uppercase;letter-spacing:.06em;font-size:12.5px}
 .shell.store .btn{border-radius:2px}
 .shop{display:flex;flex-direction:column}
+/* computador: conteúdo da loja centralizado, com respiro nas laterais (faixas pretas continuam de ponta a ponta) */
+@container (min-width:721px){.shop>.sh-top,.shop>.sh-car,.shop>.sh-hero,.shop>.sh-duo,.shop>.sh-col,.shop>.sh-trust,.shop>.sh-own,.shop>.sh-bar{width:min(1240px,calc(100% - 2 * clamp(20px,4vw,56px)));margin-left:auto;margin-right:auto}.sh-grid{gap:32px 24px}.sc-bd{padding:14px 4px 0}}
 .sh-own{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff4e0;border:1px solid #f0d9ae;padding:8px 12px;font-size:12.5px;color:#7a5a1f;margin-bottom:10px}
 .sh-own span{flex:1;min-width:200px}
 .sh-promo{background:#000;color:#fff;display:flex;justify-content:center;gap:36px;padding:9px 12px;font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;text-align:center}
@@ -1259,7 +1261,7 @@ function vLoja(){
  const tit=f.g==='top'?'Mais vendidos':f.g?GEN[f.g]:'Todos os perfumes';
  return `<div class="shop">
  ${UI.publico?'':`<div class="sh-own"><span>Você está vendo a sua loja como o cliente vê. Vendas feitas aqui baixam do seu estoque em mãos.</span><button class="btn sm" data-voltar>Voltar ao painel</button></div>`}
- <div class="sh-promo"><span>Pronta entrega em ${cid}</span><span class="hide-sm">Pague no Pix ou cartão</span><span class="hide-sm">Atendimento com ${first} pelo WhatsApp</span></div>
+ <div class="sh-promo"><span>Pronta entrega em ${cid}</span><span class="hide-sm">Pague no Pix ou em dinheiro</span><span class="hide-sm">Atendimento com ${first} pelo WhatsApp</span></div>
  <header class="sh-top"><div class="sh-logo">3MIX<small>Perfumaria</small></div>
   <label class="sh-sbox">${ic('busca')}<input class="sh-search" type="search" data-lq placeholder="Buscar perfume, família…" value="${esc(f.q)}" aria-label="Buscar"></label>
   <div class="sh-ico">${fone?`<a href="https://wa.me/55${fone}" target="_blank" rel="noopener" aria-label="WhatsApp de ${first}">${ic('whats')}<span>Atendimento</span></a>`:''}
@@ -1269,7 +1271,7 @@ function vLoja(){
  ${duo.length===2?`<div class="sh-duo">${duo.map(([g,t,s,p])=>`<button class="sh-tile" data-lg="${g}" data-scroll><div class="tl-t"><b>${t}</b><span>${s}</span><u>Conferir</u></div><div class="tl-img">${foto(p)}</div></button>`).join('')}</div>`:''}
  <section id="sh-col" class="sh-col"><div class="sh-colh"><h2>${tit}</h2><span>${its.length} ${its.length===1?'produto':'produtos'}</span></div>
   <div class="sh-grid">${rows.map(p=>shopCard(p,v.id,cart[p.id]||0,ch[p.id])).join('')||'<p class="empty">Nenhum perfume encontrado.</p>'}</div>${its.length>8?ctl:''}</section>
- <div class="sh-trust"><div>${ic('estoque')}<b>Pronta entrega</b><span>em ${cid}</span></div><div>${ic('vendas')}<b>Pagamento seguro</b><span>Pix ou cartão</span></div><div>${ic('whats')}<b>Atendimento pessoal</b><span>com ${first} pelo WhatsApp</span></div></div>
+ <div class="sh-trust"><div>${ic('estoque')}<b>Pronta entrega</b><span>em ${cid}</span></div><div>${ic('vendas')}<b>Pagamento fácil</b><span>Pix ou dinheiro na entrega</span></div><div>${ic('whats')}<b>Atendimento pessoal</b><span>com ${first} pelo WhatsApp</span></div></div>
  <footer class="sh-foot"><div class="sh-logo">3MIX<small>Perfumaria</small></div><span>Loja de ${esc(v.nome)}${v.cidade?' · '+esc(v.cidade):''}</span></footer>
  ${fone?`<a class="sh-zap${un?' sobe':''}" href="https://wa.me/${zap(fone)}?text=${encodeURIComponent('Olá '+v.nome.split(' ')[0]+'! Vim pela sua loja 3mix e gostaria de ajuda.')}" target="_blank" rel="noopener" aria-label="Falar com ${first} no WhatsApp">${ic('whats')}<span>Fale comigo</span></a>`:''}
  ${un?`<div class="cartbar sh-bar"><b>${un} un</b><span>${Ri(tot)}</span><span class="sp"></span><button class="btn pri" data-checkout>Ver sacola</button></div>`:''}
