@@ -253,9 +253,10 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .lp-logo span{color:#ff9900}.lp-logo .lp-fb{color:#fff}
 /* logo da empresa (Logo_3mix.png na mesma pasta do index.html) */
 .logo-img{display:block;width:auto;max-width:100%;object-fit:contain}
-.logo-img.on-dark{background:#fff;border-radius:10px;padding:4px 8px;box-sizing:content-box}
+.logo-img.on-light{filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.45))}
+
 .lp-logo .logo-img{height:72px}
-.brand .logo-img{height:30px;padding:2px 6px;border-radius:8px}
+.brand .logo-img{height:34px}
 .brand{display:flex;align-items:center;gap:10px}
 .sh-top .sh-logo .logo-img{height:56px}
 .sh-foot .sh-logo .logo-img{height:40px}
@@ -549,7 +550,7 @@ input.dec{text-align:right}
     <div class="lp-foot">3mix Perfumes · Elo Sistemas</div>
   </div>
   <div class="lp-right"><div class="lp-form">
-    <div class="lp-sistema"><img class="logo-img" src="Logo_3mix.png" alt="3mix" style="height:56px" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="lp-mark" hidden>3</div><div><b>3mix</b><span>Perfumes · Venda direta</span></div></div>
+    <div class="lp-sistema"><img class="logo-img on-light" src="Logo_3mix.png" alt="3mix" style="height:64px" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="lp-mark" hidden>3</div></div>
 
     <form id="fLogin" class="lp-f" novalidate>
       <h2>Entrar</h2>
@@ -1273,7 +1274,7 @@ function vLoja(){
  return `<div class="shop">
  ${UI.publico?'':`<div class="sh-own"><span>Você está vendo a sua loja como o cliente vê. Vendas feitas aqui baixam do seu estoque em mãos.</span><button class="btn sm" data-voltar>Voltar ao painel</button></div>`}
  <div class="sh-promo"><span>Pronta entrega em ${cid}</span><span class="hide-sm">Pague no Pix ou em dinheiro</span><span class="hide-sm">Atendimento com ${first} pelo WhatsApp</span></div>
- <header class="sh-top"><div class="sh-logo"><img class="logo-img" src="Logo_3mix.png" alt="3mix" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>3MIX<small>Perfumaria</small></span></div>
+ <header class="sh-top"><div class="sh-logo"><img class="logo-img on-light" src="Logo_3mix.png" alt="3mix" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>3MIX<small>Perfumaria</small></span></div>
   <label class="sh-sbox">${ic('busca')}<input class="sh-search" type="search" data-lq placeholder="Buscar perfume, família…" value="${esc(f.q)}" aria-label="Buscar"></label>
   <div class="sh-ico">${fone?`<a href="https://wa.me/55${fone}" target="_blank" rel="noopener" aria-label="WhatsApp de ${first}">${ic('whats')}<span>Atendimento</span></a>`:''}
   <button data-checkout ${un?'':'disabled'} aria-label="Sacola, ${un} itens">${ic('comprar')}<span>Sacola</span>${un?`<i class="badge">${un}</i>`:''}</button></div></header>
