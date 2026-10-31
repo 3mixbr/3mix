@@ -223,7 +223,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 /* balões: mesma altura, centralizados e alinhados ao texto da linha */
 td .chip,.panel-h .chip,.ksit .chip,.kpi .chip{height:22px;padding:0 10px;min-width:56px;justify-content:center;vertical-align:middle;line-height:1;box-sizing:border-box}
 td .chip.st{min-width:96px}
-.cli{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.cli{display:flex;align-items:center;justify-content:space-between;gap:12px;white-space:nowrap;width:100%}.cli .chip.tag{flex:none;width:60px;min-width:60px}
 td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
 /* demonstrativo de resultado */
 .dre td small{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
@@ -304,6 +304,8 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .pfoto{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center}
 .pfoto-c{display:flex;flex-direction:column;gap:8px}
 .sheet .fg.p3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sheet.lg .fg.p4,.sheet .fg.p4{grid-template-columns:repeat(4,minmax(0,1fr))}.fg.p4 .s2{grid-column:span 2}.fsec{font-size:12px;font-weight:700;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+@media (max-width:760px){.sheet.lg .fg.p4,.sheet .fg.p4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .fg .s2{grid-column:span 2}.fg .s3{grid-column:1/-1}
 .pc-g{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:8px 10px;align-items:center}
 .pc-g>b{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding-right:4px}
@@ -1591,9 +1593,9 @@ function mEntrada(pid,eid){UI.msize='sm';
 /* bloco de endereço com busca de CEP (ViaCEP); sem CEP encontrado, digita à mão */
 function endHtml(p,v){v=v||{};const cep=String(v.cep||'').replace(/\D/g,'');
  return `<label class="f">CEP<input id="${p}-cep" data-cep="${p}" inputmode="numeric" maxlength="9" value="${cep.length===8?cep.slice(0,5)+'-'+cep.slice(5):esc(cep)}" placeholder="00000-000"></label>
+ <label class="f s2">Rua<input id="${p}-logr" value="${esc(v.logr||'')}" maxlength="120"></label>
  <label class="f">Número<input id="${p}-num" value="${esc(v.num||'')}" maxlength="20"></label>
  <span class="f full" style="margin-top:-6px"><span id="${p}-cepst" class="cepst">Digite o CEP para preencher o endereço. <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei o CEP</a></span></span>
- <label class="f full">Rua<input id="${p}-logr" value="${esc(v.logr||'')}" maxlength="120"></label>
  <label class="f">Complemento<input id="${p}-compl" value="${esc(v.compl||'')}" maxlength="60" placeholder="apto, bloco…"></label>
  <label class="f">Bairro<input id="${p}-bairro" value="${esc(v.bairro||'')}" maxlength="60"></label>
  <label class="f">Cidade<input id="${p}-cidade" value="${esc(v.cidade||'')}" maxlength="60"></label>
@@ -1609,19 +1611,19 @@ async function cepBusca(inp){const p=inp.dataset.cep,d=inp.value.replace(/\D/g,'
   $('#'+p+'-'+(j.logradouro?'num':'logr'))?.focus()}
  catch(e){if(st){st.className='cepst warn';st.textContent='CEP não encontrado. Digite o endereço; se a cidade tem CEP único, use o CEP geral da cidade.'}}}
 document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.cep!==undefined)cepBusca(t)});
-function mVend(id){UI.msize='md';
+function mVend(id){UI.msize='lg';
  const v=id?vend(id):{id:'',nome:'',cidade:'',tel:'',ativo:true};
  const pn=v.pnome??(v.nome||'').split(' ')[0],sn=v.snome??(v.nome||'').split(' ').slice(1).join(' ');
- modal(`<h3>${id?'Editar vendedor':'Cadastrar vendedor'}</h3><div class="fg">
+ modal(`<h3>${id?'Editar vendedor':'Cadastrar vendedor'}</h3><div class="fg p4">
  <label class="f">Nome *<input id="vd-pnome" value="${esc(pn)}" maxlength="40" autocomplete="given-name"></label>
  <label class="f">Sobrenome *<input id="vd-snome" value="${esc(sn)}" maxlength="60" autocomplete="family-name"></label>
  <label class="f">WhatsApp<input id="vd-tel" value="${esc(v.tel)}" inputmode="tel"></label>
  <label class="f">Chave Pix (aparece na loja)<input id="vd-pix" value="${esc(v.pix||'')}"></label>
- <label class="f">E-mail de acesso<input id="vd-email" type="email" value="${esc((S.users.find(u=>u.vid===v.id&&v.id)||{}).email||'')}" placeholder="para o vendedor entrar no app"></label>
+ <label class="f s2">E-mail de acesso<input id="vd-email" type="email" value="${esc((S.users.find(u=>u.vid===v.id&&v.id)||{}).email||'')}" placeholder="para o vendedor entrar no app"></label>
  <label class="f">Situação<select id="vd-ativo"><option value="1" ${v.ativo?'selected':''}>Ativo</option><option value="0" ${!v.ativo?'selected':''}>Inativo</option></select></label>
- <span class="f full"><b style="font-size:12px;margin-top:6px;display:block">Endereço</b></span>
+ <span class="f full fsec">Endereço</span>
  ${endHtml('vd',v)}</div>
- <p class="note">Com e-mail preenchido, o vendedor ganha login com a senha inicial 123456 e só enxerga o próprio painel.</p>
+ <p class="note" style="margin:0">Com e-mail preenchido, o vendedor ganha login com a senha inicial 123456 e só vê o próprio painel.</p>
  <div class="actions">${v.id?`<button class="btn" data-delvend="${v.id}" style="color:var(--bad);margin-right:auto">Excluir vendedor</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevend="${v.id}">Salvar</button></div>`);UI.dvArm=false;
 }
 function mVenda(){UI.msize='md';
