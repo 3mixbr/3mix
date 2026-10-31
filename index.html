@@ -220,6 +220,19 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .pixqr{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.pixqr .qr{width:168px;height:168px;flex:none;background:#fff;border-radius:10px;padding:4px;border:1px solid var(--line)}.pixqr .qr svg{width:100%;height:100%;display:block}.pixtx{flex:1;min-width:180px}
 .receb{margin-top:8px;display:flex;flex-direction:column;font-size:12px;line-height:1.35;background:var(--sunk);border-radius:8px;padding:6px 8px}.receb span{color:var(--muted);font-size:11px}.receb span:first-child{text-transform:uppercase;letter-spacing:.06em;font-size:10px}
 .sugv{display:block;font-size:10px;white-space:nowrap}.sugv button{border:0;background:transparent;color:var(--accent);font-weight:700;padding:0 2px;font-size:10px;text-decoration:underline}
+/* balões: mesma altura, centralizados e alinhados ao texto da linha */
+td .chip,.panel-h .chip,.ksit .chip,.kpi .chip{height:22px;padding:0 10px;min-width:56px;justify-content:center;vertical-align:middle;line-height:1;box-sizing:border-box}
+td .chip.st{min-width:96px}
+.cli{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+/* demonstrativo de resultado */
+.dre td small{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
+.dre tr.sub td{font-weight:700;background:var(--sunk)}
+.dre tr.tot td{font-weight:700}
+.dre tr.fim td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent)}
+.dre td.n{white-space:nowrap}
+/* CEP */
+.cepst{display:block;font-size:11px;color:var(--muted);min-height:14px}.cepst.ok{color:var(--good)}.cepst.warn{color:var(--warn)}
 .ksit{margin-top:4px;font-size:11.5px;color:var(--muted);max-width:260px;white-space:normal;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .cxres{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--sunk);border-radius:10px;padding:10px 12px}.cxres span{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.cxres b{font-size:13px}
 .cxinfo{margin-top:8px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:12.5px}
@@ -541,8 +554,13 @@ input.dec{text-align:right}
       <h2>Criar conta</h2>
       <p class="lp-sub2">Preencha seus dados para solicitar o acesso.</p>
       <div class="lp-erro" id="cErr" hidden></div>
-      <label for="cNome">Nome completo<input id="cNome" autocomplete="name"></label>
-      <div class="lp-row"><label for="cTel">WhatsApp<input id="cTel" inputmode="tel" placeholder="(22) 99999-9999"></label><label for="cCidade">Cidade<input id="cCidade"></label></div>
+      <div class="lp-row"><label for="cNome">Nome<input id="cNome" autocomplete="given-name" maxlength="40"></label><label for="cSobrenome">Sobrenome<input id="cSobrenome" autocomplete="family-name" maxlength="60"></label></div>
+      <label for="cTel">WhatsApp<input id="cTel" inputmode="tel" placeholder="(22) 99999-9999"></label>
+      <div class="lp-row"><label for="c-cep">CEP<input id="c-cep" data-cep="c" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code"></label><label for="c-num">Número<input id="c-num" maxlength="20"></label></div>
+      <span id="c-cepst" class="cepst">Digite o CEP para preencher o endereço. <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei o CEP</a></span>
+      <label for="c-logr">Rua<input id="c-logr" maxlength="120" autocomplete="address-line1"></label>
+      <div class="lp-row"><label for="c-compl">Complemento<input id="c-compl" maxlength="60" placeholder="apto, bloco…"></label><label for="c-bairro">Bairro<input id="c-bairro" maxlength="60"></label></div>
+      <div class="lp-row"><label for="c-cidade">Cidade<input id="c-cidade" maxlength="60"></label><label for="c-uf">UF<input id="c-uf" maxlength="2" style="text-transform:uppercase"></label></div>
       <label for="cEmail">E-mail<input type="email" id="cEmail" placeholder="Digite seu e-mail"></label>
       <div class="lp-row"><label for="cSenha">Senha<input type="password" id="cSenha" placeholder="Mínimo 6"></label><label for="cSenha2">Confirmar senha<input type="password" id="cSenha2"></label></div>
       <div class="lp-info">Depois do cadastro, <b>seu acesso passa por aprovação</b>. Você recebe o aviso assim que for liberado.</div>
@@ -898,7 +916,7 @@ function vVendas(onlyVid){
  const byPay={};L.filter(inPer).forEach(v=>{const c=saleCalc(v);byPay[v.pag]=byPay[v.pag]||{rec:0,n:0,tax:0};byPay[v.pag].rec+=c.rec;byPay[v.pag].n++;byPay[v.pag].tax+=c.tax});
  return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas'}</h1><p class="sub">${UI.per} dias: ${L.filter(inPer).length} vendas · ${U(t.un)}${onlyVid?'':' · dinheiro dos vendedores'}</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-nova>+ Nova venda</button></div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th>${onlyVid?'':'<th class="hide-sm">Vendedor</th>'}<th class="hide-sm">Itens</th><th>Pagamento</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro vendedor (R$)'}</th><th>Status</th></tr></thead><tbody>
- ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}</td><td>${esc(v.cliente)}${v.origem?` <span class="chip A">${v.origem==='loja'?'online':'site'}</span>`:''}</td>${onlyVid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome.split(' ')[0])}</td>`}<td class="hide-sm note">${v.itens.map(i=>prod(i.pid)?.code).join(', ')}</td>
+ ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}</td><td><span class="cli">${esc(v.cliente)}${v.origem?`<span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</span></td>${onlyVid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome.split(' ')[0])}</td>`}<td class="hide-sm note">${v.itens.map(i=>prod(i.pid)?.code).join(', ')}</td>
  <td>${PAY[v.pag]}${v.parcelas>1?` ${v.parcelas}x`:''}</td><td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
  <td style="white-space:nowrap">${v.status==='pago'?'<span class="chip good st">Pago</span>':`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`} <button class="btn sm" data-cancv="${v.id}" title="Cancelar venda e devolver os frascos ao estoque" aria-label="Cancelar venda">×</button></td></tr>`}).join('')||`<tr><td colspan="9" class="empty">Nenhuma venda ainda.</td></tr>`}
  </tbody></table></div>${ctl}</section>
@@ -912,7 +930,7 @@ function vEquipe(){
  const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4};const K=[...S.kits].sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kits',K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
  return `<div class="head"><div><h1>Vendedores</h1><p class="sub">${S.vend.filter(v=>v.ativo).length} ativos · nível definido pelas vendas do mês anterior</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-vend="">+ Cadastrar vendedor</button></div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Vendedor</th><th class="hide-sm">Cidade</th><th>Nível</th><th class="n">Vendido ${UI.per}d (R$)</th><th class="n">Qtd (un)</th><th class="n">Ganho (R$)</th><th class="n">Em mãos (un)</th><th class="hide-sm">Última venda</th><th></th></tr></thead><tbody>
- ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.tel)}</div></div></div></td><td class="hide-sm">${esc(r.v.cidade)}</td>
+ ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.tel)}</div></div></div></td><td class="hide-sm">${esc(r.v.cidade)}${r.v.uf?'/'+esc(r.v.uf):''}</td>
  <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> <span class="note">+${r.n.bonus}pp</span></td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.s.com)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
  </tbody></table></div>${ctl}</section>
  <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
@@ -935,14 +953,17 @@ function vSocios(){
  const porUn=tp.un?(tp.luc/tp.un):0;
  return `<div class="head"><div><h1>Administração</h1><p class="sub">Divisão do lucro entre os administradores, resultado do período e pagamentos</p></div><div class="sp"></div>${perTabs()}</div>
  <div class="two"><section class="panel"><div class="panel-h"><h2>Resultado do período</h2><span class="sp"></span><span class="note">últimos ${UI.per} dias · kits pagos</span></div>
-  <div class="calc">
-   <div>Faturamento<b>${R(tp.rec)}</b><small>${U(tp.un)} frascos · ${LP.length} kits</small></div>
-   <div>Custo total<b>${R(tp.cus)}</b><small>${pc(mgBruta)} margem bruta</small></div>
-   <div>Taxas<b>${R(tp.tax)}</b><small>${pc(txPct)} sobre venda</small></div>
-   <div>Lucro bruto<b>${R(tp.luc)}</b><small>${pc(mgLiq)} margem líquida</small></div>
-   <div>Despesas<b>−${R(desp)}</b><small>proporcional a ${UI.per}d · ${S.despesas.length} ite${S.despesas.length===1?'m':'ns'}</small></div>
-   <div>Lucro líquido<b>${R(lucMes)}</b><small>${tp.un?Ri(porUn)+' por frasco':'—'}</small></div>
-  </div>
+  ${(()=>{const p=n=>tp.rec?pc(Math.abs(n)/tp.rec*100):'—',nD=S.despesas.length;
+   const L=(t,s,v,cls)=>`<tr class="${cls||''}"><td>${t}${s?`<small>${s}</small>`:''}</td><td class="n">${R(v||0)}</td><td class="n">${p(v||0)}</td></tr>`;
+   return `<table class="dre"><thead><tr><th>Demonstrativo</th><th class="n">Valor (R$)</th><th class="n">% da venda</th></tr></thead><tbody>
+   ${L('Faturamento',`${U(tp.un)} frascos · ${LP.length} kit${LP.length===1?'':'s'}`,tp.rec,'tot')}
+   ${L('(−) Custo dos frascos','',-tp.cus)}
+   ${L('(=) Margem bruta','',tp.rec-tp.cus,'sub')}
+   ${L('(−) Taxas','gateway e outros',-tp.tax)}
+   ${L('(=) Lucro bruto','',tp.luc,'sub')}
+   ${L('(−) Despesas',`proporcional a ${UI.per} dias · ${nD} ite${nD===1?'m':'ns'}`,-desp)}
+   ${L('(=) Lucro líquido',tp.un?`${Ri(lucMes/tp.un)} por frasco`:'',lucMes,'fim')}
+   </tbody></table>`})()}
   <div style="margin-top:12px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:13px">Despesas mensais</b><span class="sp"></span><button class="btn sm" data-despadd>+ Despesa</button></div>
   ${S.despesas.length?`<div class="tbl"><table><thead><tr><th>Descrição</th><th class="n">Valor (R$/mês)</th><th></th></tr></thead><tbody>
   ${S.despesas.map((d,i)=>`<tr><td><input data-despnome="${i}" value="${esc(d.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:100%"></td><td class="n"><input data-despval="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+d.valor||0)}" style="width:80px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><button class="btn sm" data-despdel="${i}" style="color:var(--bad)" title="Excluir">✕</button></td></tr>`).join('')}
@@ -1585,15 +1606,39 @@ function mEntrada(pid,eid){UI.msize='sm';
  <p class="note">${E?'O estoque central e o custo médio do produto são recalculados com os novos valores.':'O custo do produto passa a ser o custo médio entre o estoque atual e esta compra.'}</p>
  <div class="actions">${E?`<button class="btn" data-entdel="${E.id}" style="color:var(--bad);margin-right:auto">Excluir entrada</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveent>${E?'Salvar alteração':'Registrar entrada'}</button></div>`);
 }
-function mVend(id){UI.msize='sm';
- const v=id?vend(id):{id:'',nome:'',cidade:'Macaé',tel:'',ativo:true};
+/* bloco de endereço com busca de CEP (ViaCEP); sem CEP encontrado, digita à mão */
+function endHtml(p,v){v=v||{};const cep=String(v.cep||'').replace(/\D/g,'');
+ return `<label class="f">CEP<input id="${p}-cep" data-cep="${p}" inputmode="numeric" maxlength="9" value="${cep.length===8?cep.slice(0,5)+'-'+cep.slice(5):esc(cep)}" placeholder="00000-000"></label>
+ <label class="f">Número<input id="${p}-num" value="${esc(v.num||'')}" maxlength="20"></label>
+ <span class="f full" style="margin-top:-6px"><span id="${p}-cepst" class="cepst">Digite o CEP para preencher o endereço. <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei o CEP</a></span></span>
+ <label class="f full">Rua<input id="${p}-logr" value="${esc(v.logr||'')}" maxlength="120"></label>
+ <label class="f">Complemento<input id="${p}-compl" value="${esc(v.compl||'')}" maxlength="60" placeholder="apto, bloco…"></label>
+ <label class="f">Bairro<input id="${p}-bairro" value="${esc(v.bairro||'')}" maxlength="60"></label>
+ <label class="f">Cidade<input id="${p}-cidade" value="${esc(v.cidade||'')}" maxlength="60"></label>
+ <label class="f">UF<input id="${p}-uf" value="${esc(v.uf||'')}" maxlength="2" style="text-transform:uppercase"></label>`}
+function endLer(p){const g=k=>($('#'+p+'-'+k)?.value||'').trim();
+ return {cep:g('cep').replace(/\D/g,'').slice(0,8)||null,logradouro:g('logr')||null,numero:g('num')||null,complemento:g('compl')||null,bairro:g('bairro')||null,cidade:g('cidade'),uf:g('uf').toUpperCase().slice(0,2)||null}}
+async function cepBusca(inp){const p=inp.dataset.cep,d=inp.value.replace(/\D/g,'').slice(0,8),st=$('#'+p+'-cepst');
+ inp.value=d.length>5?d.slice(0,5)+'-'+d.slice(5):d;if(d.length<8||inp.dataset.ult===d)return;inp.dataset.ult=d;
+ if(st){st.className='cepst';st.textContent='Buscando o CEP…'}
+ try{const r=await fetch('https://viacep.com.br/ws/'+d+'/json/');const j=await r.json();if(!r.ok||j.erro)throw 0;
+  const set=(k,v)=>{const e=$('#'+p+'-'+k);if(e&&v)e.value=v};set('logr',j.logradouro);set('bairro',j.bairro);set('cidade',j.localidade);set('uf',j.uf);
+  if(st){st.className='cepst ok';st.textContent=j.logradouro?`✓ ${j.localidade}/${j.uf}: confira a rua e informe o número.`:`✓ CEP geral de ${j.localidade}/${j.uf}: digite a rua e o bairro.`}
+  $('#'+p+'-'+(j.logradouro?'num':'logr'))?.focus()}
+ catch(e){if(st){st.className='cepst warn';st.textContent='CEP não encontrado. Digite o endereço; se a cidade tem CEP único, use o CEP geral da cidade.'}}}
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.cep!==undefined)cepBusca(t)});
+function mVend(id){UI.msize='md';
+ const v=id?vend(id):{id:'',nome:'',cidade:'',tel:'',ativo:true};
+ const pn=v.pnome??(v.nome||'').split(' ')[0],sn=v.snome??(v.nome||'').split(' ').slice(1).join(' ');
  modal(`<h3>${id?'Editar vendedor':'Cadastrar vendedor'}</h3><div class="fg">
- <label class="f full">Nome completo<input id="vd-nome" value="${esc(v.nome)}"></label>
+ <label class="f">Nome *<input id="vd-pnome" value="${esc(pn)}" maxlength="40" autocomplete="given-name"></label>
+ <label class="f">Sobrenome *<input id="vd-snome" value="${esc(sn)}" maxlength="60" autocomplete="family-name"></label>
  <label class="f">WhatsApp<input id="vd-tel" value="${esc(v.tel)}" inputmode="tel"></label>
- <label class="f">Cidade<input id="vd-cidade" value="${esc(v.cidade)}"></label>
  <label class="f">Chave Pix (aparece na loja)<input id="vd-pix" value="${esc(v.pix||'')}"></label>
  <label class="f">E-mail de acesso<input id="vd-email" type="email" value="${esc((S.users.find(u=>u.vid===v.id&&v.id)||{}).email||'')}" placeholder="para o vendedor entrar no app"></label>
- <label class="f">Situação<select id="vd-ativo"><option value="1" ${v.ativo?'selected':''}>Ativo</option><option value="0" ${!v.ativo?'selected':''}>Inativo</option></select></label></div>
+ <label class="f">Situação<select id="vd-ativo"><option value="1" ${v.ativo?'selected':''}>Ativo</option><option value="0" ${!v.ativo?'selected':''}>Inativo</option></select></label>
+ <span class="f full"><b style="font-size:12px;margin-top:6px;display:block">Endereço</b></span>
+ ${endHtml('vd',v)}</div>
  <p class="note">Com e-mail preenchido, o vendedor ganha login com a senha inicial 123456 e só enxerga o próprio painel.</p>
  <div class="actions">${v.id?`<button class="btn" data-delvend="${v.id}" style="color:var(--bad);margin-right:auto">Excluir vendedor</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevend="${v.id}">Salvar</button></div>`);UI.dvArm=false;
 }
@@ -1815,8 +1860,9 @@ document.addEventListener('click',e=>{
  if(d.entedit){mEntrada(null,d.entedit);return}
  if(d.entdel){if(UI.entArm!==d.entdel){UI.entArm=d.entdel;b.textContent='Confirmar exclusão?';setTimeout(()=>{if(UI.entArm===d.entdel){UI.entArm=null;render()}},4000);return}
   UI.entArm=null;const c=S.compras.find(x=>x.id===d.entdel);rodar(async()=>{await rpc('excluir_entrada',{p_id:d.entdel});UI.modal=null},`Entrada excluída · ${c?c.qtd:''} un retiradas do estoque`);return}
- if('savevend' in d){const nome=$('#vd-nome').value.trim();if(!nome){toast('Informe o nome');return}
-  const o={nome,tel:$('#vd-tel').value.trim(),pix:$('#vd-pix').value.trim(),cidade:$('#vd-cidade').value.trim(),ativo:$('#vd-ativo').value==='1'};
+ if('savevend' in d){const pn=$('#vd-pnome').value.trim(),sn=$('#vd-snome').value.trim();if(!pn||!sn){toast('Informe nome e sobrenome');return}
+  const nome=`${pn} ${sn}`.trim(),E=endLer('vd');if(E.cep&&E.cep.length!==8){toast('CEP precisa ter 8 números');return}
+  const o={nome,primeiro_nome:pn,sobrenome:sn,tel:$('#vd-tel').value.trim(),pix:$('#vd-pix').value.trim(),ativo:$('#vd-ativo').value==='1',...E};
   const em=$('#vd-email').value.trim().toLowerCase();
   if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){toast('E-mail inválido');return}
   if(em&&S.users.some(u=>u.email===em&&u.vid!==d.savevend)){toast('Este e-mail já tem login');return}
@@ -1926,13 +1972,15 @@ document.addEventListener('submit',async e=>{
    log('Entrou no sistema',em);render();if(se==='123456')mSenha(false,true);
   }catch(err){authMsg('#lErr',msgErro(err))}finally{trava(false)}
   return}
- if(f.id==='fCad'){$('#cErr').hidden=true;const nome=v('#cNome'),em=v('#cEmail').toLowerCase(),s1=$('#cSenha').value,s2=$('#cSenha2').value;
-  if(!nome||!em||!v('#cTel'))return authMsg('#cErr','Preencha nome, WhatsApp e e-mail.');
+ if(f.id==='fCad'){$('#cErr').hidden=true;const nome=v('#cNome'),sobrenome=v('#cSobrenome'),em=v('#cEmail').toLowerCase(),s1=$('#cSenha').value,s2=$('#cSenha2').value,E=endLer('c');
+  if(!nome||!sobrenome||!em||!v('#cTel'))return authMsg('#cErr','Preencha nome, sobrenome, WhatsApp e e-mail.');
+  if(!E.cidade||!E.uf)return authMsg('#cErr','Informe o CEP ou digite a cidade e a UF.');
+  if(E.cep&&E.cep.length!==8)return authMsg('#cErr','O CEP precisa ter 8 números.');
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return authMsg('#cErr','E-mail inválido.');
   if(s1.length<6)return authMsg('#cErr','A senha precisa ter pelo menos 6 caracteres.');
   if(s1!==s2)return authMsg('#cErr','As senhas não conferem.');
   trava(true);
-  try{await fnAcessos({acao:'cadastro',nome,email:em,tel:v('#cTel'),cidade:v('#cCidade'),senha:s1});
+  try{await fnAcessos({acao:'cadastro',nome,sobrenome,email:em,tel:v('#cTel'),senha:s1,...E});
    f.reset();showAuth('login');$('#lEmail').value=em;authMsg('#lOk','Cadastro enviado. Assim que for aprovado, você já pode entrar.');
   }catch(err){authMsg('#cErr',msgErro(err))}finally{trava(false)}
   return}
