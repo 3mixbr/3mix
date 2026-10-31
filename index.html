@@ -1350,10 +1350,11 @@ function pixChave(t){t=String(t||'').trim();if(!t)return '';if(t.includes('@'))r
 function crc16(s){let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=c&0x8000?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,'0')}
 const pixTxt=(t,n)=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9 .&-]/g,'').trim().toUpperCase().slice(0,n);
 const cnpjFmt=t=>{const d=String(t||'').replace(/\D/g,'');return d.length===14?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):String(t||'')};
-function pixCopiaCola(valor,ref){const k=pixChave(S.pix3mix);if(!k)return '';
+function pixCopiaCola(valor,ref){return pixPayload(S.pix3mix,S.pixNome,S.pixCidade,valor,ref)}
+function pixPayload(chave,nome,cidade,valor,ref){const k=pixChave(chave);if(!k)return '';
  const f=(id,v)=>id+String(v.length).padStart(2,'0')+v;
  const tx=String(ref||'').replace(/[^A-Za-z0-9]/g,'').slice(0,25)||'***';
- const p=f('00','01')+f('26',f('00','br.gov.bcb.pix')+f('01',k))+f('52','0000')+f('53','986')+f('54',(+valor).toFixed(2))+f('58','BR')+f('59',pixTxt(S.pixNome,25)||'3MIX')+f('60',pixTxt(S.pixCidade,15)||'MACAE')+f('62',f('05',tx))+'6304';
+ const p=f('00','01')+f('26',f('00','br.gov.bcb.pix')+f('01',k))+f('52','0000')+f('53','986')+f('54',(+valor).toFixed(2))+f('58','BR')+f('59',pixTxt(nome,25)||'3MIX')+f('60',pixTxt(cidade,15)||'MACAE')+f('62',f('05',tx))+'6304';
  return p+crc16(p)}
 
 /* ===== carrinho do vendedor (compra de estoque da 3mix) ===== */
@@ -1757,13 +1758,22 @@ document.addEventListener('click',e=>{
   const its=Object.entries(UI.cart).map(([pid,q])=>({pid,qtd:q}));
   const tot=its.reduce((a,i)=>a+precoVend(prod(i.pid),v.id)*i.qtd,0),fone=(v.tel||'').replace(/\D/g,''),first=v.nome.split(' ')[0],cli=x.cliente.trim();
   const resumo=its.map(i=>`• ${i.qtd}x ${prod(i.pid).nome}`).join('\n');
-  if(!pub){
-   rodar(async()=>{await rpc('registrar_venda',{p_vid:v.id,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_parcelas:1,p_status:'pago',p_origem:'site',p_itens:its});UI.cart={};UI.ck=false;UI.modal=null},'Venda registrada');return}
-  rodar(async()=>{await rpc('pedido_loja',{p_slug:UI.slug,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_itens:its});UI.cart={};UI.ck=false}).then(async ok=>{if(!ok)return;
-   const msg=`Olá ${first}! Fiz um pedido na sua loja 3mix:\n${resumo}\nTotal: R$ ${fmt(tot)}\nPagamento: ${x.pag==='pix'?'Pix':'na entrega'}\n— ${cli}`;
-   UI.msize='md';UI.modal=`<h3>Pedido enviado</h3><p style="margin:0">${esc(first)} recebeu seu pedido de ${Ri(tot)} e vai combinar a entrega com você.</p>
-   ${x.pag==='pix'&&v.pix?`<div class="linkbox"><span class="note">Chave Pix de ${esc(first)}</span><code>${esc(v.pix)}</code></div><button class="btn sm" data-copy="${esc(v.pix)}">Copiar chave Pix</button>`:''}
-   ${fone?`<a class="btn pri" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Avisar ${esc(first)} no WhatsApp</a>`:''}
+  let ped=null;
+  rodar(async()=>{ped=await rpc('pedido_loja',{p_slug:UI.slug||v.slug,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_itens:its});UI.cart={};UI.ck=false;UI.modal=null}).then(ok=>{if(!ok)return;
+   const total=+(ped&&ped.total)||tot,pix=x.pag==='pix';
+   const cc=pix?pixPayload(v.pix,v.nome,v.cidade,total,ped&&ped.id):'';
+   const msg=`Olá ${first}! Fiz um pedido na sua loja 3mix:\n${resumo}\nTotal: R$ ${fmt(total)}\nPagamento: ${pix?'Pix (segue o comprovante)':'dinheiro na entrega'}\n— ${cli}`;
+   UI.msize='md';UI.modal=`<h3>Pedido feito ✓</h3>
+   <div class="cxres" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div><span>Vendedor</span><b>${esc(v.nome)}</b></div><div><span>Itens</span><b>${its.reduce((a,i)=>a+i.qtd,0)} un</b></div><div><span>Total</span><b>${Ri(total)}</b></div></div>
+   ${pix?(cc?`<div style="margin-top:12px"><p style="margin:0 0 6px;font-weight:700">Pague com Pix</p>
+    <div class="pixqr"><div class="qr">${qrSvg(cc)}</div><div class="pixtx"><p class="note" style="margin:0 0 6px">Abra o app do seu banco e <b>leia o QR Code</b>, ou copie o código e use "Pix copia e cola". O valor de <b>${Ri(total)}</b> já vai preenchido.</p>
+    <button class="btn pri sm" data-copy="${esc(cc)}">Copiar código Pix</button>
+    <div class="receb"><span>Recebedor</span><b>${esc(v.nome)}</b><span>Chave ${esc(v.pix)}</span></div></div></div>
+    <p class="note" style="margin:10px 0 0"><b>Depois de pagar</b>, mande o comprovante para ${esc(first)} pelo WhatsApp no botão abaixo.</p></div>`
+    :`<p class="note" style="margin-top:10px">${esc(first)} vai te passar a chave Pix pelo WhatsApp.</p>`)
+    :`<p class="note" style="margin-top:10px">Pagamento em dinheiro na entrega. ${esc(first)} vai combinar com você.</p>`}
+   ${fone?`<a class="btn pri" style="margin-top:12px;display:inline-flex" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${pix?'Enviar comprovante para':'Avisar'} ${esc(first)} no WhatsApp</a>`:''}
+   ${pub?'':`<p class="note" style="margin-top:12px;background:var(--accent-soft);border-radius:8px;padding:6px 8px">Você está vendo a sua loja como cliente. Este pedido entrou em Vendas como <b>A receber</b>: marque como pago quando o dinheiro cair.</p>`}
    <div class="actions"><button class="btn" data-close>Fechar</button></div>`;render()});return}
  if(d.delvend){const v=vend(d.delvend);if(!UI.dvArm){UI.dvArm=true;b.textContent='Confirmar exclusão?';toast('O estoque em mãos e os kits não entregues voltam para a distribuidora; o login é apagado',4500);return}UI.dvArm=false;
   rodar(async()=>{await rpc('excluir_vendedor',{p_vid:v.id,p_devolver:true});UI.modal=null},`${v.nome} excluído`);return}
