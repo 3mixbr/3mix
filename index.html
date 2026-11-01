@@ -241,6 +241,8 @@ tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-s
 .sugok{color:var(--good);font-weight:800}
 .btn.ico{padding:3px 7px;min-width:0;margin-left:3px}
 .pnum{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted);font-variant-numeric:tabular-nums}.pnum.big{display:inline-block;font-size:13px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 8px;vertical-align:middle;margin-left:6px}
+.kperf{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.kact{display:grid;grid-template-columns:118px 96px 84px;gap:6px;justify-content:end;align-items:center}.kact .btn{width:100%;justify-content:center;white-space:nowrap}
 .acts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:240px;margin-left:auto}
 .compprev{max-width:100%;max-height:46vh;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:var(--sunk);align-self:center}
 .compfile{display:flex;flex-direction:column;gap:2px;background:var(--sunk);border-radius:10px;padding:14px;font-size:13px}.compfile span{color:var(--muted);font-size:11.5px}
@@ -954,7 +956,7 @@ function vEquipe(){
  <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
  <div class="tbl"><table><thead><tr><th>Data</th><th>Vendedor</th><th class="n">Itens (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}</td><td>${esc((vend(k.vid)?.nome||'').split(' ')[0])}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td>
- <td class="n"><div class="acts"><button class="btn sm" data-etqk="${k.id}" title="Imprimir etiqueta 10×15" aria-label="Imprimir etiqueta">🖨</button> ${['aguardando','informado'].includes(k.status)?`${k.comprovante?`<button class="btn sm" data-vercomp="${k.id}">📎 Comprovante</button> `:''}<button class="btn pri sm" data-confkit="${k.id}" title="Confirmar pagamento">Confirmar</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='pago'?`<button class="btn pri sm" data-entkit="${k.id}">Marcar entregue</button> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:''}</div></td></tr>${kitSub(k,2,2)}`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
+ <td class="n">${kitActs(k)}</td></tr>${kitSub(k,2,2)}`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
  </tbody></table></div>${kc}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
  <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
@@ -1592,7 +1594,7 @@ function mCompPrev(kid,file){compLimpa();const k=S.kits.find(x=>x.id===kid);cons
  <p class="note" style="margin:0">O comprovante só é visto pelos administradores da 3mix. Se enviar o arquivo errado, dá para remover em Estoque → Meus kits.</p>
  <div class="actions"><button class="btn ghost" data-compcancela>Cancelar</button><label class="btn" style="cursor:pointer;margin-right:auto"><input type="file" accept="image/*,application/pdf" data-compkit="${kid}" hidden>Escolher outro</label><button class="btn pri" data-compenviar>Enviar comprovante</button></div>`)}
 /* perfumes do kit: um só = código e nome; vários = abre por linha */
-function kitPerf(k){if(k.itens.length===1){const p=prod(k.itens[0].pid);return `<span class="note">${p?.code||''} ${esc(p?.nome||'')}</span>`}
+function kitPerf(k){if(k.itens.length===1){const p=prod(k.itens[0].pid);return `<span class="note kperf" title="${esc((p?.code||'')+' '+(p?.nome||''))}">${p?.code||''} ${esc(p?.nome||'')}</span>`}
  return `<button class="vexp" data-kexp="${k.id}" aria-expanded="${UI.kexp===k.id}">${k.itens.length} perfumes ${UI.kexp===k.id?'▾':'▸'}</button>`}
 function kitSub(k,antes,depois){if(UI.kexp!==k.id||k.itens.length<2)return '';
  return k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''};return `<tr class="vsub"><td colspan="${antes}"></td><td class="n">${U(i.qtd)}</td><td><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${R(i.qtd*i.preco)}</td><td colspan="${depois}"></td></tr>`}).join('')}
@@ -1640,6 +1642,17 @@ function etqKit(k){const ven=vend(k.vid)||{};
  return {tipo:'K',num:k.num,data:br(k.data),pag:'Kit do vendedor',status:({aguardando:'AGUARDANDO PAGAMENTO',informado:'PAGAMENTO INFORMADO',pago:'PAGO · A ENTREGAR',entregue:'ENTREGUE',cancelado:'CANCELADO'})[k.status]||k.status,
   rem:{nome:S.pixNome||'3mix Distribuidora',tel:S.whats3mix||'',end:esc(S.pixCidade||'')},dest:{nome:ven.nome,tel:ven.tel,end:etqEnd(ven)},
   itens:k.itens.map(i=>{const p=prod(i.pid)||{};return {code:p.code,nome:p.nome,qtd:i.qtd,preco:i.preco}}),total:kitVal(k)}}
+/* ações do kit em 3 colunas fixas (sempre alinhadas): documento · ação principal · cancelar */
+function kitActs(k){const vazio='<span></span>';let c1=vazio,c2=vazio,c3=vazio;
+ if(['aguardando','informado'].includes(k.status)){
+  if(k.comprovante)c1=`<button class="btn sm" data-vercomp="${k.id}" title="Ver comprovante de pagamento">📎 Comprovante</button>`;
+  c2=`<button class="btn pri sm" data-confkit="${k.id}" title="Confirmar pagamento">Confirmar</button>`;
+  c3=`<button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`}
+ else if(k.status==='pago'){
+  c1=`<button class="btn sm" data-etqk="${k.id}" title="Imprimir etiqueta 10×15 para entrega">🖨 Etiqueta</button>`;
+  c2=`<button class="btn pri sm" data-entkit="${k.id}" title="Marcar como entregue ao vendedor">Entregue</button>`;
+  c3=`<button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`}
+ return `<div class="kact">${c1}${c2}${c3}</div>`}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
