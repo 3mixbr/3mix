@@ -242,6 +242,9 @@ tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-s
 .btn.ico{padding:3px 7px;min-width:0;margin-left:3px}
 .pnum{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--muted);font-variant-numeric:tabular-nums}.pnum.big{display:inline-block;font-size:13px;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 8px;vertical-align:middle;margin-left:6px}
 .kperf{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.btn.armed-ok,.chip.armed-ok{background:var(--good)!important;border-color:var(--good)!important;color:#fff!important}
+.btn.armed-bad,.chip.armed-bad{background:var(--bad)!important;border-color:var(--bad)!important;color:#fff!important}
+.ktabs{margin:2px 0 10px;flex-wrap:wrap}.ktabs .gn{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:999px;background:var(--sunk);font-size:10.5px;color:var(--muted)}.ktabs button[aria-pressed="true"] .gn{background:var(--accent-soft);color:var(--accent)}.ktabs .vz{opacity:.5}
 .kact{display:grid;grid-template-columns:118px 96px 84px;gap:6px;justify-content:end;align-items:center}.kact .btn{width:100%;justify-content:center;white-space:nowrap}
 .acts{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;max-width:240px;margin-left:auto}
 .compprev{max-width:100%;max-height:46vh;object-fit:contain;border-radius:10px;border:1px solid var(--line);background:var(--sunk);align-self:center}
@@ -947,16 +950,18 @@ function vEquipe(){
  const L=S.vendas.filter(inPer);
  const rows=S.vend.map(v=>{const s=sum(L.filter(x=>x.vid===v.id));const m=sum(monthSales(v.id));const n=nivelDe(v.id,iso(today));const last=S.vendas.filter(x=>x.vid===v.id).map(x=>x.data).sort().pop();return {v,s,m,n,last}});
  const {rows:pr,ctl}=page('eq',rows,8);
- const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4};const K=[...S.kits].sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kits',K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
+ const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));
+ const KF=[['todos','Todos'],['informado','Pgto informado'],['aguardando','Aguardando pgto'],['pago','A entregar'],['entregue','Entregues'],['cancelado','Cancelados']];const {rows:kr,ctl:kc}=page('kits'+kf,K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
  return `<div class="head"><div><h1>Vendedores</h1><p class="sub">${S.vend.filter(v=>v.ativo).length} ativos · nível definido pelas vendas do mês anterior</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-vend="">+ Cadastrar vendedor</button></div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Vendedor</th><th class="hide-sm">Cidade</th><th>Nível</th><th class="n">Vendido ${UI.per}d (R$)</th><th class="n">Qtd (un)</th><th class="n">Ganho (R$)</th><th class="n">Em mãos (un)</th><th class="hide-sm">Última venda</th><th></th></tr></thead><tbody>
  ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.tel)}</div></div></div></td><td class="hide-sm">${esc(r.v.cidade)}${r.v.uf?'/'+esc(r.v.uf):''}</td>
  <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> <span class="note">+${r.n.bonus}pp</span></td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.s.com)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
  </tbody></table></div>${ctl}</section>
  <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
+ <div class="tabs ktabs" role="group">${KF.map(([s,l])=>{const n=s==='todos'?S.kits.length:S.kits.filter(k=>k.status===s).length;return `<button data-kf="${s}" aria-pressed="${kf===s}" ${!n&&s!=='todos'?'class="vz"':''}>${l} <span class="gn">${n}</span></button>`}).join('')}</div>
  <div class="tbl"><table><thead><tr><th>Data</th><th>Vendedor</th><th class="n">Itens (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}</td><td>${esc((vend(k.vid)?.nome||'').split(' ')[0])}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td>
- <td class="n">${kitActs(k)}</td></tr>${kitSub(k,2,2)}`).join('')||'<tr><td colspan="7" class="empty">Nenhum kit pedido.</td></tr>'}
+ <td class="n">${kitActs(k)}</td></tr>${kitSub(k,2,2)}`).join('')||`<tr><td colspan="7" class="empty">${kf==='todos'?'Nenhum kit pedido.':'Nenhum kit nesta situação.'}</td></tr>`}
  </tbody></table></div>${kc}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
  <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
@@ -1845,6 +1850,7 @@ function drawVenda(){
  <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevenda>Registrar venda</button></div>`;
  render();
 }
+function armar(b,txt,ruim){b.textContent=txt;b.classList.add(ruim?'armed-bad':'armed-ok')}
 function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;$('#shell').appendChild(el);setTimeout(()=>el.remove(),1800)}
 
 /* ===== render ===== */
@@ -1889,7 +1895,7 @@ document.addEventListener('click',e=>{
  if('voltar' in d){iniciar(curUser());render();return}
  if(d.liberar){const u=S.users.find(x=>x.id===d.liberar);rodar(async()=>{await upd('perfis',{status:'ativo'},u.id);if(u.vid)await upd('vendedores',{ativo:true},u.vid);log('Acesso liberado',`${u.nome} · ${u.email}`)},`${u.nome.split(' ')[0]} pode entrar no app`);return}
  if(d.bloquear){const u=S.users.find(x=>x.id===d.bloquear);rodar(async()=>{await upd('perfis',{status:'bloqueado'},u.id);if(u.vid)await upd('vendedores',{ativo:false},u.vid);log('Acesso bloqueado',`${u.nome} · ${u.email}`)},`Acesso de ${u.nome.split(' ')[0]} bloqueado`);return}
- if(d.resetsenha){const u=S.users.find(x=>x.id===d.resetsenha);if(UI.rsArm!==u.id){UI.rsArm=u.id;b.textContent='Confirmar?';return}UI.rsArm=null;
+ if(d.resetsenha){const u=S.users.find(x=>x.id===d.resetsenha);if(UI.rsArm!==u.id){UI.rsArm=u.id;armar(b,'Confirmar?');return}UI.rsArm=null;
   rodar(()=>fnAcessos({acao:'senha',user_id:u.id}),`Senha de ${u.nome.split(' ')[0]} voltou para 123456`);return}
  if(b.id==='vSite'||b.id==='vApp'){UI.device=b.id==='vApp'?'app':'site';$('#stage').classList.toggle('phone',UI.device==='app');$('#vSite').setAttribute('aria-pressed',UI.device==='site');$('#vApp').setAttribute('aria-pressed',UI.device==='app');return}
  if('navmais' in d){UI.navOpen=!UI.navOpen;render();return}
@@ -1920,7 +1926,7 @@ document.addEventListener('click',e=>{
  if(d.lg!==undefined&&!('scroll' in d)){UI.lf.g=d.lg;render();return}
  if('scroll' in d){if(d.lg!==undefined){UI.lf.g=d.lg;render()}document.getElementById('sh-col')?.scrollIntoView({behavior:'smooth'});return}
  if(d.invapply!==undefined){const I=UI.inv,its=S.prods.filter(p=>invDif(p)!==null);if(!its.length){toast('Digite a quantidade contada de pelo menos um item');return}
-  if(!UI.invArm){UI.invArm=true;b.textContent=`Confirmar ajuste de ${its.length} itens`;return}UI.invArm=false;
+  if(!UI.invArm){UI.invArm=true;armar(b,`Confirmar ajuste de ${its.length} itens`);return}UI.invArm=false;
   rodar(async()=>{await rpc('aplicar_inventario',{p_local:I.local,p_itens:its.map(p=>({pid:p.id,cont:+I.cont[p.id]||0}))});I.cont={}},`Inventário aplicado · ${its.length} itens ajustados`);return}
  if(d.invclear!==undefined){UI.inv.cont={};UI.invArm=false;render();return}
  if(d.pg){UI.pages[d.pg]=(UI.pages[d.pg]||0)+ +d.d;if(d.pg==='kit')drawKit();else if(UI.cartOpen)drawCarrinho();else render();return}
@@ -1994,7 +2000,7 @@ document.addEventListener('click',e=>{
   rodar(async()=>{const{error}=await sb.storage.from('comprovantes').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error;
    await rpc('informar_pagamento_kit',{p_id:kid,p_comprovante:path});compLimpa();UI.modal=null},'Comprovante enviado · a 3mix vai conferir');return}
  if('compcancela' in d){compLimpa();closeModal();return}
- if(d.comprm){const adm=curUser()?.perfil==='adm';if(UI.rmArm!==d.comprm){UI.rmArm=d.comprm;b.textContent=adm?'Recusar mesmo?':'Remover mesmo?';setTimeout(()=>{if(UI.rmArm===d.comprm){UI.rmArm=null;render()}},4000);return}
+ if(d.comprm){const adm=curUser()?.perfil==='adm';if(UI.rmArm!==d.comprm){UI.rmArm=d.comprm;armar(b,adm?'Recusar?':'Remover?',1);setTimeout(()=>{if(UI.rmArm===d.comprm){UI.rmArm=null;render()}},4000);return}
   UI.rmArm=null;const kid=d.comprm;rodar(async()=>{const path=await rpc('remover_comprovante_kit',{p_id:kid});if(path){const{error}=await sb.storage.from('comprovantes').remove([path]);if(error)console.warn(error)}UI.modal=null},adm?'Comprovante recusado · o kit voltou para aguardando pagamento':'Comprovante removido · envie o certo quando puder');return}
  if(d.vercompv){const k=S.kits.find(x=>x.id===d.vercompv);if(k?.comprovante)rodar(()=>verArq(k.comprovante,'Seu comprovante',`kit de ${Ri(+k.total)} · enviado para a 3mix conferir`,`<button class="btn" data-comprm="${k.id}" style="color:var(--bad)">Remover comprovante</button>`));return}
  if(d.vercomp){const k=S.kits.find(x=>x.id===d.vercomp);if(k&&k.comprovante){UI.msize='md';
@@ -2002,7 +2008,7 @@ document.addEventListener('click',e=>{
   const url=data?.publicUrl||'';
   /* bucket privado — gera signed URL */
   rodar(()=>verArq(k.comprovante,'Comprovante de pagamento',`${esc(vend(k.vid)?.nome||'')} · kit de ${Ri(+k.total)}`,`<label class="f cfval">Valor recebido (R$)<input id="cf-valor" type="text" inputmode="decimal" class="dec" value="${fmt(+k.total)}"></label><button class="btn" data-comprm="${k.id}" style="color:var(--bad)">Recusar</button><button class="btn pri" data-confkit="${k.id}">Confirmar pagamento</button>`));return}return}
- if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;b.textContent='Confirmar pagamento?';return}UI.cfArm=null;
+ if(d.confkit){if(UI.cfArm!==d.confkit){UI.cfArm=d.confkit;armar(b,'Confirmar?');return}UI.cfArm=null;
   const kk=S.kits.find(x=>x.id===d.confkit),vr=$('#cf-valor')?num($('#cf-valor').value):null;if(vr!==null&&!(vr>0)){toast('Informe o valor recebido');return}
   if(vr!==null&&kk&&vr+0.01<+kk.total){toast(`Recebido R$ ${fmt(vr)} é menor que o kit (R$ ${fmt(+kk.total)}). Confira antes de confirmar.`,4500);return}
   rodar(()=>rpc('confirmar_kit',{p_id:d.confkit,p_valor:vr}),'Pagamento confirmado · kit a entregar');return}
@@ -2011,7 +2017,7 @@ document.addEventListener('click',e=>{
    .then(ok=>{if(ok){UI.view='comprar';mCarrinho()}});return}
  if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,numero:k.num,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,criado:k.criado,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
- if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;b.textContent='Confirmar entrega?';return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
+ if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;armar(b,'Confirmar?');return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
  if(d.cancv){mCancelVenda(d.cancv);return}
  if(d.cvforma){cvLer();UI.cv.forma=d.cvforma;drawCancelVenda();return}
  if('cvnovo' in d){cvLer();UI.cv.novo=!UI.cv.novo;drawCancelVenda();setTimeout(()=>$('#cv-novo')?.focus(),30);return}
@@ -2062,11 +2068,11 @@ document.addEventListener('click',e=>{
    ${fone?`<a class="btn pri" style="margin-top:12px;display:inline-flex" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${pix?'Enviar comprovante para':'Avisar'} ${esc(first)} no WhatsApp</a>`:''}
    ${pub?'':`<p class="note" style="margin-top:12px;background:var(--accent-soft);border-radius:8px;padding:6px 8px">Você está vendo a sua loja como cliente. Este pedido entrou em Vendas como <b>A receber</b>: marque como pago quando o dinheiro cair.</p>`}
    <div class="actions"><button class="btn" data-close>Fechar</button></div>`;render()});return}
- if(d.delvend){const v=vend(d.delvend);if(!UI.dvArm){UI.dvArm=true;b.textContent='Confirmar exclusão?';toast('O estoque em mãos e os kits não entregues voltam para a distribuidora; o login é apagado',4500);return}UI.dvArm=false;
+ if(d.delvend){const v=vend(d.delvend);if(!UI.dvArm){UI.dvArm=true;armar(b,'Excluir?',1);toast('O estoque em mãos e os kits não entregues voltam para a distribuidora; o login é apagado',4500);return}UI.dvArm=false;
   rodar(async()=>{await rpc('excluir_vendedor',{p_vid:v.id,p_devolver:true});UI.modal=null},`${v.nome} excluído`);return}
  if(d.delprod){const p=prod(d.delprod);
   if(movProd(p.id)){toast(`${p.code} tem vendas, kits ou entradas registradas e não pode ser excluído`);return}
-  if(!UI.delArm){UI.delArm=true;b.textContent='Confirmar exclusão';return}
+  if(!UI.delArm){UI.delArm=true;armar(b,'Excluir?',1);return}
   rodar(async()=>{await del('produtos',p.id);Object.values(S.carts||{}).forEach(c=>delete c[p.id]);save();log('Produto excluído',`${p.code} · ${p.nome}`);UI.modal=null},`${p.code} · ${p.nome} excluído`);return}
  if('close' in d){closeModal();return}
  if('edit' in d){mProduto(d.edit);return}
@@ -2076,15 +2082,16 @@ document.addEventListener('click',e=>{
  if(d.fmov){mFundoMov(d.fmov);return}
  if('fmsave' in d){const x=UI.draft;const v=+String(x.valor).replace(',','.')||0;if(v<=0){toast('Informe o valor');return}if(!String(x.descricao).trim()){toast('Informe a descrição');return}
   rodar(async()=>{await rpc('movimentar_fundo',{p_tipo:x.tipo,p_socio:x.socio,p_valor:v,p_data:x.data||iso(today),p_descricao:x.descricao});UI.modal=null},x.tipo==='aporte'?'Aporte registrado':'Saída registrada');return}
- if('ffechar' in d){const M=UI.fmes,lm=lucroMes(M);if(!UI.ffArm){UI.ffArm=true;b.textContent=`Confirmar fechamento de ${mesNome(M)}?`;return}UI.ffArm=false;
+ if('ffechar' in d){const M=UI.fmes,lm=lucroMes(M);if(!UI.ffArm){UI.ffArm=true;armar(b,`Confirmar fechamento de ${mesNome(M)}?`);return}UI.ffArm=false;
   const its=S.socios.map(s=>({socio:s.nome,pct:+s.fundo||0,valor:Math.round(Math.max(0,lm.luc)*(+s.fundo||0))/100}));
   rodar(()=>rpc('fechar_mes',{p_mes:M,p_lucro:Math.round(lm.luc*100)/100,p_itens:its}),`${mesNome(M)} fechado · ${fmt(its.reduce((a,i)=>a+i.valor,0))} no fundo`);return}
- if(d.festorno){if(UI.feArm!==d.festorno){UI.feArm=d.festorno;b.textContent='Confirmar?';return}UI.feArm=null;rodar(()=>rpc('estornar_fundo',{p_id:d.festorno}),'Lançamento estornado');return}
+ if(d.festorno){if(UI.feArm!==d.festorno){UI.feArm=d.festorno;armar(b,'Confirmar?');return}UI.feArm=null;rodar(()=>rpc('estornar_fundo',{p_id:d.festorno}),'Lançamento estornado');return}
  if(d.pagar||d.receber){const id=d.pagar||d.receber,st=d.pagar?'pago':'receber',key=st+id;
-  if(UI.stArm!==key){UI.stArm=key;b.textContent=st==='pago'?'Confirmar pago?':'Voltar p/ A receber?';setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
+  if(UI.stArm!==key){UI.stArm=key;armar(b,st==='pago'?'Confirmar?':'Voltar?');setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('alterar_status_venda',{p_id:id,p_status:st}),st==='pago'?'Venda marcada como paga':'Venda voltou para A receber');return}
  if(d.cg!==undefined){UI.cg=d.cg;render();return}
  if(d.etqk){const k=S.kits.find(x=>x.id===d.etqk);if(k)imprimirEtiqueta(etqKit(k));return}
+ if(d.kf){UI.kf=d.kf;render();return}
  if(d.kexp){UI.kexp=UI.kexp===d.kexp?null:d.kexp;render();return}
  if(d.vexp){UI.vexp=UI.vexp===d.vexp?null:d.vexp;render();return}
  if(d.share){const p=prod(d.share);const pv=UI.vid?precoVend(p,UI.vid):+p.preco;const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(pv)} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
@@ -2106,7 +2113,7 @@ document.addEventListener('click',e=>{
   if(x.id){rodar(async()=>{await rpc('editar_entrada',{p_id:x.id,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},'Entrada corrigida');return}
   rodar(async()=>{await rpc('registrar_entrada',{p_pid:x.pid,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},`Entrada de ${q} un registrada`);return}
  if(d.entedit){mEntrada(null,d.entedit);return}
- if(d.entdel){if(UI.entArm!==d.entdel){UI.entArm=d.entdel;b.textContent='Confirmar exclusão?';setTimeout(()=>{if(UI.entArm===d.entdel){UI.entArm=null;render()}},4000);return}
+ if(d.entdel){if(UI.entArm!==d.entdel){UI.entArm=d.entdel;armar(b,'Excluir?',1);setTimeout(()=>{if(UI.entArm===d.entdel){UI.entArm=null;render()}},4000);return}
   UI.entArm=null;const c=S.compras.find(x=>x.id===d.entdel);rodar(async()=>{await rpc('excluir_entrada',{p_id:d.entdel});UI.modal=null},`Entrada excluída · ${c?c.qtd:''} un retiradas do estoque`);return}
  if('savevend' in d){const pn=$('#vd-pnome').value.trim(),sn=$('#vd-snome').value.trim();if(!pn||!sn){toast('Informe nome e sobrenome');return}
   const nome=`${pn} ${sn}`.trim(),E=endLer('vd');if(E.cep&&E.cep.length!==8){toast('CEP precisa ter 8 números');return}
