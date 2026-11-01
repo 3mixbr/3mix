@@ -237,6 +237,7 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .cepst{display:block;font-size:11px;color:var(--muted);min-height:14px}.cepst.ok{color:var(--good)}.cepst.warn{color:var(--warn)}
 .vexp{border:0;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:11.5px;border-radius:6px;padding:3px 8px;white-space:nowrap}
 tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-space:nowrap}
+.gtabs{align-self:flex-start}.gtabs .gn{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:999px;background:var(--sunk);font-size:10.5px;color:var(--muted)}.gtabs button[aria-pressed="true"] .gn{background:var(--accent-soft);color:var(--accent)}
 .sugok{color:var(--good);font-weight:800}
 .cxpay3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ksit{margin-top:4px;font-size:11.5px;color:var(--muted);max-width:260px;white-space:normal;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
@@ -1455,9 +1456,12 @@ const metaTxt=un=>!un?`Adicione ${MIN} un para fechar o pedido`:falta(un)?`Falta
 const cartBtn=()=>{const n=cartTot(cartV()).un;return `<button class="cartbtn" data-carrinho aria-label="Carrinho, ${n} itens">${ic('comprar')}${n?`<span class="badge">${n}</span>`:''}</button>`};
 function vComprar(){
  const c=cartV(),t=cartTot(c),f=falta(t.un),ch=champRank();const rk={};abc(S.vendas.filter(v=>daysAgo(v.data)<30)).forEach((r,i)=>rk[r.p.id]=i);
- const its=S.prods.filter(p=>p.estoque>0).sort((a,b)=>rk[a.id]-rk[b.id]);
- const {rows,ctl}=page('cmpV',its,8);
- return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido mínimo de ${MIN} un, pode variar os perfumes. Preço já com seu desconto de revendedor.</p></div><div class="sp"></div><button class="btn" data-top6>+ ${MIN} mais vendidos</button></div>
+ const disp=S.prods.filter(p=>p.estoque>0),g=UI.cg||'';
+ const its=disp.filter(p=>!g||p.genero===g).sort((a,b)=>rk[a.id]-rk[b.id]);
+ const {rows,ctl}=page('cmpV'+g,its,8);
+ const gens=Object.keys(GEN).filter(k=>disp.some(p=>p.genero===k));
+ return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido mínimo de ${MIN} un, pode variar os perfumes. Preço já com seu desconto de revendedor.</p></div><div class="sp"></div><button class="btn" data-top6>+ ${MIN} mais vendidos${g?' · '+GEN[g]:''}</button></div>
+ <div class="tabs gtabs" role="group">${[['','Todos',disp.length],...gens.map(k=>[k,GEN[k],disp.filter(p=>p.genero===k).length])].map(([k,l,n])=>`<button data-cg="${k}" aria-pressed="${g===k}">${l} <span class="gn">${n}</span></button>`).join('')}</div>
  <div class="cat">${rows.map(p=>buyCard(p,c[p.id]||0,ch[p.id])).join('')}</div>${ctl}
  ${t.un?`<div class="cartbar">${ic('comprar').replace('<svg','<svg width="20" height="20"')}<b>${t.un} un</b><span>${Ri(t.tot)}</span><span class="chip ${f?'warn':'good'}">${metaTxt(t.un)}</span><span class="sp"></span><button class="btn pri" data-carrinho>Ver carrinho</button></div>`:''}`;
 }
@@ -1819,7 +1823,12 @@ document.addEventListener('click',e=>{
  if('carrinho' in d){mCarrinho();return}
  if(d.bc){const p=prod(d.bc),c=cartV();c[d.bc]=Math.max(0,Math.min(p.estoque,(c[d.bc]||0)+ +d.d));if(!c[d.bc])delete c[d.bc];save();
   if(UI.cartOpen)drawCarrinho();else render();return}
- if('top6' in d){const c=cartV();abc(S.vendas.filter(v=>daysAgo(v.data)<30)).filter(r=>r.p.estoque>(c[r.p.id]||0)).slice(0,MIN).forEach(r=>c[r.p.id]=(c[r.p.id]||0)+1);save();render();toast(metaTxt(cartTot(c).un));return}
+ if('top6' in d){const c=cartV(),g=UI.cg||'';
+  /* mais vendidos dos últimos 30 dias, respeitando a aba aberta (Feminino/Masculino); completa com os demais disponíveis */
+  const rank=abc(S.vendas.filter(v=>daysAgo(v.data)<30)).map(r=>r.p),resto=S.prods.filter(p=>!rank.includes(p)).sort((a,b)=>b.estoque-a.estoque);
+  const L=[...rank,...resto].filter(p=>(!g||p.genero===g)&&p.estoque>(c[p.id]||0)).slice(0,MIN);
+  if(!L.length){toast('Nenhum perfume disponível nesta aba');return}
+  L.forEach(p=>c[p.id]=(c[p.id]||0)+1);save();render();toast(metaTxt(cartTot(c).un));return}
  if('fecharcarrinho' in d){const c=cartV(),vid=UI.vid;const its=Object.keys(c).map(pid=>({pid,qtd:c[pid]}));const un=its.reduce((a,i)=>a+i.qtd,0);
   if(!un||un%MIN){toast(metaTxt(un));return}
   UI.cartOpen=false;let r=null;
@@ -1929,6 +1938,7 @@ document.addEventListener('click',e=>{
  if(d.pagar||d.receber){const id=d.pagar||d.receber,st=d.pagar?'pago':'receber',key=st+id;
   if(UI.stArm!==key){UI.stArm=key;b.textContent=st==='pago'?'Confirmar pago?':'Voltar p/ A receber?';setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('alterar_status_venda',{p_id:id,p_status:st}),st==='pago'?'Venda marcada como paga':'Venda voltou para A receber');return}
+ if(d.cg!==undefined){UI.cg=d.cg;render();return}
  if(d.vexp){UI.vexp=UI.vexp===d.vexp?null:d.vexp;render();return}
  if(d.share){const p=prod(d.share);const pv=UI.vid?precoVend(p,UI.vid):+p.preco;const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(pv)} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
   navigator.clipboard?.writeText(t).then(()=>toast('Texto copiado'),()=>toast('Não foi possível copiar'));return}
