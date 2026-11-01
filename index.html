@@ -322,6 +322,10 @@ tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-s
 .valfix{display:flex;align-items:center;height:38px;padding:0 10px;border-radius:8px;background:var(--sunk);border:1px dashed var(--line);font-weight:700}
 .cfval{margin-right:auto;flex-direction:row;align-items:center;gap:8px;font-size:12px}.cfval input{width:110px;text-align:right}
 .drepend{display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--warn) 14%,transparent);font-size:12.5px;font-weight:600}.drepend span{flex:1}
+.anx>span{font-size:12px;font-weight:700;color:var(--muted)}.anx .anx-c{min-height:38px;display:flex;align-items:center}.anx-add{align-self:flex-start}
+.anx-ok{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;border:1px solid var(--line);border-radius:10px;padding:6px 8px;background:var(--surface)}
+.anx-th{padding:0;border:0;background:none;cursor:zoom-in;line-height:0}.anx-ok img{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}.anx-pdf{display:grid;place-items:center;width:44px;height:44px;border-radius:6px;background:#fdecea;color:#b42318;font-weight:800;font-size:11px}
+.anx-info{min-width:0;display:flex;flex-direction:column}.anx-info b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.anx-info span{font-size:11px;color:var(--muted)}.anx-bt{display:flex;gap:6px}
 .cxgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}.cxgrid .cxinfo{margin-top:10px}.sheet.lg .cxgrid .fg,.cxgrid .fg{grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr)}.cxgrid input[type=file]{font-size:11px;max-width:100%}
 .pixline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12px;background:var(--sunk);border-radius:8px;padding:5px 8px}.pixline b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.pixline .btn{padding:2px 10px}
 @media (max-width:760px){.cxgrid{grid-template-columns:1fr}}
@@ -1240,19 +1244,19 @@ function drawCancelVenda(){const x=UI.cv,v=S.vendas.find(y=>y.id===x.id);if(!v)r
   <div class="pay cxpay3">${DEVV.map(f=>`<button data-cvforma="${esc(f)}" aria-pressed="${x.forma===f}">${f}</button>`).join('')}</div>
   ${x.forma==='Não houve pagamento'?'<p class="note" style="margin:6px 0 0">Nada a devolver: a cliente ainda não pagou.</p>':`
   <div class="fg" style="margin-top:8px"><div class="f"><span>Valor a devolver (R$)</span><div class="valfix">${Ri(vTot(v))}</div></div>
-  <label class="f">Comprovante (opcional)<input id="cv-file" type="file" accept="image/*,application/pdf"></label></div>
+  ${anexo('cv-file','Comprovante (opcional)')}</div>
   <p class="note" style="margin:6px 0 0">${x.forma==='Dinheiro'?'Devolução em dinheiro fica registrada como feita.':'Sem comprovante agora, a devolução fica <b>pendente</b> em Cancelamentos até ser registrada.'}</p>`}</div>
  <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn" data-cvok style="background:var(--bad);color:#fff;border-color:var(--bad)">Cancelar venda</button></div>`)}
 function mDevVenda(id){const v=(S.vendasCanc||[]).find(x=>x.id===id);if(!v)return;const c=v.cancel||{};UI.msize='sm';UI.vdv=id;
  modal(`<h3>Registrar devolução</h3><p class="note">${esc(v.cliente)} · venda de ${Ri(+v.total)} · cancelada: ${esc(c.motivo||'')}</p>
  <div class="fg"><label class="f full">Forma<select id="vdv-forma">${DEVV.slice(1).map(f=>`<option ${f===c.forma?'selected':''}>${f}</option>`).join('')}</select></label>
  <div class="f"><span>Valor a devolver (R$)</span><div class="valfix">${Ri(+c.valor||+v.total)}</div></div>
- <label class="f">Comprovante<input id="vdv-file" type="file" accept="image/*,application/pdf"></label></div>
+ ${anexo('vdv-file','Comprovante')}</div>
  <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn pri" data-vdvok>Salvar devolução</button></div>`)}
 /* situação da devolução (venda ou kit) */
-function devSit(c,tot,regAttr,verAttr,id,podeReg){if(!c||!c.dev)return '<span class="note">nada a devolver</span>';
- if(c.dev==='pendente')return `<span class="chip warn">Devolver ${Ri(+c.valor||+tot)}</span>${podeReg?` <button class="btn sm" ${regAttr}="${id}">Registrar devolução</button>`:''}`;
- return `<span class="chip good">Devolvido · ${esc(c.forma||'')}</span>${c.comp?` <button class="btn sm" ${verAttr}="${id}">📎</button>`:''}`}
+function devSit(c,tot,regAttr,verAttr,id,podeReg,rec){if(!c||!c.dev)return `<span class="note">${rec?'nada a receber':'nada a devolver'}</span>`;
+ if(c.dev==='pendente')return rec?`<span class="chip warn">A receber ${Ri(+c.valor||+tot)}</span> <span class="note">a 3mix vai te devolver</span>`:`<span class="chip warn">Devolver ${Ri(+c.valor||+tot)}</span>${podeReg?` <button class="btn sm" ${regAttr}="${id}">Registrar devolução</button>`:''}`;
+ return `<span class="chip good">${rec?'Recebido':'Devolvido'} · ${esc(c.forma||'')}</span>${c.comp?` <button class="btn sm" ${verAttr}="${id}">📎</button>`:''}`}
 /* aviso no painel inicial */
 function cancAlerta(vid){const d0=Date.now()-UI.per*864e5,em=c=>c&&c.em&&new Date(c.em).getTime()>=d0;
  const PP=(S.kitParciais||[]).filter(p=>!vid||p.vid===vid);
@@ -1284,7 +1288,7 @@ function vCancel(vid){const adm=curUser()?.perfil==='adm';
  </tbody></table></div>${vc}`:'<p class="empty">Nenhuma venda cancelada no período.</p>'}</section>
  <section class="panel"><div class="panel-h"><h2>Kits cancelados</h2><span class="sp"></span><span class="note">pedido do vendedor à 3mix · frascos voltaram à distribuidora</span></div>
  ${K.length?`<div class="tbl"><table><thead><tr><th>Cancelado</th>${vid?'':'<th>Vendedor</th>'}<th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${dt(k.cancel)||br(k.data)}<div class="s note">${(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num)?NUMF(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num,'K')+' · ':''}pedido ${br(k.data)}</div></td>${vid?'':`<td>${esc(vend(k.vid)?.nome||'')}</td>`}<td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}${k.parcial?'<div class="s note">parcial</div>':''}</td><td class="n">${R(+k.total)}</td><td>${mot(k.cancel)}${k.parcial?`<div class="s note">${k.itens.map(i=>`${i.qtd}x ${prod(i.pid)?.code||'?'}`).join(', ')}</div>`:''}</td><td style="white-space:nowrap">${k.parcial?devSit(k.cancel,k.total,'data-pdevreg','data-pverdev',k.id,adm):devSit(k.cancel,k.total,'data-devreg','data-verdev',k.id,adm)}</td></tr>`).join('')}
+ ${kr.map(k=>`<tr><td>${dt(k.cancel)||br(k.data)}<div class="s note">${(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num)?NUMF(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num,'K')+' · ':''}pedido ${br(k.data)}</div></td>${vid?'':`<td>${esc(vend(k.vid)?.nome||'')}</td>`}<td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}${k.parcial?'<div class="s note">parcial</div>':''}</td><td class="n">${R(+k.total)}</td><td>${mot(k.cancel)}${k.parcial?`<div class="s note">${k.itens.map(i=>`${i.qtd}x ${prod(i.pid)?.code||'?'}`).join(', ')}</div>`:''}</td><td style="white-space:nowrap">${k.parcial?devSit(k.cancel,k.total,'data-pdevreg','data-pverdev',k.id,adm,!adm):devSit(k.cancel,k.total,'data-devreg','data-verdev',k.id,adm,!adm)}</td></tr>`).join('')}
  </tbody></table></div>${kc}`:'<p class="empty">Nenhum kit cancelado no período.</p>'}</section>`}
 /* loja online no ar até (liberação ou última compra paga + N dias) */
 const diasAte=d=>d?Math.floor((new Date(d+'T12:00:00')-new Date(iso(today)+'T12:00:00'))/864e5):null;
@@ -1723,11 +1727,11 @@ const fmtH=h=>{h=+h;const H=Math.floor(h),M=Math.round((h-H)*60);return (H?H+(H>
 /* situação do kit: chip + relógio da reserva + motivo do cancelamento + devolução */
 function kitSit(k){const adm=curUser()?.perfil==='adm',c=k.cancel||{};let s=KST[k.status]||'';
  if(k.status==='aguardando')s+='<br>'+relogio(kitExp(k));
- if(k.exc&&k.exc.dev)s+=`<div class="ksit">${k.exc.dev==='pendente'?`<span class="chip warn">Pago a mais ${Ri(+k.exc.valor)} · devolver</span>${adm?` <button class="btn sm" data-excreg="${k.id}">Registrar devolução</button>`:' <span class="note">a 3mix vai devolver</span>'}`:`<span class="chip good">Excedente devolvido · ${esc(k.exc.forma||'')}</span>`}</div>`;
- (S.kitParciais||[]).filter(p=>p.kid===k.id).forEach(p=>{s+=`<div class="ksit"><span class="chip">−${p.un} un · parcial</span> ${esc(p.cancel.motivo||'')}${p.cancel.dev?' · '+devSit(p.cancel,p.valor,'data-pdevreg','data-pverdev',p.id,adm):''}</div>`});
+ if(k.exc&&k.exc.dev)s+=`<div class="ksit">${k.exc.dev==='pendente'?(adm?`<span class="chip warn">Pago a mais ${Ri(+k.exc.valor)} · devolver</span> <button class="btn sm" data-excreg="${k.id}">Registrar devolução</button>`:`<span class="chip warn">Pago a mais · a receber ${Ri(+k.exc.valor)}</span> <span class="note">a 3mix vai te devolver</span>`):`<span class="chip good">${adm?'Excedente devolvido':'Excedente recebido'} · ${esc(k.exc.forma||'')}</span>`}</div>`;
+ (S.kitParciais||[]).filter(p=>p.kid===k.id).forEach(p=>{s+=`<div class="ksit"><span class="chip">−${p.un} un · parcial</span> ${esc(p.cancel.motivo||'')}${p.cancel.dev?' · '+devSit(p.cancel,p.valor,'data-pdevreg','data-pverdev',p.id,adm,!adm):''}</div>`});
  if(k.status==='cancelado'){s+=`<div class="ksit">${esc(c.motivo||'sem motivo')}${c.obs?` · <i>${esc(c.obs)}</i>`:''}</div>`;
-  if(c.dev==='pendente')s+=`<div class="ksit"><span class="chip warn">Devolver ${Ri(+c.valor||+k.total)}</span>${adm?` <button class="btn sm" data-devreg="${k.id}">Registrar devolução</button>`:' <span class="note">a 3mix vai devolver</span>'}</div>`;
-  if(c.dev==='feita')s+=`<div class="ksit"><span class="chip good">Devolvido ${Ri(+c.valor||+k.total)} · ${esc(c.forma||'')}</span>${c.comp?` <button class="btn sm" data-verdev="${k.id}">📎 Comprovante</button>`:''}</div>`}
+  if(c.dev==='pendente')s+=`<div class="ksit">${adm?`<span class="chip warn">Devolver ${Ri(+c.valor||+k.total)}</span> <button class="btn sm" data-devreg="${k.id}">Registrar devolução</button>`:`<span class="chip warn">A receber ${Ri(+c.valor||+k.total)}</span> <span class="note">a 3mix vai te devolver</span>`}</div>`;
+  if(c.dev==='feita')s+=`<div class="ksit"><span class="chip good">${adm?'Devolvido':'Recebido'} ${Ri(+c.valor||+k.total)} · ${esc(c.forma||'')}</span>${c.comp?` <button class="btn sm" data-verdev="${k.id}">📎 Comprovante</button>`:''}</div>`}
  return s}
 /* abre foto ou PDF do bucket privado de comprovantes */
 async function verArq(path,titulo,sub,acoes){UI.msize='md';
@@ -1742,16 +1746,16 @@ const cxSel=(x,k)=>{let un=0,val=0;k.itens.forEach(i=>{const q=Math.min(i.qtd,+x
 function cxLer(){const g=id=>$(id);if(!UI.cx)return;if(g('#cx-motivo'))UI.cx.motivo=g('#cx-motivo').value;if(g('#cx-obs'))UI.cx.obs=g('#cx-obs').value;if(g('#cx-valor'))UI.cx.valor=num(g('#cx-valor').value)}
 function drawCancel(){const x=UI.cx,k=S.kits.find(y=>y.id===x.kid);if(!k)return;const adm=curUser()?.perfil==='adm',v=vend(k.vid)||{};UI.msize='lg';
  const un=k.itens.reduce((a,i)=>a+i.qtd,0),M=S.motivosCancel||[];
+ const sel=cxSel(x,k),parcial=sel.un<sel.tot;
  const pago={aguardando:'aguardando pagamento',informado:'comprovante enviado',pago:'pago, a entregar'}[k.status]||k.status;
  const dev=adm?`<div class="cxsec"><b>Devolução do dinheiro</b>
   <div class="pay cxpay">${DEVF.map(f=>`<button data-cxforma="${esc(f)}" aria-pressed="${x.forma===f}">${f}</button>`).join('')}</div>
   ${x.forma==='Não houve pagamento'?`<p class="note" style="margin:6px 0 0">Nada a devolver: o vendedor não pagou este kit.</p>`:`
   <div class="fg" style="margin-top:8px"><div class="f"><span>Valor a devolver (R$)</span><div class="valfix">${Ri(parcial?sel.val:(+k.pagoValor||+k.total))}</div></div>
-  <label class="f">Comprovante (opcional)<input id="cx-file" type="file" accept="image/*,application/pdf"></label></div>
+  ${anexo('cx-file','Comprovante (opcional)')}</div>
   ${x.forma==='Pix para o vendedor'?(v.pix?`<div class="pixline">Pix do vendedor: <b>${esc(v.pix)}</b><button class="btn sm" data-copy="${esc(v.pix)}">Copiar</button></div>`:'<p class="note" style="margin:6px 0 0">O vendedor não tem chave Pix cadastrada (Vendedores → Editar).</p>'):''}
   ${x.forma==='Estorno no Mercado Pago'?'<p class="note" style="margin:6px 0 0">Faça o estorno no painel do Mercado Pago (Atividade → pagamento → Devolver) e anexe o comprovante.</p>':''}
   <p class="note" style="margin:6px 0 0">Sem comprovante, fica <b>pendente</b> para anexar depois.</p>`}</div>`:'';
- const sel=cxSel(x,k),parcial=sel.un<sel.tot;
  const itensHtml=`<div class="cxsec"><b>Frascos a cancelar</b><div class="cxits">${k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},q=Math.min(i.qtd,+x.q[i.pid]||0);return `<div class="cxit"><span class="grow"><b>${p.code}</b> ${esc(p.nome)}<small>${i.qtd} un no kit · ${Ri(i.preco)}/un</small></span><div class="qty"><button data-cxq="${i.pid}" data-d="-1" aria-label="Menos" ${q<=0?'disabled':''}>−</button><span>${q}</span><button data-cxq="${i.pid}" data-d="1" aria-label="Mais" ${q>=i.qtd?'disabled':''}>+</button></div></div>`}).join('')}</div>
   <div class="cxtot"><span>${parcial?`Cancelando <b>${sel.un} de ${sel.tot}</b> frascos`:`Cancelando o pedido <b>inteiro</b> (${sel.tot} un)`}</span><b>${Ri(sel.val)}</b></div>
   ${parcial?`<p class="note" style="margin:4px 0 0">O kit continua com ${sel.tot-sel.un} un e passa a valer ${Ri(+k.total-sel.val)}.</p>`:''}
@@ -1773,12 +1777,21 @@ function mDevolucao(kid){const k=S.kits.find(x=>x.id===kid);if(!k)return;const v
  modal(`<h3>Registrar devolução</h3><p class="note">${esc(v.nome||'')} · kit de ${Ri(+k.total)} · cancelado: ${esc(c.motivo||'')}</p>
  <div class="fg"><label class="f full">Forma<select id="dv-forma">${DEVF.slice(1).map(f=>`<option ${f===UI.dv.forma?'selected':''}>${f}</option>`).join('')}</select></label>
  <div class="f"><span>Valor a devolver (R$)</span><div class="valfix">${Ri(+c.valor||+k.pagoValor||+k.total)}</div></div>
- <label class="f">Comprovante<input id="dv-file" type="file" accept="image/*,application/pdf"></label></div>
+ ${anexo('dv-file','Comprovante')}</div>
  ${v.pix?`<div class="receb"><span>Chave Pix do vendedor</span><b>${esc(v.pix)}</b><span><button class="btn sm" data-copy="${esc(v.pix)}" style="padding:1px 8px">Copiar chave</button></span></div>`:''}
  <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn pri" data-dvok>Salvar devolução</button></div>`)}
 async function subirDev(kid,file){if(!file)return null;const ext=(file.name.split('.').pop()||'jpg').toLowerCase();const path=`dev/${kid}/${Date.now()}.${ext}`;
  const{error}=await sb.storage.from('comprovantes').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error;return path}
 /* comprovante: mostra o arquivo escolhido antes de enviar */
+/* anexo de comprovante em formulários: mostra o arquivo escolhido, deixa trocar/remover e sobrevive a redesenhos do modal */
+function anxFile(id){return UI.anx?.[id]?.file||null}
+function anxLimpa(id){const a=UI.anx?.[id];if(a?.url)URL.revokeObjectURL(a.url);if(UI.anx)delete UI.anx[id]}
+function anxTodos(){Object.keys(UI.anx||{}).forEach(anxLimpa)}
+function anxCorpo(id){const a=UI.anx?.[id],inp=`<input id="${id}" type="file" accept="image/*,application/pdf" data-anxin="${id}" hidden>`;
+ if(!a)return `<label class="btn sm anx-add">${inp}📎 Anexar comprovante</label>`;
+ return `<div class="anx-ok">${a.url?`<button type="button" class="anx-th" data-anxver="${id}" title="Ver em tamanho maior"><img src="${a.url}" alt="Comprovante escolhido"></button>`:'<span class="anx-pdf">PDF</span>'}<div class="anx-info"><b title="${esc(a.file.name)}">${esc(a.file.name)}</b><span>${Math.max(1,Math.round(a.file.size/1024))} KB · confira antes de confirmar</span></div><div class="anx-bt"><label class="btn sm">${inp}Trocar</label><button type="button" class="btn sm" data-anxrm="${id}">Remover</button></div></div>`}
+function anexo(id,rot){return `<div class="f anx full" id="${id}-box"><span>${rot}</span><div class="anx-c">${anxCorpo(id)}</div></div>`}
+function anxRedesenha(id){const c=document.querySelector('#'+id+'-box .anx-c');if(c)c.innerHTML=anxCorpo(id)}
 function compLimpa(){if(UI.compPend?.url)URL.revokeObjectURL(UI.compPend.url);UI.compPend=null}
 function mCompPrev(kid,file){compLimpa();const k=S.kits.find(x=>x.id===kid);const pdf=/pdf/.test(file.type);
  UI.compPend={kid,file,url:pdf?null:URL.createObjectURL(file)};UI.msize='md';
@@ -2053,6 +2066,7 @@ function showAuth(k){['login','rec'].forEach(x=>$({login:'#fLogin',rec:'#fRec'}[
 function authMsg(id,t){const e=$(id);e.textContent=t;e.hidden=false}
 const navList=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log']]:NAVS[UI.role];
 function render(){
+ if(!UI.modal&&UI.anx&&Object.keys(UI.anx).length)anxTodos();
  const u=curUser();const dentro=!!u||(['loja','revenda'].includes(UI.role)&&UI.publico);
  $('#login').hidden=dentro;$('.topbar').hidden=!dentro||UI.role==='loja'||UI.role==='revenda';$('#stage').hidden=!dentro;
  if(!dentro)return;
@@ -2147,6 +2161,10 @@ document.addEventListener('click',e=>{
  if(d.cxforma){cxLer();UI.cx.forma=d.cxforma;drawCancel();return}
  if(d.cxq){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid),it=k.itens.find(i=>i.pid===d.cxq);UI.cx.q[d.cxq]=Math.max(0,Math.min(it.qtd,(+UI.cx.q[d.cxq]||0)+(+d.d)));UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
  if(d.cxall!==undefined){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid);k.itens.forEach(i=>UI.cx.q[i.pid]=d.cxall==='1'?i.qtd:0);UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
+ if(d.anxrm){anxLimpa(d.anxrm);anxRedesenha(d.anxrm);return}
+ if(d.anxver){const a=UI.anx?.[d.anxver];if(a?.url)window.open(a.url,'_blank');return}
+ {const AX={cxok:'cx-file',cvok:'cv-file',dvok:'dv-file',vdvok:'vdv-file',excok:'exc-file',pdvok:'pdv-file'};
+  const k=Object.keys(AX).find(x=>x in d);if(k&&anxFile(AX[k])&&document.getElementById(AX[k])&&!b.classList.contains('armed-ok')){b.dataset.txt=b.dataset.txt||b.textContent;armar(b,'Confirmar com o comprovante?');return}}
  if('cxnovo' in d){cxLer();UI.cx.novo=!UI.cx.novo;drawCancel();setTimeout(()=>$('#cx-novo')?.focus(),30);return}
  if('cxadd' in d){cxLer();const n=($('#cx-novo')?.value||'').trim();if(!n){toast('Escreva o motivo');return}
   const L=[...(S.motivosCancel||[])];if(!L.some(m=>m.toLowerCase()===n.toLowerCase()))L.push(n);
@@ -2154,11 +2172,11 @@ document.addEventListener('click',e=>{
  if('cxok' in d){cxLer();const x=UI.cx,adm=curUser()?.perfil==='adm';if(!x.motivo){toast('Escolha o motivo do cancelamento');return}
   if(/^outro/i.test(x.motivo)&&!String(x.obs||'').trim()){toast('Motivo "Outros": descreva na observação');$('#cx-obs')?.focus();return}
   const kk=S.kits.find(y=>y.id===x.kid),sel=cxSel(x,kk);if(!sel.un){toast('Escolha quantos frascos cancelar');return}
-  if(sel.un<sel.tot){const temD=adm&&x.forma!=='Não houve pagamento',fl=temD?$('#cx-file')?.files?.[0]:null;
+  if(sel.un<sel.tot){const temD=adm&&x.forma!=='Não houve pagamento',fl=temD?anxFile('cx-file'):null;
    rodar(async()=>{const comp=await subirDev(x.kid,fl);
     await rpc('cancelar_kit_parcial',{p_id:x.kid,p_itens:kk.itens.map(i=>({pid:i.pid,qtd:Math.min(i.qtd,+x.q[i.pid]||0)})).filter(i=>i.qtd>0),p_motivo:x.motivo,p_obs:x.obs||null,p_dev_forma:adm?x.forma:null,p_dev_valor:temD?x.valor:null,p_dev_comprovante:comp});UI.modal=null;UI.cx=null},
     `${sel.un} frasco${sel.un>1?'s':''} cancelado${sel.un>1?'s':''} · voltaram ao estoque central · kit atualizado`);return}
-  const temDev=adm&&x.forma!=='Não houve pagamento',file=temDev?$('#cx-file')?.files?.[0]:null;
+  const temDev=adm&&x.forma!=='Não houve pagamento',file=temDev?anxFile('cx-file'):null;
   
   rodar(async()=>{const comp=await subirDev(x.kid,file);
    await rpc('cancelar_kit',{p_id:x.kid,p_motivo:x.motivo,p_obs:x.obs||null,p_dev_forma:adm?x.forma:null,p_dev_valor:temDev?x.valor:null,p_dev_comprovante:comp});UI.modal=null;UI.cx=null},
@@ -2168,22 +2186,22 @@ document.addEventListener('click',e=>{
   modal(`<h3>Devolver pagamento a mais</h3><p class="note">${esc(v.nome||'')} pagou ${Ri(+k.pagoValor)} num kit de ${Ri(+k.total)}.</p>
   <div class="fg"><div class="f"><span>Valor a devolver (R$)</span><div class="valfix">${Ri(+k.exc.valor)}</div></div>
   <label class="f">Forma<select id="exc-forma">${DEVF.slice(1).map(f=>`<option>${f}</option>`).join('')}</select></label>
-  <label class="f full">Comprovante<input id="exc-file" type="file" accept="image/*,application/pdf"></label></div>
+  ${anexo('exc-file','Comprovante',1)}</div>
   ${v.pix?`<div class="pixline">Pix do vendedor: <b>${esc(v.pix)}</b><button class="btn sm" data-copy="${esc(v.pix)}">Copiar</button></div>`:''}
   <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn pri" data-excok>Salvar devolução</button></div>`);return}
- if('excok' in d){const kid=UI.exk,forma=$('#exc-forma').value,file=$('#exc-file')?.files?.[0];
+ if('excok' in d){const kid=UI.exk,forma=$('#exc-forma').value,file=anxFile('exc-file');
   rodar(async()=>{const comp=await subirDev(kid,file);await rpc('registrar_devolucao_excedente',{p_id:kid,p_forma:forma,p_comprovante:comp});UI.modal=null},'Devolução do excedente registrada');return}
  if(d.pdevreg){const p=(S.kitParciais||[]).find(x=>x.id===d.pdevreg);if(!p)return;const v=vend(p.vid)||{};UI.msize='sm';UI.pdv=p;
   modal(`<h3>Registrar devolução</h3><p class="note">${esc(v.nome||'')} · cancelamento parcial de ${p.un} un · ${Ri(+p.valor)} · ${esc(p.cancel.motivo||'')}</p>
   <div class="fg"><label class="f full">Forma<select id="pdv-forma">${DEVF.slice(1).map(f=>`<option ${f===p.cancel.forma?'selected':''}>${f}</option>`).join('')}</select></label>
   <div class="f"><span>Valor a devolver (R$)</span><div class="valfix">${Ri(+p.cancel.valor||+p.valor)}</div></div>
-  <label class="f">Comprovante<input id="pdv-file" type="file" accept="image/*,application/pdf"></label></div>
+  ${anexo('pdv-file','Comprovante')}</div>
   ${v.pix?`<div class="receb"><span>Chave Pix do vendedor</span><b>${esc(v.pix)}</b><span><button class="btn sm" data-copy="${esc(v.pix)}" style="padding:1px 8px">Copiar chave</button></span></div>`:''}
   <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn pri" data-pdvok>Salvar devolução</button></div>`);return}
- if('pdvok' in d){const p=UI.pdv,forma=$('#pdv-forma').value,valor=null,file=$('#pdv-file')?.files?.[0];
+ if('pdvok' in d){const p=UI.pdv,forma=$('#pdv-forma').value,valor=null,file=anxFile('pdv-file');
   rodar(async()=>{const comp=await subirDev(p.kid,file);await rpc('registrar_devolucao_parcial',{p_id:p.id,p_forma:forma,p_valor:valor,p_comprovante:comp});UI.modal=null},'Devolução registrada');return}
  if(d.pverdev){const p=(S.kitParciais||[]).find(x=>x.id===d.pverdev);if(p?.cancel?.comp)rodar(()=>verArq(p.cancel.comp,'Comprovante da devolução',`${esc(vend(p.vid)?.nome||'')} · ${Ri(+(p.cancel.valor||p.valor))} · ${esc(p.cancel.forma||'')}`));return}
- if('dvok' in d){const kid=UI.dv.kid,forma=$('#dv-forma').value,valor=null,file=$('#dv-file')?.files?.[0];
+ if('dvok' in d){const kid=UI.dv.kid,forma=$('#dv-forma').value,valor=null,file=anxFile('dv-file');
   rodar(async()=>{const comp=await subirDev(kid,file);await rpc('registrar_devolucao',{p_id:kid,p_forma:forma,p_valor:valor,p_comprovante:comp});UI.modal=null},'Devolução registrada');return}
  if(d.verdev){const k=S.kits.find(x=>x.id===d.verdev);if(k?.cancel?.comp)rodar(()=>verArq(k.cancel.comp,'Comprovante da devolução',`${esc(vend(k.vid)?.nome||'')} · ${Ri(+(k.cancel.valor||k.total))} · ${esc(k.cancel.forma||'')}`));return}
  if(d.compenviar!==undefined){const P=UI.compPend;if(!P)return;const kid=P.kid,file=P.file;
@@ -2217,12 +2235,12 @@ document.addEventListener('click',e=>{
   sb.from('config').update({motivos_venda:L}).eq('id',1).then(({error})=>{if(error){toast(msgErro(error),4000);return}S.motivosVenda=L;UI.cv.motivo=n;UI.cv.novo=false;log('Motivo de cancelamento de venda criado',n);drawCancelVenda()});return}
  if('cvok' in d){cvLer();const x=UI.cv;if(!x.motivo){toast('Escolha o motivo do cancelamento');return}
   if(/^outro/i.test(x.motivo)&&!String(x.obs||'').trim()){toast('Motivo "Outros": descreva na observação');$('#cv-obs')?.focus();return}
-  const temDev=x.forma!=='Não houve pagamento',file=temDev?$('#cv-file')?.files?.[0]:null;
+  const temDev=x.forma!=='Não houve pagamento',file=temDev?anxFile('cv-file'):null;
   rodar(async()=>{let comp=null;if(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase();comp=`vdev/${x.id}/${Date.now()}.${ext}`;const{error}=await sb.storage.from('comprovantes').upload(comp,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error}
    await rpc('cancelar_venda',{p_id:x.id,p_motivo:x.motivo,p_obs:x.obs||null,p_dev_forma:x.forma,p_dev_valor:temDev?x.valor:null,p_dev_comprovante:comp});UI.modal=null;UI.cv=null},
    'Venda cancelada · frascos voltaram ao estoque · registro em Cancelamentos');return}
  if(d.vdevreg){mDevVenda(d.vdevreg);return}
- if('vdvok' in d){const id=UI.vdv,forma=$('#vdv-forma').value,valor=null,file=$('#vdv-file')?.files?.[0];
+ if('vdvok' in d){const id=UI.vdv,forma=$('#vdv-forma').value,valor=null,file=anxFile('vdv-file');
   rodar(async()=>{let comp=null;if(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase();comp=`vdev/${id}/${Date.now()}.${ext}`;const{error}=await sb.storage.from('comprovantes').upload(comp,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error}
    await rpc('registrar_devolucao_venda',{p_id:id,p_forma:forma,p_valor:valor,p_comprovante:comp});UI.modal=null},'Devolução registrada');return}
  if(d.verdevv){const v=(S.vendasCanc||[]).find(x=>x.id===d.verdevv);if(v?.cancel?.comp)rodar(()=>verArq(v.cancel.comp,'Comprovante da devolução',`${esc(v.cliente)} · ${Ri(+(v.cancel.valor||v.total))} · ${esc(v.cancel.forma||'')}`));return}
@@ -2407,6 +2425,11 @@ document.addEventListener('change',e=>{
    await upd('perfis',o,u.id);log('Perfil alterado',`${u.nome} → ${PERFIL[nv]}`)},`${u.nome.split(' ')[0]} agora é ${PERFIL[nv]}`);return}
  if(d.f==='familia'||d.f==='foto'){$('#fPrev').innerHTML=foto(UI.draft)}
  if(t.id==='fFoto'&&t.files&&t.files[0]){lerFoto(t.files[0],900,true).then(u=>{UI.draft.foto=u;$('#f-foto').value='';$('#fPrev').innerHTML=foto(UI.draft)});return}
+ if(d.anxin&&t.files&&t.files[0]){const file=t.files[0],id=d.anxin;t.value='';
+  if(file.size>10*1024*1024){toast('Arquivo maior que 10 MB. Envie uma foto ou PDF menor.',4000);return}
+  if(!/^image\/|application\/pdf/.test(file.type||'')){toast('Envie uma foto ou um PDF do comprovante',4000);return}
+  anxLimpa(id);(UI.anx||(UI.anx={}))[id]={file,url:/^image\//.test(file.type)?URL.createObjectURL(file):null};anxRedesenha(id);
+  document.querySelectorAll('.armed-ok').forEach(x=>x.classList.remove('armed-ok'));return}
  /* upload de comprovante de kit */
  if(d.compkit&&t.files&&t.files[0]){const file=t.files[0];t.value='';
   if(file.size>10*1024*1024){toast('Arquivo maior que 10 MB. Envie uma foto ou PDF menor.',4000);return}
