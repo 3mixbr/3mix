@@ -235,6 +235,10 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .dre td.n{white-space:nowrap}
 /* CEP */
 .cepst{display:block;font-size:11px;color:var(--muted);min-height:14px}.cepst.ok{color:var(--good)}.cepst.warn{color:var(--warn)}
+.vexp{border:0;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:11.5px;border-radius:6px;padding:3px 8px;white-space:nowrap}
+tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-space:nowrap}
+.sugok{color:var(--good);font-weight:800}
+.cxpay3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .ksit{margin-top:4px;font-size:11.5px;color:var(--muted);max-width:260px;white-space:normal;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .cxres{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;background:var(--sunk);border-radius:10px;padding:10px 12px}.cxres span{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.cxres b{font-size:13px}
 .cxinfo{margin-top:8px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:12.5px}
@@ -616,6 +620,7 @@ let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
 const ICON={
+ cancel:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
  interesses:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
  painel:'<path d="M3 13h7V3H3zM14 21h7V11h-7zM3 21h7v-5H3zM14 7h7V3h-7z"/>',
  produtos:'<path d="M9 3h6v3H9zM7 6h10v4a3 3 0 0 1-1 2v7a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-7a3 3 0 0 1-1-2z"/>',
@@ -839,7 +844,7 @@ function vPainel(){
  const abertos=S.kits.filter(k=>['aguardando','informado'].includes(k.status));
  const lucMes=t.luc-totalDesp()*UI.per/30;
  return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · caixa da 3mix = kits pagos pelos vendedores</p></div><div class="sp"></div>${perTabs()}</div>
- ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;return i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="equipe">Ver kits</button></div>`:''})()}
+ ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;return (i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="equipe">Ver kits</button></div>`:'')+cancAlerta()})()}
  <div class="grid-kpi">
   <div class="kpi hl"><span class="l">Faturamento 3mix</span><span class="v">${R(t.rec)}</span><span class="d">${L.length} kits pagos · ${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))}</span></div>
   <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${pc(t.luc/Math.max(1,t.rec)*100)} · taxas ${Ri(t.tax)}</span></div>
@@ -914,9 +919,10 @@ function vVendas(onlyVid){
  const byPay={};L.filter(inPer).forEach(v=>{const c=saleCalc(v);byPay[v.pag]=byPay[v.pag]||{rec:0,n:0,tax:0};byPay[v.pag].rec+=c.rec;byPay[v.pag].n++;byPay[v.pag].tax+=c.tax});
  return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas'}</h1><p class="sub">${UI.per} dias: ${L.filter(inPer).length} vendas · ${U(t.un)}${onlyVid?'':' · dinheiro dos vendedores'}</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-nova>+ Nova venda</button></div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th>${onlyVid?'':'<th class="hide-sm">Vendedor</th>'}<th class="hide-sm">Itens</th><th>Pagamento</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro vendedor (R$)'}</th><th>Status</th></tr></thead><tbody>
- ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}</td><td><span class="cli">${esc(v.cliente)}${v.origem?`<span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</span></td>${onlyVid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome.split(' ')[0])}</td>`}<td class="hide-sm note">${v.itens.map(i=>prod(i.pid)?.code).join(', ')}</td>
+ ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}</td><td><span class="cli">${esc(v.cliente)}${v.origem?`<span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</span></td>${onlyVid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome.split(' ')[0])}</td>`}<td class="hide-sm">${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}</span>`}</td>
  <td>${PAY[v.pag]}${v.parcelas>1?` ${v.parcelas}x`:''}</td><td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
- <td style="white-space:nowrap">${v.status==='pago'?'<span class="chip good st">Pago</span>':`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`} <button class="btn sm" data-cancv="${v.id}" title="Cancelar venda e devolver os frascos ao estoque" aria-label="Cancelar venda">×</button></td></tr>`}).join('')||`<tr><td colspan="9" class="empty">Nenhuma venda ainda.</td></tr>`}
+ <td style="white-space:nowrap">${v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`} <button class="btn sm" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td></tr>
+ ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="${onlyVid?3:4}"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td></tr>`}).join(''):''}`}).join('')||`<tr><td colspan="9" class="empty">Nenhuma venda ainda.</td></tr>`}
  </tbody></table></div>${ctl}</section>
  ${onlyVid?'':'<p class="note">Vendas dos vendedores aos clientes (Pix ou dinheiro, direto para o vendedor). Não entram no caixa da 3mix — o caixa da 3mix são os kits pagos.</p>'}`;
 }
@@ -983,9 +989,12 @@ function vSocios(){
    .map(([t,s])=>`<div class="row"><div class="grow"><div class="t">${t}</div><div class="s">${s}</div></div></div>`).join('')}
   </div>
  </section></div>
- <section class="panel"><div class="panel-h"><h2>Motivos de cancelamento</h2><span class="sp"></span><span class="note">aparecem na lista ao cancelar um kit</span></div>
+ <section class="panel"><div class="panel-h"><h2>Motivos de cancelamento</h2><span class="sp"></span><span class="note">aparecem na lista ao cancelar um kit ou uma venda</span></div>
   <div class="motlist">${(S.motivosCancel||[]).map((m,i)=>`<span class="mot">${esc(m)}<button data-motdel="${i}" title="Excluir motivo" aria-label="Excluir ${esc(m)}">✕</button></span>`).join('')||'<span class="note">Nenhum motivo.</span>'}</div>
-  <div class="cxmot" style="margin-top:10px;max-width:420px"><input id="mot-novo" maxlength="60" placeholder="Novo motivo"><button class="btn sm" data-motadd>+ Motivo</button></div>
+  <div class="cxmot" style="margin-top:10px;max-width:420px"><input id="mot-novo" maxlength="60" placeholder="Novo motivo de kit"><button class="btn sm" data-motadd>+ Motivo</button></div>
+  <div class="note" style="margin:14px 0 6px;font-weight:700">Vendas ao cliente</div>
+  <div class="motlist">${(S.motivosVenda||[]).map((m,i)=>`<span class="mot">${esc(m)}<button data-motvdel="${i}" title="Excluir motivo" aria-label="Excluir ${esc(m)}">✕</button></span>`).join('')||'<span class="note">Nenhum motivo.</span>'}</div>
+  <div class="cxmot" style="margin-top:10px;max-width:420px"><input id="motv-novo" maxlength="60" placeholder="Novo motivo de venda"><button class="btn sm" data-motvadd>+ Motivo</button></div>
  </section>
  <section class="panel"><div class="panel-h"><h2>Compra de estoque pelo vendedor</h2></div>
   <div class="fg"><label class="f">Pedido mínimo (frascos)<input id="cfg-min" data-minkit type="number" min="1" max="100" inputmode="numeric" value="${MIN}" style="text-align:right"></label>
@@ -1086,6 +1095,68 @@ function vInteresses(vid){
  <td>${a.atendido?'<span class="chip good st">Avisado</span>':'<span class="chip warn st">Aguardando</span>'}</td>
  <td class="n" style="white-space:nowrap"><a class="btn sm" href="https://wa.me/${zap(a.tel)}?text=${encodeURIComponent(msg(a,p))}" target="_blank" rel="noopener">WhatsApp</a>${a.atendido?'':` <button class="btn pri sm" data-avok="${a.id}">Avisado</button>`}</td></tr>`}).join('')}
  </tbody></table></div>${ctl}`:'<p class="empty">Nada nesta lista.</p>'}</section>`}
+/* ===== cancelamento de venda ===== */
+const DEVV=['Não houve pagamento','Pix para a cliente','Dinheiro'];
+const vTot=v=>v.itens.reduce((a,i)=>a+i.preco*i.qtd,0);
+function mCancelVenda(id){const v=S.vendas.find(x=>x.id===id);if(!v)return;
+ UI.cv={id,motivo:'',obs:'',forma:v.status==='pago'?(v.pag==='dinheiro'?'Dinheiro':'Pix para a cliente'):'Não houve pagamento',valor:vTot(v),novo:false};drawCancelVenda()}
+function cvLer(){const g=s=>$(s);if(!UI.cv)return;if(g('#cv-motivo'))UI.cv.motivo=g('#cv-motivo').value;if(g('#cv-obs'))UI.cv.obs=g('#cv-obs').value;if(g('#cv-valor'))UI.cv.valor=num(g('#cv-valor').value)}
+function drawCancelVenda(){const x=UI.cv,v=S.vendas.find(y=>y.id===x.id);if(!v)return;UI.msize='md';const adm=curUser()?.perfil==='adm',M=S.motivosVenda||[];
+ const un=v.itens.reduce((a,i)=>a+i.qtd,0),dono=vend(v.vid)?.nome||'';
+ modal(`<h3>Cancelar venda</h3>
+ <div class="cxres"><div><span>Cliente</span><b>${esc(v.cliente)}</b></div><div><span>Frascos</span><b>${un} un</b></div><div><span>Valor</span><b>${Ri(vTot(v))}</b></div><div><span>Situação</span><b>${v.status==='pago'?'Pago ('+PAY[v.pag]+')':'A receber'}</b></div></div>
+ <div class="cxinfo">↩ ${un===1?'O frasco volta':`Os ${un} frascos voltam`} para o estoque de ${esc(dono.split(' ')[0])}. A venda fica registrada em Cancelamentos.</div>
+ <div class="cxsec"><b>Motivo do cancelamento</b>
+  <div class="cxmot"><select id="cv-motivo"><option value="">Escolha o motivo…</option>${M.map(m=>`<option ${m===x.motivo?'selected':''}>${esc(m)}</option>`).join('')}</select>${adm?`<button class="btn sm" data-cvnovo title="Criar novo motivo">+</button>`:''}</div>
+  ${x.novo?`<div class="cxmot" style="margin-top:6px"><input id="cv-novo" maxlength="60" placeholder="Novo motivo"><button class="btn pri sm" data-cvadd>Adicionar</button></div>`:''}
+  <label class="f" style="margin-top:8px">Observação<textarea id="cv-obs" rows="2" maxlength="500" placeholder="Detalhes do cancelamento (opcional)">${esc(x.obs)}</textarea></label></div>
+ <div class="cxsec"><b>Devolução para a cliente</b>
+  <div class="pay cxpay3">${DEVV.map(f=>`<button data-cvforma="${esc(f)}" aria-pressed="${x.forma===f}">${f}</button>`).join('')}</div>
+  ${x.forma==='Não houve pagamento'?'<p class="note" style="margin:6px 0 0">Nada a devolver: a cliente ainda não pagou.</p>':`
+  <div class="fg" style="margin-top:8px"><label class="f">Valor devolvido (R$)<input id="cv-valor" type="text" inputmode="decimal" class="dec" value="${fmt(x.valor)}" style="text-align:right"></label>
+  <label class="f">Comprovante (opcional)<input id="cv-file" type="file" accept="image/*,application/pdf"></label></div>
+  <p class="note" style="margin:6px 0 0">${x.forma==='Dinheiro'?'Devolução em dinheiro fica registrada como feita.':'Sem comprovante agora, a devolução fica <b>pendente</b> em Cancelamentos até ser registrada.'}</p>`}</div>
+ <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn" data-cvok style="background:var(--bad);color:#fff;border-color:var(--bad)">Cancelar venda</button></div>`)}
+function mDevVenda(id){const v=(S.vendasCanc||[]).find(x=>x.id===id);if(!v)return;const c=v.cancel||{};UI.msize='sm';UI.vdv=id;
+ modal(`<h3>Registrar devolução</h3><p class="note">${esc(v.cliente)} · venda de ${Ri(+v.total)} · cancelada: ${esc(c.motivo||'')}</p>
+ <div class="fg"><label class="f full">Forma<select id="vdv-forma">${DEVV.slice(1).map(f=>`<option ${f===c.forma?'selected':''}>${f}</option>`).join('')}</select></label>
+ <label class="f">Valor devolvido (R$)<input id="vdv-valor" type="text" inputmode="decimal" class="dec" value="${fmt(+c.valor||+v.total)}" style="text-align:right"></label>
+ <label class="f">Comprovante<input id="vdv-file" type="file" accept="image/*,application/pdf"></label></div>
+ <div class="actions"><button class="btn ghost" data-close>Voltar</button><button class="btn pri" data-vdvok>Salvar devolução</button></div>`)}
+/* situação da devolução (venda ou kit) */
+function devSit(c,tot,regAttr,verAttr,id,podeReg){if(!c||!c.dev)return '<span class="note">nada a devolver</span>';
+ if(c.dev==='pendente')return `<span class="chip warn">Devolver ${Ri(+c.valor||+tot)}</span>${podeReg?` <button class="btn sm" ${regAttr}="${id}">Registrar devolução</button>`:''}`;
+ return `<span class="chip good">Devolvido · ${esc(c.forma||'')}</span>${c.comp?` <button class="btn sm" ${verAttr}="${id}">📎</button>`:''}`}
+/* aviso no painel inicial */
+function cancAlerta(vid){const d0=Date.now()-UI.per*864e5,em=c=>c&&c.em&&new Date(c.em).getTime()>=d0;
+ const V=(S.vendasCanc||[]).filter(v=>(!vid||v.vid===vid)&&em(v.cancel)),K=S.kits.filter(k=>k.status==='cancelado'&&(!vid||k.vid===vid)&&em(k.cancel));
+ const pend=[...(S.vendasCanc||[]).filter(v=>(!vid||v.vid===vid)&&v.cancel?.dev==='pendente'),...S.kits.filter(k=>(!vid||k.vid===vid)&&k.cancel?.dev==='pendente')].length;
+ const n=V.length+K.length;if(!n&&!pend)return '';const val=V.reduce((a,v)=>a+ +v.total,0)+K.reduce((a,k)=>a+ +k.total,0);
+ return `<div class="alerta">${ic('cancel')}<span><b>Cancelamentos:</b> ${n} nos últimos ${UI.per} dias · ${Ri(val)}${pend?` · <b>${pend} devolução${pend>1?'ões':''} pendente${pend>1?'s':''}</b>`:''}</span><button class="btn sm" data-view="cancel">Ver</button></div>`}
+/* aba Cancelamentos: vendas e kits cancelados, com motivo e devolução */
+function vCancel(vid){const adm=curUser()?.perfil==='adm';
+ const d0=Date.now()-UI.per*864e5,em=c=>c&&c.em&&new Date(c.em).getTime()>=d0;
+ const V=(S.vendasCanc||[]).filter(v=>(!vid||v.vid===vid)&&em(v.cancel));
+ const K=S.kits.filter(k=>k.status==='cancelado'&&(!vid||k.vid===vid)&&(em(k.cancel)||(!k.cancel?.em&&inPer(k))));
+ const PV=(S.vendasCanc||[]).filter(v=>(!vid||v.vid===vid)&&v.cancel?.dev==='pendente'),PK=S.kits.filter(k=>(!vid||k.vid===vid)&&k.cancel?.dev==='pendente');
+ const {rows:vr,ctl:vc}=page('cnv'+(vid||''),V,6),{rows:kr,ctl:kc}=page('cnk'+(vid||''),K,6);
+ const mot=c=>`<div class="t">${esc(c?.motivo||'sem motivo')}</div>${c?.obs?`<div class="s note"><i>${esc(c.obs)}</i></div>`:''}`;
+ const dt=c=>c?.em?new Date(c.em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+ return `<div class="head"><div><h1>Cancelamentos</h1><p class="sub">Histórico de vendas${vid?' e kits seus':' e kits'} cancelados, com motivo e devolução do dinheiro</p></div><div class="sp"></div>${perTabs()}</div>
+ <div class="grid-kpi" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+  <div class="kpi"><span class="l">Vendas canceladas</span><span class="v">${V.length}</span><span class="d">${Ri(V.reduce((a,v)=>a+ +v.total,0))} · ${UI.per} dias</span></div>
+  <div class="kpi"><span class="l">Kits cancelados</span><span class="v">${K.length}</span><span class="d">${Ri(K.reduce((a,k)=>a+ +k.total,0))} · ${UI.per} dias</span></div>
+  <div class="kpi ${PV.length+PK.length?'hl':''}"><span class="l">Devoluções pendentes</span><span class="v">${PV.length+PK.length}</span><span class="d">${Ri(PV.reduce((a,v)=>a+(+v.cancel.valor||+v.total),0)+PK.reduce((a,k)=>a+(+k.cancel.valor||+k.total),0))} a devolver</span></div>
+ </div>
+ <section class="panel"><div class="panel-h"><h2>Vendas canceladas</h2><span class="sp"></span><span class="note">venda ao cliente final · frascos voltaram ao vendedor</span></div>
+ ${V.length?`<div class="tbl"><table><thead><tr><th>Cancelada</th><th>Cliente</th>${vid?'':'<th class="hide-sm">Vendedor</th>'}<th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
+ ${vr.map(v=>`<tr><td>${dt(v.cancel)}<div class="s note">venda ${br(v.data)}</div></td><td>${esc(v.cliente)}<div class="s note">${PAY[v.pag]||''}${v.cancel?.ant?' · estava '+(v.cancel.ant==='pago'?'paga':'a receber'):''}</div></td>${vid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome||'')}</td>`}
+ <td class="n">${U(v.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(+v.total)}</td><td>${mot(v.cancel)}</td><td style="white-space:nowrap">${devSit(v.cancel,v.total,'data-vdevreg','data-verdevv',v.id,true)}</td></tr>`).join('')}
+ </tbody></table></div>${vc}`:'<p class="empty">Nenhuma venda cancelada no período.</p>'}</section>
+ <section class="panel"><div class="panel-h"><h2>Kits cancelados</h2><span class="sp"></span><span class="note">pedido do vendedor à 3mix · frascos voltaram à distribuidora</span></div>
+ ${K.length?`<div class="tbl"><table><thead><tr><th>Cancelado</th>${vid?'':'<th>Vendedor</th>'}<th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
+ ${kr.map(k=>`<tr><td>${dt(k.cancel)||br(k.data)}<div class="s note">pedido ${br(k.data)}</div></td>${vid?'':`<td>${esc(vend(k.vid)?.nome||'')}</td>`}<td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(+k.total)}</td><td>${mot(k.cancel)}</td><td style="white-space:nowrap">${devSit(k.cancel,k.total,'data-devreg','data-verdev',k.id,adm)}</td></tr>`).join('')}
+ </tbody></table></div>${kc}`:'<p class="empty">Nenhum kit cancelado no período.</p>'}</section>`}
 function vInicio(){
  const v=vend(UI.vid);const M=monthSales(v.id);const t=sum(M);const n=nivelDe(v.id,iso(today));
  const idx=S.niveis.indexOf(n);const next=S.niveis[idx+1];
@@ -1095,7 +1166,7 @@ function vInicio(){
  const reat=Object.values(cl).filter(x=>daysAgo(x.data)>=25).sort((a,b)=>a.data.localeCompare(b.data));
  const {rows,ctl}=page('reat'+v.id,reat,5);
  const online=S.vendas.filter(x=>x.vid===v.id&&x.origem==='loja'&&x.status==='receber');
- return `<div class="head"><div><h1>Olá, ${esc(v.nome.split(' ')[0])}</h1><p class="sub">Nível <span class="lvl ${n.nome}">${n.nome}</span> · desconto de revendedor + ${n.bonus} p.p.</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
+ return `${cancAlerta(v.id)}<div class="head"><div><h1>Olá, ${esc(v.nome.split(' ')[0])}</h1><p class="sub">Nível <span class="lvl ${n.nome}">${n.nome}</span> · desconto de revendedor + ${n.bonus} p.p.</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
  <section class="panel"><div class="panel-h"><h2>Minha loja online</h2><span class="sp"></span>${online.length?`<button class="chip warn" style="border:0" data-view="vendas">${online.length} pedido${online.length>1?'s':''} aguardando</button>`:'<span class="note">mande nos grupos de clientes</span>'}</div>
   <div class="linkbox"><code>${esc(lojaLink(v.id))}</code></div>
   <div class="btnrow"><button class="btn pri sm" data-copymsg>Copiar mensagem p/ grupos</button><button class="btn sm" data-copylink>Copiar só o link</button><button class="btn sm" data-verloja>Ver minha loja</button></div>
@@ -1126,7 +1197,7 @@ function vEstoqueV(){
   <div class="kpi hl"><span class="l">Lucro previsto</span><span class="v">${R(lucV)}</span><span class="d">se vender tudo</span></div>
  </div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$/un)</th><th class="n">Meu preço (R$/un)</th><th class="n">Lucro (R$/un)</th><th></th></tr></thead><tbody>
- ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px">${custom?`<small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} · ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button></small>`:'<small class="note sugv" title="O preço de venda fica a critério do revendedor. Este é apenas uma sugestão.">Preço sugerido ⓘ</small>'}</td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}">Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
+ ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span></td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px"><small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} ${custom?`· ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button>`:'<span class="sugok">✓</span>'}</small></td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}">Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">💡 <b>Meu preço</b> é quanto você cobra do cliente e é o que aparece na sua loja online. O <b>preço sugerido</b> é a referência da 3mix e continua aparecendo embaixo do seu preço, para você comparar. Cobrar acima do sugerido aumenta seu lucro, mas pode afastar o cliente. Para voltar ao sugerido, clique em "usar".</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table><thead><tr><th>Data</th><th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-altkit="${k.id}" title="Volta os perfumes para o carrinho para você mudar">Alterar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?'<span class="note">a 3mix está conferindo</span>':k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
@@ -1654,7 +1725,7 @@ function drawVenda(){
  ${UI.role==='vend'?'':`<label class="f">Vendedor<select id="nv-vid" data-nv="vid">${S.vend.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${x.id===d.vid?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label>`}
  <label class="f ${UI.role==='vend'?'full':''}">Cliente<input id="nv-cli" data-nv="cliente" value="${esc(d.cliente)}" placeholder="Nome da cliente"></label></div>
  ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — R$ ${fmt(precoVend(p,d.vid))} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
-  <label class="f">Qtd (un)<input id="nv-q${k}" data-it="${k}" data-k="qtd" type="number" min="1" value="${i.qtd}"></label><button class="btn sm" aria-label="Remover item" data-rmit="${k}" ${d.itens.length<2?'disabled':''}>×</button></div>`).join('')}
+  <label class="f">Qtd (un) <span class="note" style="font-weight:400">máx. ${eV(d.vid,i.pid)}</span><input id="nv-q${k}" data-it="${k}" data-k="qtd" type="number" min="1" max="${eV(d.vid,i.pid)}" value="${i.qtd}"></label><button class="btn sm" aria-label="Remover item" data-rmit="${k}" ${d.itens.length<2?'disabled':''}>×</button></div>`).join('')}
  <button class="btn sm" data-addit style="align-self:flex-start">+ Adicionar perfume</button>
  <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYV.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
  ${d.pag==='parcelado'?`<label class="f">Parcelas<select id="nv-parc" data-nv="parcelas">${[2,3,4,5,6].map(n=>`<option ${n==d.parcelas?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
@@ -1668,8 +1739,8 @@ function drawVenda(){
 function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;$('#shell').appendChild(el);setTimeout(()=>el.remove(),1800)}
 
 /* ===== render ===== */
-const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['equipe','Vendedores'],['interesses','Interesses'],['socios','Administração']],
-            vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas'],['interesses','Interesses']],loja:[]};
+const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['equipe','Vendedores'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
+            vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas'],['interesses','Interesses'],['cancel','Cancelamentos']],loja:[]};
 function curUser(){return S.users.find(u=>u.id===UI.user&&u.status==='ativo')||null}
 function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
  if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}}
@@ -1687,11 +1758,11 @@ function render(){
  $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l],i)=>`<button data-view="${k}" class="${xtra&&i>=4?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
   +(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
  let h='';
- if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:()=>vVendas(),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo}[UI.view]();
+ if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:()=>vVendas(),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
- else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,interesses:()=>vInteresses(UI.vid),vendas:()=>vVendas(UI.vid),vender:vInicio}[UI.view]();
+ else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,interesses:()=>vInteresses(UI.vid),cancel:()=>vCancel(UI.vid),vendas:()=>vVendas(UI.vid),vender:vInicio}[UI.view]();
  $('#main').innerHTML=h;
- document.querySelector('.scrim')?.remove();
+ {const sc=document.querySelector('.scrim');if(sc&&sc.isConnected){try{sc.remove()}catch(_){}}}
  if(UI.modal){const s=document.createElement('div');s.className='scrim';s.innerHTML=`<div class="sheet ${UI.msize||'md'}" role="dialog" aria-modal="true">${UI.modal}</div>`;$('#shell').appendChild(s);pCalc()}
 }
 
@@ -1754,6 +1825,10 @@ document.addEventListener('click',e=>{
   UI.cartOpen=false;let r=null;
   rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
  if(d.cancelkit){mCancelKit(d.cancelkit);return}
+ if('motvadd' in d||d.motvdel!==undefined){const L=[...(S.motivosVenda||[])];let det;
+  if('motvadd' in d){const n=($('#motv-novo')?.value||'').trim();if(!n){toast('Escreva o motivo');return}if(L.some(m=>m.toLowerCase()===n.toLowerCase())){toast('Esse motivo já existe');return}L.push(n);det='Motivo de cancelamento de venda criado: '+n}
+  else{det='Motivo de cancelamento de venda excluído: '+L[+d.motvdel];L.splice(+d.motvdel,1)}
+  rodar(async()=>{await upd('config',{motivos_venda:L},1);log(det,'')});return}
  if('motadd' in d||d.motdel!==undefined){const L=[...(S.motivosCancel||[])];let det;
   if('motadd' in d){const n=($('#mot-novo')?.value||'').trim();if(!n){toast('Escreva o motivo');return}if(L.some(m=>m.toLowerCase()===n.toLowerCase())){toast('Esse motivo já existe');return}L.push(n);det='Motivo de cancelamento criado: '+n}
   else{det='Motivo de cancelamento excluído: '+L[+d.motdel];L.splice(+d.motdel,1)}
@@ -1785,7 +1860,22 @@ document.addEventListener('click',e=>{
  if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,criado:k.criado,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
  if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;b.textContent='Confirmar entrega?';return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
- if(d.cancv){if(UI.cvArm!==d.cancv){UI.cvArm=d.cancv;b.textContent='Cancelar?';return}UI.cvArm=null;rodar(()=>rpc('cancelar_venda',{p_id:d.cancv}),'Venda cancelada · frascos voltaram ao estoque');return}
+ if(d.cancv){mCancelVenda(d.cancv);return}
+ if(d.cvforma){cvLer();UI.cv.forma=d.cvforma;drawCancelVenda();return}
+ if('cvnovo' in d){cvLer();UI.cv.novo=!UI.cv.novo;drawCancelVenda();setTimeout(()=>$('#cv-novo')?.focus(),30);return}
+ if('cvadd' in d){cvLer();const n=($('#cv-novo')?.value||'').trim();if(!n){toast('Escreva o motivo');return}
+  const L=[...(S.motivosVenda||[])];if(!L.some(m=>m.toLowerCase()===n.toLowerCase()))L.push(n);
+  sb.from('config').update({motivos_venda:L}).eq('id',1).then(({error})=>{if(error){toast(msgErro(error),4000);return}S.motivosVenda=L;UI.cv.motivo=n;UI.cv.novo=false;log('Motivo de cancelamento de venda criado',n);drawCancelVenda()});return}
+ if('cvok' in d){cvLer();const x=UI.cv;if(!x.motivo){toast('Escolha o motivo do cancelamento');return}
+  const temDev=x.forma!=='Não houve pagamento',file=temDev?$('#cv-file')?.files?.[0]:null;if(temDev&&!(x.valor>0)){toast('Informe o valor devolvido');return}
+  rodar(async()=>{let comp=null;if(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase();comp=`vdev/${x.id}/${Date.now()}.${ext}`;const{error}=await sb.storage.from('comprovantes').upload(comp,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error}
+   await rpc('cancelar_venda',{p_id:x.id,p_motivo:x.motivo,p_obs:x.obs||null,p_dev_forma:x.forma,p_dev_valor:temDev?x.valor:null,p_dev_comprovante:comp});UI.modal=null;UI.cv=null},
+   'Venda cancelada · frascos voltaram ao estoque · registro em Cancelamentos');return}
+ if(d.vdevreg){mDevVenda(d.vdevreg);return}
+ if('vdvok' in d){const id=UI.vdv,forma=$('#vdv-forma').value,valor=num($('#vdv-valor').value),file=$('#vdv-file')?.files?.[0];if(!(valor>0)){toast('Informe o valor devolvido');return}
+  rodar(async()=>{let comp=null;if(file){const ext=(file.name.split('.').pop()||'jpg').toLowerCase();comp=`vdev/${id}/${Date.now()}.${ext}`;const{error}=await sb.storage.from('comprovantes').upload(comp,file,{upsert:false,contentType:file.type||'image/jpeg'});if(error)throw error}
+   await rpc('registrar_devolucao_venda',{p_id:id,p_forma:forma,p_valor:valor,p_comprovante:comp});UI.modal=null},'Devolução registrada');return}
+ if(d.verdevv){const v=(S.vendasCanc||[]).find(x=>x.id===d.verdevv);if(v?.cancel?.comp)rodar(()=>verArq(v.cancel.comp,'Comprovante da devolução',`${esc(v.cliente)} · ${Ri(+(v.cancel.valor||v.total))} · ${esc(v.cancel.forma||'')}`));return}
  if(d.preset!==undefined){if(+d.preset)presetKit(MIN,+d.preset);else UI.draft.q={};drawKit();return}
  if(d.kpay){UI.draft.pag=d.kpay;drawKit();return}
  if('savekit' in d){const x=UI.draft;const its=S.prods.filter(p=>x.q[p.id]>0).map(p=>({pid:p.id,qtd:x.q[p.id]}));
@@ -1836,7 +1926,10 @@ document.addEventListener('click',e=>{
   const its=S.socios.map(s=>({socio:s.nome,pct:+s.fundo||0,valor:Math.round(Math.max(0,lm.luc)*(+s.fundo||0))/100}));
   rodar(()=>rpc('fechar_mes',{p_mes:M,p_lucro:Math.round(lm.luc*100)/100,p_itens:its}),`${mesNome(M)} fechado · ${fmt(its.reduce((a,i)=>a+i.valor,0))} no fundo`);return}
  if(d.festorno){if(UI.feArm!==d.festorno){UI.feArm=d.festorno;b.textContent='Confirmar?';return}UI.feArm=null;rodar(()=>rpc('estornar_fundo',{p_id:d.festorno}),'Lançamento estornado');return}
- if(d.pagar){rodar(()=>rpc('marcar_pago',{p_id:d.pagar}),'Venda marcada como paga');return}
+ if(d.pagar||d.receber){const id=d.pagar||d.receber,st=d.pagar?'pago':'receber',key=st+id;
+  if(UI.stArm!==key){UI.stArm=key;b.textContent=st==='pago'?'Confirmar pago?':'Voltar p/ A receber?';setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
+  UI.stArm=null;rodar(()=>rpc('alterar_status_venda',{p_id:id,p_status:st}),st==='pago'?'Venda marcada como paga':'Venda voltou para A receber');return}
+ if(d.vexp){UI.vexp=UI.vexp===d.vexp?null:d.vexp;render();return}
  if(d.share){const p=prod(d.share);const pv=UI.vid?precoVend(p,UI.vid):+p.preco;const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(pv)} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
   navigator.clipboard?.writeText(t).then(()=>toast('Texto copiado'),()=>toast('Não foi possível copiar'));return}
  if('addit' in d){UI.draft.itens.push({pid:(S.prods.find(p=>eV(UI.draft.vid,p.id)>0)||S.prods[0]).id,qtd:1});drawVenda();return}
@@ -1914,7 +2007,12 @@ document.addEventListener('change',e=>{
  if(t.id==='yp-dom'||t.id==='yp-cupom'){cfgSave(t.id==='yp-dom'?'Domínio do checkout Yampi alterado':'Cupom de revenda alterado',t.value);render();return}
  if(t.id==='yp-alias'||d.cfg||d.sn!==undefined){cfgSave(d.cfg?({pix3mix:'Chave Pix da 3mix alterada',pixNome:'Nome do recebedor Pix alterado',pixCidade:'Cidade do recebedor Pix alterada'}[d.cfg]||'WhatsApp da 3mix alterado'):d.sn!==undefined?'Nome do administrador alterado':'Alias Yampi alterado',t.value);return}
  if(t.id==='whoSel'){if(t.value==='socio'){UI.role='socio';UI.view='painel'}else if(t.value.startsWith('loja:')){UI.role='loja';UI.vid=t.value.slice(5);UI.cart={}}else{UI.role='vend';UI.vid=t.value;UI.view='inicio'}UI.modal=null;render();return}
- if(d.it!==undefined){UI.draft.itens[+d.it][d.k]=t.value;drawVenda();return}
+ if(d.it!==undefined){const it=UI.draft.itens[+d.it];it[d.k]=t.value;
+  /* não deixa passar do estoque em mãos (somando o mesmo perfume em outras linhas) */
+  const lim=pid=>{const outros=UI.draft.itens.reduce((a,x,ix)=>a+(ix!==+d.it&&x.pid===pid?(+x.qtd||0):0),0);return Math.max(0,eV(UI.draft.vid,pid)-outros)};
+  const mx=lim(it.pid);if(d.k==='pid'&&(+it.qtd||0)>mx)it.qtd=Math.max(1,mx);
+  if(d.k==='qtd'&&(+it.qtd||0)>mx){it.qtd=mx;toast(`${prod(it.pid)?.nome}: só ${mx} un em mãos`)}
+  drawVenda();return}
  if(d.nv==='parcelas'||d.nv==='status'){UI.draft[d.nv]=t.value;return}
  if(d.tax!==undefined){S.taxas[d.tax]=num(t.value);cfgSave('Taxa de pagamento alterada',`${PAY[d.tax]}: ${pc(num(t.value))}`);render();return}
  if(d.invloc!==undefined){UI.inv={local:t.value,cont:{}};UI.invArm=false;render();return}
