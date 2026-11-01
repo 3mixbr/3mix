@@ -236,7 +236,7 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 /* CEP */
 .cepst{display:block;font-size:11px;color:var(--muted);min-height:14px}.cepst.ok{color:var(--good)}.cepst.warn{color:var(--warn)}
 .vexp{border:0;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:11.5px;border-radius:6px;padding:3px 8px;white-space:nowrap}
-tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-space:nowrap}
+tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-space:nowrap}.kitstbl .vsub-nm{white-space:normal}.kitstbl .kperf{max-width:150px}.kitstbl .ksit{max-width:210px}.kvend{font-weight:700;color:var(--ink)!important;margin-top:2px}
 .gtabs{align-self:flex-start}.gtabs .gn{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:999px;background:var(--sunk);font-size:10.5px;color:var(--muted)}.gtabs button[aria-pressed="true"] .gn{background:var(--accent-soft);color:var(--accent)}
 .sugok{color:var(--good);font-weight:800}
 .btn.ico{padding:3px 7px;min-width:0;margin-left:3px}
@@ -713,6 +713,7 @@ let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
 const ICON={
+ vendasrev:'<path d="M3 7h18l-2 12H5z"/><path d="M8 7a4 4 0 0 1 8 0"/><path d="M9 13h6"/>',
  candidatos:'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M19 8v6M16 11h6"/>',
  cancel:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
  interesses:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
@@ -841,10 +842,11 @@ const msgGrupo=v=>{const its=S.prods.filter(p=>eV(v.id,p.id)>0);
 function copiar(t,ok){navigator.clipboard?.writeText(t).then(()=>toast(ok),()=>toast('Não foi possível copiar'))}
 
 /* ===== cálculos ===== */
+/* custo do frasco para o revendedor: preço de revendedor menos o bônus do nível (o que ele paga no kit) */
+function revItem(i,vid,data){if(i.rev!=null&&i.rev!=='')return +i.rev;const p=prod(i.pid);if(!p)return 0;const b=+nivelDe(vid,data).bonus||0;return Math.round(pRev(p)*(1-b/100)*100)/100}
 function saleCalc(v){
  let rec=0,cus=0,com=0,un=0;
- const bonus=nivelDe(v.vid,v.data).bonus;
- v.itens.forEach(i=>{const r=i.preco*i.qtd;rec+=r;cus+=i.custo*i.qtd;com+=r*(i.com+bonus)/100;un+=i.qtd});
+ v.itens.forEach(i=>{const r=i.preco*i.qtd;rec+=r;cus+=i.custo*i.qtd;com+=(i.preco-revItem(i,v.vid,v.data))*i.qtd;un+=i.qtd});
  const tax=rec*(S.taxas[v.pag]||0)/100;
  return {rec,cus,com,tax,un,luc:rec-cus-com-tax};
 }
@@ -938,7 +940,7 @@ function vPainel(){
  const abertos=S.kits.filter(k=>['aguardando','informado'].includes(k.status));
  const lucMes=t.luc-totalDesp()*UI.per/30;
  return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · caixa da 3mix = kits pagos pelos vendedores</p></div><div class="sp"></div>${perTabs()}</div>
- ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;const nc=(S.cand||[]).filter(c=>c.status==='novo').length;return (nc?`<div class="alerta">${ic('candidatos')}<span><b>Candidatos a revendedor:</b> ${nc} novo${nc>1?'s':''} esperando contato</span><button class="btn pri sm" data-view="candidatos">Ver</button></div>`:'')+(i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="equipe">Ver kits</button></div>`:'')+cancAlerta()})()}
+ ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;const nc=(S.cand||[]).filter(c=>c.status==='novo').length;return (nc?`<div class="alerta">${ic('candidatos')}<span><b>Candidatos a revendedor:</b> ${nc} novo${nc>1?'s':''} esperando contato</span><button class="btn pri sm" data-view="candidatos">Ver</button></div>`:'')+(i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="vendas">Ver pedidos</button></div>`:'')+cancAlerta()})()}
  <div class="grid-kpi">
   <div class="kpi hl"><span class="l">Faturamento 3mix</span><span class="v">${R(t.rec)}</span><span class="d">${L.length} kits pagos · ${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))}</span></div>
   <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${pc(t.luc/Math.max(1,t.rec)*100)} · taxas ${Ri(t.tax)}</span></div>
@@ -1006,20 +1008,35 @@ function card(p,cl,admin,qty){
  <div class="ft">${admin?`<button class="btn sm" data-edit="${p.id}">Editar</button>`:`<button class="btn pri sm" data-vender="${p.id}" ${q<=0?'disabled':''}>Vender</button>`}<button class="btn sm" data-share="${p.id}" title="Copiar texto para o WhatsApp">Copiar</button></div></article>`;
 }
 
-function vVendas(onlyVid){
+function vVendas(onlyVid,ro){
  let L=[...S.vendas].filter(v=>!onlyVid||v.vid===onlyVid).sort((a,b)=>b.data.localeCompare(a.data));
  const {rows,ctl}=page('vds'+(onlyVid||''),L,10);
  const t=sum(L.filter(inPer));
  const byPay={};L.filter(inPer).forEach(v=>{const c=saleCalc(v);byPay[v.pag]=byPay[v.pag]||{rec:0,n:0,tax:0};byPay[v.pag].rec+=c.rec;byPay[v.pag].n++;byPay[v.pag].tax+=c.tax});
- return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas'}</h1><p class="sub">${UI.per} dias: ${L.filter(inPer).length} vendas · ${U(t.un)}${onlyVid?'':' · dinheiro dos vendedores'}</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-nova>+ Nova venda</button></div>
- <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th>${onlyVid?'':'<th class="hide-sm">Vendedor</th>'}<th class="hide-sm">Itens</th><th>Pgto</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro vend. (R$)'}</th><th>Status</th></tr></thead><tbody>
- ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}${v.origem?`<span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</span></td>${onlyVid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome.split(' ')[0])}</td>`}<td class="hide-sm">${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}</span>`}</td>
+ return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas dos revendedores'}</h1><p class="sub">${UI.per} dias: ${L.filter(inPer).length} vendas · ${U(t.un)}${onlyVid?'':' · dinheiro dos vendedores'}</p></div><div class="sp"></div>${perTabs()}${ro?'':'<button class="btn pri" data-nova>+ Nova venda</button>'}</div>
+ <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th><th class="hide-sm">Itens</th><th>Pgto</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro vend. (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
+ ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}${v.origem?`<span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</span>${onlyVid?'':`<div class="s note kvend">${esc((vend(v.vid)?.nome||'').split(' ')[0])}</div>`}</td><td class="hide-sm">${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}</span>`}</td>
  <td>${PAY[v.pag]}${v.parcelas>1?` ${v.parcelas}x`:''}</td><td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
- <td style="white-space:nowrap">${v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`} <button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td></tr>
- ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="${onlyVid?3:4}"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td></tr>`}).join(''):''}`}).join('')||`<tr><td colspan="9" class="empty">Nenhuma venda ainda.</td></tr>`}
+ <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}</td>
+ <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
+ ${ro?'':`<td><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
+ ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="3"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${9+(ro?0:1)}" class="empty">Nenhuma venda ainda.</td></tr>`}
  </tbody></table></div>${ctl}</section>
- ${onlyVid?'':'<p class="note">Vendas dos vendedores aos clientes (Pix ou dinheiro, direto para o vendedor). Não entram no caixa da 3mix — o caixa da 3mix são os kits pagos.</p>'}`;
+ ${onlyVid?'':'<p class="note">Vendas dos revendedores aos clientes finais, só para acompanhar. O dinheiro é do revendedor e não entra no caixa da 3mix. Pagamento, entrega e cancelamento são feitos pelo próprio revendedor.</p>'}`;
 }
+
+function vVendasKits(){
+ const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));
+ const KF=[['todos','Todos'],['informado','Pgto informado'],['aguardando','Aguardando pgto'],['pago','A entregar'],['entregue','Entregues'],['cancelado','Cancelados']];const {rows:kr,ctl:kc}=page('kits'+kf,K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
+  const LP=kPagos().filter(inPer),tp=ksum(LP);
+ return `<div class="head"><div><h1>Vendas</h1><p class="sub">Kits vendidos pela 3mix aos revendedores · ${UI.per} dias: ${LP.length} kits pagos · ${U(tp.un)} · ${Ri(tp.rec)}</p></div><div class="sp"></div>${perTabs()}</div>
+ <section class="panel"><div class="panel-h"><h2>Pedidos dos revendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
+ <div class="tabs ktabs" role="group">${KF.map(([s,l])=>{const n=s==='todos'?S.kits.length:S.kits.filter(k=>k.status===s).length;return `<button data-kf="${s}" aria-pressed="${kf===s}" ${!n&&s!=='todos'?'class="vz"':''}>${l} <span class="gn">${n}</span></button>`}).join('')}</div>
+ <div class="tbl"><table class="kitstbl"><thead><tr><th>Pedido</th><th class="n">Qtd (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
+ ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}<div class="s note kvend">${esc((vend(k.vid)?.nome||'').split(' ')[0])}</div></td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td>
+ <td class="n">${kitActs(k)}</td></tr>${kitSub(k,1,2)}`).join('')||`<tr><td colspan="6" class="empty">${kf==='todos'?'Nenhum kit pedido.':'Nenhum kit nesta situação.'}</td></tr>`}
+ </tbody></table></div>${kc}</section>
+`}
 
 function vEquipe(){
  const L=S.vendas.filter(inPer);
@@ -1032,12 +1049,6 @@ function vEquipe(){
  ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.tel)}${r.v.lojaAte?(diasAte(r.v.lojaAte)<0?' · <span class="chip bad">loja pausada</span>':` · loja até ${br(r.v.lojaAte)}`):''}</div></div></div></td><td class="hide-sm">${esc(r.v.cidade)}${r.v.uf?'/'+esc(r.v.uf):''}</td>
  <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> <span class="note">+${r.n.bonus}pp</span></td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.s.com)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
  </tbody></table></div>${ctl}</section>
- <section class="panel"><div class="panel-h"><h2>Kits pedidos pelos vendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
- <div class="tabs ktabs" role="group">${KF.map(([s,l])=>{const n=s==='todos'?S.kits.length:S.kits.filter(k=>k.status===s).length;return `<button data-kf="${s}" aria-pressed="${kf===s}" ${!n&&s!=='todos'?'class="vz"':''}>${l} <span class="gn">${n}</span></button>`}).join('')}</div>
- <div class="tbl"><table><thead><tr><th>Data</th><th>Vendedor</th><th class="n">Itens (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}</td><td>${esc((vend(k.vid)?.nome||'').split(' ')[0])}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td>
- <td class="n">${kitActs(k)}</td></tr>${kitSub(k,2,2)}`).join('')||`<tr><td colspan="7" class="empty">${kf==='todos'?'Nenhum kit pedido.':'Nenhum kit nesta situação.'}</td></tr>`}
- </tbody></table></div>${kc}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
  <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
  ${S.niveis.map((n,i)=>`<tr><td><span class="lvl ${n.nome}">${n.nome}</span></td><td class="n">${i===0?'até '+fmt(n.ate):i===S.niveis.length-1?'acima de '+fmt(S.niveis[i-1].ate):fmt(S.niveis[i-1].ate)+' a '+fmt(n.ate)}</td><td class="n">+${n.bonus}</td></tr>`).join('')}</tbody></table></section>`;
@@ -1284,7 +1295,7 @@ function vCancel(vid){const adm=curUser()?.perfil==='adm';
  <section class="panel"><div class="panel-h"><h2>Vendas canceladas</h2><span class="sp"></span><span class="note">venda ao cliente final · frascos voltaram ao vendedor</span></div>
  ${V.length?`<div class="tbl"><table><thead><tr><th>Cancelada</th><th>Cliente</th>${vid?'':'<th class="hide-sm">Vendedor</th>'}<th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
  ${vr.map(v=>`<tr><td>${dt(v.cancel)}<div class="s note">${v.num?NUMF(v.num,'P')+' · ':''}venda ${br(v.data)}</div></td><td>${esc(v.cliente)}<div class="s note">${PAY[v.pag]||''}${v.cancel?.ant?' · estava '+(v.cancel.ant==='pago'?'paga':'a receber'):''}</div></td>${vid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome||'')}</td>`}
- <td class="n">${U(v.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(+v.total)}</td><td>${mot(v.cancel)}</td><td style="white-space:nowrap">${devSit(v.cancel,v.total,'data-vdevreg','data-verdevv',v.id,true)}</td></tr>`).join('')}
+ <td class="n">${U(v.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(+v.total)}</td><td>${mot(v.cancel)}</td><td style="white-space:nowrap">${devSit(v.cancel,v.total,'data-vdevreg','data-verdevv',v.id,UI.role==='vend')}</td></tr>`).join('')}
  </tbody></table></div>${vc}`:'<p class="empty">Nenhuma venda cancelada no período.</p>'}</section>
  <section class="panel"><div class="panel-h"><h2>Kits cancelados</h2><span class="sp"></span><span class="note">pedido do vendedor à 3mix · frascos voltaram à distribuidora</span></div>
  ${K.length?`<div class="tbl"><table><thead><tr><th>Cancelado</th>${vid?'':'<th>Vendedor</th>'}<th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
@@ -2057,7 +2068,7 @@ function armar(b,txt,ruim){b.textContent=txt;b.classList.add(ruim?'armed-bad':'a
 function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;$('#shell').appendChild(el);setTimeout(()=>el.remove(),1800)}
 
 /* ===== render ===== */
-const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['equipe','Vendedores'],['candidatos','Candidatos'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
+const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['vendasrev','Vendas revendedores'],['equipe','Vendedores'],['candidatos','Candidatos'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
             vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas'],['interesses','Interesses'],['cancel','Cancelamentos']],loja:[],revenda:[]};
 function curUser(){return S.users.find(u=>u.id===UI.user&&u.status==='ativo')||null}
 function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
@@ -2077,7 +2088,7 @@ function render(){
  $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l],i)=>`<button data-view="${k}" class="${xtra&&i>=4?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
   +(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
  let h='';
- if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:()=>vVendas(),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo}[UI.view]();
+ if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:vVendasKits,vendasrev:()=>vVendas(null,true),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
  else if(UI.role==='revenda')h=vRevenda();
  else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,interesses:()=>vInteresses(UI.vid),cancel:()=>vCancel(UI.vid),vendas:()=>vVendas(UI.vid),vender:vInicio}[UI.view]();
@@ -2295,6 +2306,9 @@ document.addEventListener('click',e=>{
   const its=S.socios.map(s=>({socio:s.nome,pct:+s.fundo||0,valor:Math.round(Math.max(0,lm.luc)*(+s.fundo||0))/100}));
   rodar(()=>rpc('fechar_mes',{p_mes:M,p_lucro:Math.round(lm.luc*100)/100,p_itens:its}),`${mesNome(M)} fechado · ${fmt(its.reduce((a,i)=>a+i.valor,0))} no fundo`);return}
  if(d.festorno){if(UI.feArm!==d.festorno){UI.feArm=d.festorno;armar(b,'Confirmar?');return}UI.feArm=null;rodar(()=>rpc('estornar_fundo',{p_id:d.festorno}),'Lançamento estornado');return}
+ if(d.entv||d.desentv){const id=d.entv||d.desentv,ent=!!d.entv,key='e'+ent+id;
+  if(UI.stArm!==key){UI.stArm=key;armar(b,ent?'Confirmar?':'Desfazer?',!ent);setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
+  UI.stArm=null;rodar(()=>rpc('marcar_entrega_venda',{p_id:id,p_entregue:ent}),ent?'Venda entregue ao cliente':'Entrega desfeita');return}
  if(d.pagar||d.receber){const id=d.pagar||d.receber,st=d.pagar?'pago':'receber',key=st+id;
   if(UI.stArm!==key){UI.stArm=key;armar(b,st==='pago'?'Confirmar?':'Voltar?');setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('alterar_status_venda',{p_id:id,p_status:st}),st==='pago'?'Venda marcada como paga':'Venda voltou para A receber');return}
