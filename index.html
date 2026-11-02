@@ -815,6 +815,15 @@ h1{font-size:22px}
 .mlin{padding:0 0 10px;margin-top:-2px;border-bottom:1px solid var(--line)}.mlin.note{font-size:12px}.list .row:has(+.mlin){border-bottom:0}
 .cnits{font-size:12.5px;line-height:1.35}.cnits>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
 @media (min-width:900px) and (max-width:1260px){.tbl td,.tbl th{padding-inline:5px}.kitstbl .kact{grid-template-columns:96px 80px 72px;gap:4px}.kitstbl .kact .btn{padding-left:6px;padding-right:6px}.kitstbl .ksit{max-width:176px}}
+/* cadastro do produto em 3 colunas no computador: cabe sem rolar */
+@media (min-width:900px){.sheet.xl .pform{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr);gap:14px}
+.sheet.xl .pfoto{grid-template-columns:64px minmax(0,1fr);gap:10px}.sheet.xl .pfoto .card .ph{height:64px;min-height:0;aspect-ratio:auto}
+.sheet.xl .pfoto-c{flex-direction:row;gap:10px}.sheet.xl .pfoto-c .f{flex:1;min-width:0}
+.sheet.xl .pform .f{white-space:nowrap}
+.sheet.xl .pform .fg.p3{gap:6px 10px}.sheet.xl .pform .f{gap:2px}.sheet.xl .pform .f input,.sheet.xl .pform .f select{padding-top:6px;padding-bottom:6px}
+.sheet.xl .pc-g{gap:6px 8px;grid-template-columns:max-content minmax(0,1fr) minmax(0,1fr)}.sheet.xl .pc-g .f input{padding-top:6px;padding-bottom:6px}
+.pc-g .pc-l,.pc-box .pc-h{white-space:nowrap}.pcomp{padding:10px}}
+.sheet{scrollbar-width:thin}.sheet::-webkit-scrollbar{width:8px}.sheet::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 </style>
 </head>
 <body class="carregando">
@@ -1661,7 +1670,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-23';
+const VERSAO='2026.11.02-24';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2226,7 +2235,9 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <span class="pc-l">Vendedor → cliente<small>preço sugerido</small></span><label class="f"><input id="f-mkv" data-mk="preco"${D} value="${fmt(mkp(+p.preco,pRev(p)))}" title="Markup vendedor (%)"></label><label class="f"><input id="f-preco" data-f="preco"${D} value="${fmt(p.preco)}" title="Preço sugerido ao cliente (R$)"></label>
    <span class="pc-l">Mostruário (amostra)<small>1+1 · ao vendedor</small></span><label class="f"><input id="f-mkm" data-mk="precoMostra"${D} value="${fmt(mkp(+p.precoMostra||0,custoFinal(p)))}" title="Markup sobre o custo final (%)"></label><label class="f"><input id="f-precoMostra" data-f="precoMostra"${D} value="${fmt(+p.precoMostra||0)}" title="Preço do mostruário ao vendedor (R$). Zero = sem mostruário"></label>
   </div>
-  <div class="calc pc-box" style="margin-top:10px">
+ </div>
+ <div class="pcol pcomp"><div class="pc-t" style="font-size:11px">Taxas e resultado</div>
+  <div class="calc pc-box">
    <b class="pc-h">Taxas sobre venda</b><b class="pc-h n">%</b><b class="pc-h n">R$</b>
    <span>Gateway / MP</span><span class="n"><input id="f-taxagw" data-f="taxagw"${D} value="${fmt(+(S.taxas.taxagw)||0)}" style="width:54px"></span><span class="n" id="pc-gw-r">—</span>
    <span>Outros</span><span class="n"><input id="f-outros" data-f="outros"${D} value="${fmt(+(S.taxas.outros)||0)}" style="width:54px"></span><span class="n" id="pc-out-r">—</span>
