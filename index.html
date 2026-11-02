@@ -654,7 +654,7 @@ td{padding:6px 8px}
 .nav{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 .nav::-webkit-scrollbar{width:6px}.nav::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
 @container (min-width:1101px){
- .shell{grid-template-columns:214px minmax(0,1fr)}
+ .shell{grid-template-columns:232px minmax(0,1fr)}
  .nav{padding:10px 8px;gap:1px}
  .nav button{padding:6px 10px;gap:9px;font-size:13px}
  .nav button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -662,6 +662,26 @@ td{padding:6px 8px}
  .nav .navlabel{padding:6px 10px 3px}
 }
 @container (min-width:721px) and (max-width:1100px){.nav{padding-block:8px}.nav button{padding:6px 2px}}
+/* fontes e ícones um pouco maiores, mesmo espaçamento */
+body{font-size:14.5px}
+table{font-size:13.5px}
+th{font-size:11px}
+h1{font-size:23px}
+.btn{font-size:13.5px}
+.tdiv th{letter-spacing:.02em}.tdiv td:last-child,.tdiv th:last-child{padding-right:2px}.tdiv .acc{min-width:0;gap:6px}.tdiv td,.tdiv th{padding-inline:6px}
+@container (min-width:1101px){
+ .nav button{font-size:14.5px;padding:5px 10px}
+ .nav button svg{width:20px;height:20px}
+ .nav .navlabel{font-size:11px}
+}
+/* Sobre compacto */
+.sobre-cab{gap:14px}.sobre-elo{height:46px;max-width:110px}.sobre-cab b{font-size:15px}.sobre-dev{margin:0 0 2px}
+.infra{gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.infra-it{border:0;border-radius:0;padding:7px 10px;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:8px}
+.infra-it+.infra-it{border-top:1px solid var(--line)}
+.infra-h{background:var(--sunk);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-block:6px}
+.infra-t b{font-size:13.5px}.infra-t .note{font-size:11px;line-height:1.25}
+.infra input{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 9px;font-size:13.5px;width:100%;color:var(--ink)}
 </style>
 </head>
 <body class="carregando">
@@ -729,12 +749,13 @@ td{padding:6px 8px}
 <script>
 /* ===== utilidades ===== */
 const $=s=>document.querySelector(s);
-const fmt=n=>(Math.round(n*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt=n=>{const v=Math.round((+n||0)*100)/100;return (v===0?0:v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})};
+const neg=n=>Math.round((+n||0)*100)<0;
 /* lê número digitado: aceita 1.234,56 ou 1234.56 */
 const num=v=>{v=String(v??'').trim().replace(/\s|R\$|%/g,'');if(v.includes(','))v=v.replace(/\./g,'').replace(',','.');const n=parseFloat(v);return isFinite(n)?n:0};
 const pc=n=>fmt(+n||0)+'%';
-const Ri=n=>`<span class="acc in"><i>R$</i><b>${n<0?'('+fmt(-n)+')':fmt(n)}</b></span>`;
-const R=n=>`<span class="acc"><i>R$</i><b>${n<0?'('+fmt(-n)+')':fmt(n)}</b></span>`;
+const Ri=n=>`<span class="acc in"><i>R$</i><b>${neg(n)?'('+fmt(-n)+')':fmt(n)}</b></span>`;
+const R=n=>`<span class="acc"><i>R$</i><b>${neg(n)?'('+fmt(-n)+')':fmt(n)}</b></span>`;
 const U=n=>`${Math.round(n).toLocaleString('pt-BR')}<span class="un">un</span>`;
 const P=n=>`${(+n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}<span class="un">%</span>`;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -978,7 +999,7 @@ function vPainel(){
  return `<div class="head"><div><h1>Painel de gestão</h1><p class="sub">Últimos ${UI.per} dias · caixa da 3mix = kits pagos pelos vendedores</p></div><div class="sp"></div>${perTabs()}</div>
  ${(()=>{const i=S.kits.filter(k=>k.status==='informado').length,e=S.kits.filter(k=>k.status==='pago').length;const nc=(S.cand||[]).filter(c=>c.status==='novo').length;return (nc?`<div class="alerta">${ic('candidatos')}<span><b>Candidatos a revendedor:</b> ${nc} novo${nc>1?'s':''} esperando contato</span><button class="btn pri sm" data-view="candidatos">Ver</button></div>`:'')+(i||e?`<div class="alerta">${ic('estoque')}<span><b>Kits dos vendedores:</b> ${i?`${i} com pagamento informado para conferir`:''}${i&&e?' · ':''}${e?`${e} pago${e>1?'s':''} a entregar`:''}</span><button class="btn pri sm" data-view="vendas">Ver pedidos</button></div>`:'')+cancAlerta()})()}
  <div class="grid-kpi">
-  <div class="kpi hl"><span class="l">Faturamento 3mix</span><span class="v">${R(t.rec)}</span><span class="d">${L.length} kits pagos · ${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))}</span></div>
+  <div class="kpi hl"><span class="l">Faturamento 3mix</span><span class="v">${R(t.rec)}</span><span class="d">${L.length} kit${L.length===1?'':'s'} pago${L.length===1?'':'s'} · ${dv>=0?'▲':'▼'} ${pc(Math.abs(dv))}</span></div>
   <div class="kpi"><span class="l">Lucro líquido</span><span class="v">${R(t.luc)}</span><span class="d">margem ${pc(t.luc/Math.max(1,t.rec)*100)} · taxas ${Ri(t.tax)}</span></div>
   <div class="kpi"><span class="l">Frascos aos vendedores</span><span class="v">${U(t.un)}</span><span class="d">${(t.un/UI.per).toFixed(1)} un por dia</span></div>
   <div class="kpi"><span class="l">Ticket médio</span><span class="v">${R(tick)}</span><span class="d">por kit</span></div>
@@ -990,9 +1011,9 @@ function vPainel(){
  <div class="two">
   <section class="panel"><div class="panel-h"><h2>Kits pagos × lucro por dia</h2></div>${chartDaily(KP,ksum)}</section>
   <section class="panel"><div class="panel-h"><h2>Divisão do lucro</h2><span class="sp"></span><span class="note">após despesas fixas</span></div>
-   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n hide-sm">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
+   <table class="tdiv"><thead><tr><th>Administrador</th><th class="n">Parte (%)</th><th class="n hide-sm">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
    ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n hide-sm">${pc(+s.fundo||0)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
-   <tr><td class="note">Despesas (${UI.per}d)</td><td></td><td class="hide-sm"></td><td class="n">${R(-totalDesp()*UI.per/30)}</td><td></td></tr></tbody></table>
+   <tr><td class="note" colspan="2" style="white-space:nowrap">Despesas fixas (${UI.per} dias)</td><td class="hide-sm"></td><td class="n">${R(-totalDesp()*UI.per/30)}</td><td></td></tr></tbody></table>
    <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
    <div class="row"><div class="grow"><div class="t">Kits aguardando pagamento</div><div class="s">${abertos.length} kits · ainda não entram no caixa</div></div><b>${R(abertos.reduce((a,k)=>a+kitVal(k),0))}</b></div>
   </section>
@@ -1310,7 +1331,7 @@ function cancAlerta(vid){const d0=Date.now()-UI.per*864e5,em=c=>c&&c.em&&new Dat
  const V=(S.vendasCanc||[]).filter(v=>(!vid||v.vid===vid)&&em(v.cancel)),K=[...S.kits.filter(k=>k.status==='cancelado'&&(!vid||k.vid===vid)&&em(k.cancel)),...PP.filter(p=>em(p.cancel)).map(p=>({total:p.valor}))];
  const pend=[...(S.vendasCanc||[]).filter(v=>(!vid||v.vid===vid)&&v.cancel?.dev==='pendente'),...S.kits.filter(k=>(!vid||k.vid===vid)&&k.cancel?.dev==='pendente'),...PP.filter(p=>p.cancel?.dev==='pendente'),...S.kits.filter(k=>(!vid||k.vid===vid)&&k.exc?.dev==='pendente')].length;
  const n=V.length+K.length;if(!n&&!pend)return '';const val=V.reduce((a,v)=>a+ +v.total,0)+K.reduce((a,k)=>a+ +k.total,0);
- return `<div class="alerta">${ic('cancel')}<span><b>Cancelamentos:</b> ${n} nos últimos ${UI.per} dias · ${Ri(val)}${pend?` · <b>${pend} devolução${pend>1?'ões':''} pendente${pend>1?'s':''}</b>`:''}</span><button class="btn sm" data-view="cancel">Ver</button></div>`}
+ return `<div class="alerta">${ic('cancel')}<span><b>Cancelamentos:</b> ${n} nos últimos ${UI.per} dias · ${Ri(val)}${pend?` · <b>${pend} ${pend>1?'devoluções pendentes':'devolução pendente'}</b>`:''}</span><button class="btn sm" data-view="cancel">Ver</button></div>`}
 /* aba Cancelamentos: vendas e kits cancelados, com motivo e devolução */
 function vCancel(vid){const adm=curUser()?.perfil==='adm';
  const d0=Date.now()-UI.per*864e5,em=c=>c&&c.em&&new Date(c.em).getTime()>=d0;
@@ -1494,17 +1515,16 @@ function vSobre(){const adm=curUser()?.perfil==='adm';
  const I=UI.infra||{};
  return `<div class="head"><div><h1>Sobre</h1><p class="sub">3mix · perfumaria em venda direta</p></div></div>
  <section class="panel sobre"><div class="sobre-cab"><img class="sobre-elo" src="logoelo.png" alt="Elo Sistemas" onerror="this.hidden=true">
-  <div><p class="sobre-dev">Desenvolvido por <b>Elo Sistemas de Informação</b></p><b>Sistema 3mix</b><span class="note">Versão ${VERSAO}</span></div></div>
-  <p class="note">Painel de gestão da distribuidora, app do revendedor, lojas online e página de divulgação "Seja revendedor".</p></section>
+  <div><p class="sobre-dev">Desenvolvido por <b>Elo Sistemas de Informação</b></p><span class="note">Sistema 3mix · versão ${VERSAO} · painel da distribuidora, app do revendedor, lojas online e página "Seja revendedor"</span></div></div></section>
  ${adm?`<section class="panel"><div class="panel-h"><h2>Onde o sistema roda</h2><span class="sp"></span><span class="note">só administradores veem · não guarde senhas aqui</span></div>
-  ${UI.infra===null?'<p class="note">Carregando…</p>':`<div class="infra">${INFRA.map(([k,nome,desc,link,conta])=>{const x=I[k]||{};return `<div class="infra-it">
+  ${UI.infra===null?'<p class="note">Carregando…</p>':`<div class="infra"><div class="infra-it infra-h"><span>Serviço</span><span>Conta (e-mail do login)</span><span>Link / identificação</span><span></span></div>${INFRA.map(([k,nome,desc,link,conta])=>{const x=I[k]||{};return `<div class="infra-it">
    <div class="infra-t"><b>${nome}</b><span class="note">${desc}</span></div>
-   <label class="f">Conta (e-mail do login)<input id="inf-${k}-conta" type="email" maxlength="120" placeholder="${k==='gmail'?'ex.: 3mix@gmail.com':'e-mail usado para entrar'}" value="${esc(x.conta||'')}"></label>
-   <label class="f">Link / identificação<input id="inf-${k}-link" maxlength="200" value="${esc(x.link||(conta?conta:''))}"></label>
+   <input id="inf-${k}-conta" type="email" maxlength="120" aria-label="Conta de ${nome}" placeholder="e-mail usado para entrar" value="${esc(x.conta||'')}">
+   <input id="inf-${k}-link" maxlength="200" aria-label="Link de ${nome}" value="${esc(x.link||(conta?conta:''))}">
    <a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Abrir</a></div>`}).join('')}</div>
-  <label class="f" style="margin-top:10px">Observações<textarea id="inf-obs" rows="2" maxlength="600" placeholder="Ex.: quem é o responsável por cada conta, plano contratado, vencimentos">${esc(I.obs||'')}</textarea></label>
-  <div class="btnrow" style="margin-top:10px"><button class="btn pri" data-infrasalva>Salvar</button></div>
-  <p class="note">Senhas e chaves (como o token do Mercado Pago) não ficam aqui: guarde num gerenciador de senhas. O token do Mercado Pago fica em Supabase → Edge Functions → Secrets.</p>`}</section>`:''}`}
+  <label class="f">Observações<textarea id="inf-obs" rows="2" maxlength="600" placeholder="Ex.: quem é o responsável por cada conta, plano contratado, vencimentos">${esc(I.obs||'')}</textarea></label>
+  <div class="btnrow"><button class="btn pri sm" data-infrasalva>Salvar</button></div>
+  <p class="note" style="margin:0">Senhas e chaves (como o token do Mercado Pago) não ficam aqui: guarde num gerenciador de senhas. O token do Mercado Pago fica em Supabase → Edge Functions → Secrets.</p>`}</section>`:''}`}
 function vLog(){
  const F=UI.lgf||(UI.lgf={u:'',a:''});const all=[...S.log].reverse();
  const L=all.filter(x=>(!F.u||x.u===F.u)&&(!F.a||x.a===F.a));
