@@ -838,6 +838,7 @@ h1{font-size:22px}
  .sl:not(.on) .sh-hero-t>*,.sl:not(.on) .ha{opacity:0;transition:opacity .2s ease,translate .2s ease!important;transition-delay:0s!important}
  .sl.on .sh-hero-t>*{transition-delay:.5s}.sl.on .ha{transition-delay:.55s}.sl.on .ha1{transition-delay:.7s}.sl.on .ha2{transition-delay:.85s}
 }
+.sl.so.ph::before{display:none}.sl-link{position:absolute;inset:0;z-index:2;border:0;background:transparent;cursor:pointer;padding:0}.sl:not(.on) .sl-link{pointer-events:none}
 </style>
 </head>
 <body class="carregando">
@@ -1357,7 +1358,7 @@ function vSocios(){
    <label class="f">Título<input id="bn-tit-${i}" data-bn="${i}" data-k="tit" value="${esc(b.tit)}"></label>
    <label class="f full">Texto (pode usar {vendedor} e {cidade})<input id="bn-txt-${i}" data-bn="${i}" data-k="txt" value="${esc(b.txt)}"></label>
    <label class="f">Botão<input id="bn-cta-${i}" data-bn="${i}" data-k="cta" value="${esc(b.cta)}"></label>
-   <div class="bnact"><label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="bn-on-${i}" data-bn="${i}" data-k="on" ${b.on?'checked':''}> Ativo</label><button class="btn sm" data-bndel="${i}" style="color:var(--bad)">Excluir</button></div>
+   <div class="bnact"><label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="bn-on-${i}" data-bn="${i}" data-k="on" ${b.on?'checked':''}> Ativo</label><label class="note" style="display:flex;gap:6px;align-items:center;white-space:nowrap" title="Marque quando a arte da imagem já tem título e botão: a loja não escreve o texto por cima e o banner inteiro vira o botão"><input type="checkbox" id="bn-so-${i}" data-bn="${i}" data-k="so" ${b.so?'checked':''}> Só a imagem (arte já tem texto)</label><button class="btn sm" data-bndel="${i}" style="color:var(--bad)">Excluir</button></div>
   </div></div>`).join('')||'<p class="empty">Nenhum banner.</p>'}
   <p class="note">Banner sem foto usa um fundo de cor com os perfumes do público escolhido. Banner de um público sem produto à venda não aparece na loja.</p>
  </section>
@@ -1686,7 +1687,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-28';
+const VERSAO='2026.11.02-29';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -1883,10 +1884,10 @@ function carrossel(v,disp){
  if(!B.length)B=[{kick:'Coleção 3mix',tit:'Fragrâncias que ficam na memória',txt:'Escolha, pague como preferir e receba das mãos de {vendedor}.',pub:'',cta:'Comprar agora'}];
  const cur=(UI.slide||0)%B.length;UI.slide=cur;
  return `<section class="sh-car" data-car aria-roledescription="carrossel">
- ${B.map((b,i)=>{const ps=disp.filter(p=>!b.pub||p.genero===b.pub).slice(0,3);return `<div class="sl${i===cur?' on':''}" style="background:${SLBG[b.pub]||SLBG['']}" aria-hidden="${i!==cur}">
+ ${B.map((b,i)=>{const ps=disp.filter(p=>!b.pub||p.genero===b.pub).slice(0,3);const so=b.so&&b.img;return `<div class="sl${i===cur?' on':''}${so?' so':''}" style="background:${SLBG[b.pub]||SLBG['']}" aria-hidden="${i!==cur}">
   ${b.img?`<img class="sl-img" src="${esc(fotoSrc(b.img,'banners'))}" alt="" onload="this.parentNode.classList.add('ph')" onerror="${esc(fbk(b.img))}">`:''}
-  <div class="sh-hero-t"><span class="sh-kick">${tx(b.kick)}</span><h1>${tx(b.tit)}</h1>${b.txt?`<p>${tx(b.txt)}</p>`:''}<button class="sh-btn" data-lg="${esc(b.pub||'')}" data-scroll>${tx(b.cta||'Conferir')}</button></div>
-  <div class="sh-hero-art">${ps.map((p,k)=>`<div class="ha ha${k}">${foto(p)}</div>`).join('')}</div></div>`}).join('')}
+  ${so?`<button class="sl-link" data-lg="${esc(b.pub||'')}" data-scroll aria-label="${tx(b.tit||b.cta||'Ver perfumes')}"></button>`:`<div class="sh-hero-t"><span class="sh-kick">${tx(b.kick)}</span><h1>${tx(b.tit)}</h1>${b.txt?`<p>${tx(b.txt)}</p>`:''}<button class="sh-btn" data-lg="${esc(b.pub||'')}" data-scroll>${tx(b.cta||'Conferir')}</button></div>
+  <div class="sh-hero-art">${ps.map((p,k)=>`<div class="ha ha${k}">${foto(p)}</div>`).join('')}</div>`}</div>`}).join('')}
  ${B.length>1?`<button class="car-nav prev" data-slnav="-1" aria-label="Banner anterior">‹</button><button class="car-nav next" data-slnav="1" aria-label="Próximo banner">›</button>
  <div class="car-dots">${B.map((b,i)=>`<button data-sl="${i}" aria-label="Banner ${i+1}" aria-current="${i===cur}"></button>`).join('')}</div>`:''}</section>`;
 }
@@ -2767,8 +2768,8 @@ document.addEventListener('change',e=>{
   rodar(async()=>{await upd('config',{reserva_horas:n},1);log('Reserva do pedido alterada',fmtH(n))},`Reserva do pedido: ${fmtH(n)}`);return}
  if(d.fmes!==undefined){UI.fmes=t.value;UI.ffArm=false;render();return}
  if(d.bn!==undefined){const bn=S.banners[+d.bn],val=t.type==='checkbox'?t.checked:t.value;bn[d.k]=val;
-  const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao'}[d.k];
-  upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub')render()},err=>toast(msgErro(err),4000));return}
+  const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao',so:'so_imagem'}[d.k];
+  upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub'||d.k==='so')render()},err=>toast(msgErro(err),4000));return}
  if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome}`)},'Foto do banner enviada'));return}
  if(d.despnome!==undefined){S.despesas[+d.despnome].nome=t.value;cfgSave('Despesa renomeada',t.value);return}
  if(d.despval!==undefined){S.despesas[+d.despval].valor=num(t.value);cfgSave('Valor de despesa alterado',`${S.despesas[+d.despval].nome}: R$ ${fmt(num(t.value))}`);render();return}
