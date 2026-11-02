@@ -824,6 +824,13 @@ h1{font-size:22px}
 .sheet.xl .pc-g{gap:6px 8px;grid-template-columns:max-content minmax(0,1fr) minmax(0,1fr)}.sheet.xl .pc-g .f input{padding-top:6px;padding-bottom:6px}
 .pc-g .pc-l,.pc-box .pc-h{white-space:nowrap}.pcomp{padding:10px}}
 .sheet{scrollbar-width:thin}.sheet::-webkit-scrollbar{width:8px}.sheet::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+/* grupos do menu dos sócios */
+.navlabel.ng{display:flex;align-items:center;gap:7px;color:var(--g)!important;font-weight:800;margin-top:6px}
+.gav-lista .navlabel.ng{font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:10px 12px 4px}
+.navlabel.ng i{width:8px;height:8px;border-radius:3px;background:var(--g);flex:none}
+.nav button[style*="--g"] svg,.gav-lista button[style*="--g"] svg{color:var(--g)}
+.nav button[style*="--g"][aria-current="page"],.gav-lista button[style*="--g"][aria-current="page"]{background:color-mix(in srgb,var(--g) 13%,var(--surface));color:var(--ink);box-shadow:inset 3px 0 0 var(--g)}
+@container (max-width:720px){.nav .navlabel.ng{display:none!important}.nav button[style*="--g"][aria-current="page"]{box-shadow:inset 0 -3px 0 var(--g)}}
 </style>
 </head>
 <body class="carregando">
@@ -1670,7 +1677,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-24';
+const VERSAO='2026.11.02-25';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2360,7 +2367,15 @@ function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
  if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}}
 function showAuth(k){['login','rec'].forEach(x=>$({login:'#fLogin',rec:'#fRec'}[x]).hidden=x!==k);document.querySelectorAll('.lp-erro,.lp-ok').forEach(e=>e.hidden=true)}
 function authMsg(id,t){const e=$(id);e.textContent=t;e.hidden=false}
-const navList=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log'],['sobre','Sobre']]:NAVS[UI.role];
+const navList0=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log'],['sobre','Sobre']]:NAVS[UI.role];
+/* menu dos sócios em 3 grupos com cor própria */
+/* mesmas cores nos dois painéis: laranja = distribuidora · verde = revenda · roxo = administração/sistema */
+const GRUPOS_R={socio:[['dist','Distribuidora','#E07A00',['painel','produtos','vendas','inventario','cancel']],['rev','Revendedores','#0E9479',['vendasrev','equipe','candidatos','interesses']],['adm','Administração','#6A55D0',['socios','fundo','acessos','log','sobre']]],
+ vend:[['rev','Minha revenda','#0E9479',['inicio','vendas','interesses','cancel']],['dist','Distribuidora','#E07A00',['comprar','estoque']],['adm','Sistema','#6A55D0',['sobre']]]};
+const NOME_G={socios:'Configurações',vendasrev:'Vendas'};
+const grupoDe=k=>(GRUPOS_R[UI.role]||[]).find(g=>g[3].includes(k));
+const navList=()=>{const L=navList0(),G=GRUPOS_R[UI.role];if(!G)return L;const o=[];G.forEach(g=>g[3].forEach(k=>{const it=L.find(x=>x[0]===k);if(it)o.push(UI.role==='socio'&&NOME_G[k]?[k,NOME_G[k]]:it)}));L.forEach(x=>{if(!o.some(y=>y[0]===x[0]))o.push(x)});return o};
+const navComGrupos=(L,btn)=>{if(!GRUPOS_R[UI.role])return L.map(btn).join('');let ult='';return L.map(it=>{const g=grupoDe(it[0]);let h='';if(g&&g[0]!==ult){ult=g[0];h=`<div class="navlabel ng" style="--g:${g[2]}"><i></i>${g[1]}</div>`}return h+btn(it).replace('<button ',`<button style="--g:${g?g[2]:'var(--accent)'}" `)}).join('')};
 function render(){
  if(!UI.modal&&UI.anx&&Object.keys(UI.anx).length)anxTodos();
  const u=curUser();const dentro=!!u||(['loja','revenda'].includes(UI.role)&&UI.publico);
@@ -2376,9 +2391,9 @@ function render(){
  const cu=curUser();
  const gaveta=UI.navOpen?`<button class="gaveta-fundo" data-navmais aria-label="Fechar menu"></button><aside class="gaveta" aria-label="Menu">
   <div class="gav-top"><span class="av">${cu?ini(cu.nome):''}</span><span class="gav-u"><b>${esc(cu?.nome||'')}</b><small>${cu?PERFIL[cu.perfil]||'':''}</small></span><button class="gav-x" data-navmais aria-label="Fechar menu">${ic('fechar')}</button></div>
-  <div class="gav-lista">${NL.map(btnNav).join('')}</div>
+  <div class="gav-lista">${navComGrupos(NL,btnNav)}</div>
   <div class="gav-pe"><button class="btn sm" data-senha>Trocar senha</button><button class="btn sm" data-sair>Sair</button><span class="note">versão ${VERSAO}</span></div></aside>`:'';
- $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l])=>`<button data-view="${k}" class="${FAV.length&&!FAV.includes(k)?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span class="nl">${l}</span><span class="nc">${curto[k]||l}</span></button>`).join('')
+ $('#nav').innerHTML=navComGrupos(NL,([k,l])=>`<button data-view="${k}" class="${FAV.length&&!FAV.includes(k)?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span class="nl">${l}</span><span class="nc">${curto[k]||l}</span></button>`)
   +`<div class="navver">versão ${VERSAO}</div>`+(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic('menu')}<span>Menu</span></button>`:'');
  {let g=document.getElementById('gavRoot');if(!g){g=document.createElement('div');g.id='gavRoot';document.body.appendChild(g)}g.innerHTML=gaveta;}
  let h='';
