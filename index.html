@@ -832,6 +832,12 @@ h1{font-size:22px}
 .nav button[style*="--g"][aria-current="page"],.gav-lista button[style*="--g"][aria-current="page"]{background:color-mix(in srgb,var(--g) 13%,var(--surface));color:var(--ink);box-shadow:inset 3px 0 0 var(--g)}
 @container (max-width:720px){.nav .navlabel.ng{display:none!important}.nav button[style*="--g"][aria-current="page"]{box-shadow:inset 0 -3px 0 var(--g)}}
 .ambbox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:38px}.ambbox .ambth{width:38px;height:38px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}.ambbox .note{white-space:normal!important;font-size:11.5px}
+/* banners: o texto do banner que sai some antes do novo entrar (sem sobreposição) */
+.sl.on{z-index:1}
+@media (prefers-reduced-motion:no-preference){
+ .sl:not(.on) .sh-hero-t>*,.sl:not(.on) .ha{opacity:0;transition:opacity .2s ease,translate .2s ease!important;transition-delay:0s!important}
+ .sl.on .sh-hero-t>*{transition-delay:.5s}.sl.on .ha{transition-delay:.55s}.sl.on .ha1{transition-delay:.7s}.sl.on .ha2{transition-delay:.85s}
+}
 </style>
 </head>
 <body class="carregando">
@@ -1472,7 +1478,9 @@ function drawCancelVenda(){const x=UI.cv,v=S.vendas.find(y=>y.id===x.id);if(!v)r
  const un=v.itens.reduce((a,i)=>a+i.qtd,0),dono=vend(v.vid)?.nome||'',sel=cvSel(x,v),parcial=sel.un<sel.tot;
  const itensHtml=un>1?`<div class="cxsec"><b>Frascos a cancelar</b><div class="cxits">${v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},q=Math.min(i.qtd,+x.q[i.pid]||0);return `<div class="cxit"><span class="grow"><b>${p.code}</b> ${esc(p.nome)}<small>${i.qtd} un na venda · ${Ri(i.preco)}/un</small></span><div class="qty"><button data-cvq="${i.pid}" data-d="-1" aria-label="Menos" ${q<=0?'disabled':''}>−</button><b>${q}</b><button data-cvq="${i.pid}" data-d="1" aria-label="Mais" ${q>=i.qtd?'disabled':''}>+</button></div></div>`}).join('')}</div>
   <div class="cxtot"><span>${parcial?`Cancelando <b>${sel.un} de ${sel.tot}</b> frascos`:`Cancelando a venda <b>inteira</b> (${sel.tot} un)`}</span><b>${Ri(sel.val)}</b></div>
-  <div class="btnrow" style="margin-top:4px"><button class="btn sm" data-cvall="1">Cancelar tudo</button><button class="btn sm" data-cvall="0">Zerar</button></div></div>`:'';
+  <div class="btnrow" style="margin-top:4px"><button class="btn sm" data-cvall="1">Cancelar tudo</button><button class="btn sm" data-cvall="0">Zerar</button></div></div>`
+  :`<div class="cxsec"><b>Frasco da venda</b><div class="cxits">${v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''};return `<div class="cxit"><span class="grow"><b>${p.code}</b> ${esc(p.nome)}<small>${i.qtd} un na venda · ${Ri(i.preco)}/un</small></span><b>1 un</b></div>`}).join('')}</div>
+  <p class="note" style="margin:4px 0 0">Venda de 1 frasco: o cancelamento é da venda inteira. Em vendas com 2 frascos ou mais, dá para escolher quais cancelar.</p></div>`;
  modal(`<h3>${parcial?'Cancelar parte da venda':'Cancelar venda'}</h3>
  <div class="cxres"><div><span>Cliente</span><b>${esc(v.cliente)}</b></div><div><span>Frascos</span><b>${un} un</b></div><div><span>Valor</span><b>${Ri(vTot(v))}</b></div><div><span>Situação</span><b>${v.status==='pago'?'Pago ('+PAY[v.pag]+')':'A receber'}</b></div></div>
  ${itensHtml}
@@ -1678,7 +1686,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-26';
+const VERSAO='2026.11.02-28';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
