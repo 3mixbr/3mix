@@ -238,7 +238,7 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .infra{display:flex;flex-direction:column;gap:10px}.infra-it{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .infra-t{display:flex;flex-direction:column;align-self:center;min-width:0}.infra-t .note{font-size:11.5px}
 @container (max-width:720px){.infra-it{grid-template-columns:1fr}}
-tr.vtot td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent);white-space:nowrap}tr.vtot td.vtot-l{white-space:normal}tr.vtot .note{font-weight:600}
+tr.vtot td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent);white-space:nowrap}tr.vtot td.vtot-l{white-space:nowrap}tr.vtot td.vtot-l .note{white-space:normal}tr.vtot .note{font-weight:600}
 .dre tr.fim td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent)}
 .dre td.n{white-space:nowrap}
 /* CEP */
@@ -814,6 +814,7 @@ h1{font-size:22px}
 }
 .mlin{padding:0 0 10px;margin-top:-2px;border-bottom:1px solid var(--line)}.mlin.note{font-size:12px}.list .row:has(+.mlin){border-bottom:0}
 .cnits{font-size:12.5px;line-height:1.35}.cnits>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+@media (min-width:900px) and (max-width:1260px){.tbl td,.tbl th{padding-inline:5px}.kitstbl .kact{grid-template-columns:96px 80px 72px;gap:4px}.kitstbl .kact .btn{padding-left:6px;padding-right:6px}.kitstbl .ksit{max-width:176px}}
 </style>
 </head>
 <body class="carregando">
@@ -1320,9 +1321,8 @@ function vSocios(){
   <div class="fg"><label class="f">Pedido mínimo (frascos)<input id="cfg-min" data-minkit type="number" min="1" max="100" inputmode="numeric" value="${MIN}" style="text-align:right"></label>
   <label class="f">Loja pausa após (dias sem compra)<input id="cfg-ldias" data-lojadias type="number" min="7" max="365" inputmode="numeric" value="${+S.lojaDias||30}" style="text-align:right"></label>
   <label class="f">Reserva do pedido (horas)<input id="cfg-res" data-reserva type="text" inputmode="decimal" class="dec" value="${fmt(RES_H())}" style="text-align:right"></label>
-  <label class="f">Mostruário: preço (R$/frasco)<input id="cfg-mpr" data-mostrapreco type="text" inputmode="decimal" class="dec" value="${fmt(MP_())}" style="text-align:right"></label>
   <label class="f">Mostruário: recompra a cada<select id="cfg-mm" data-mostrameses>${[6,12].map(m=>`<option value="${m}" ${MM_()===m?'selected':''}>${m===12?'1 ano':'6 meses'}</option>`).join('')}</select></label>
-  <div class="note" style="align-self:end">Pedido mínimo: frascos por kit. Mostruário: o revendedor leva 1 frasco extra de um perfume por esse preço quando compra pelo menos 1 dele no preço normal (1+1), uma vez por perfume no período. Não conta para o nível e não entra no estoque de venda. Reserva: tempo que o vendedor tem para pagar; depois disso o kit é cancelado sozinho e os frascos voltam para a distribuidora. Kit com comprovante enviado não expira.</div></div>
+  <div class="note" style="align-self:end">Pedido mínimo: frascos por kit. Mostruário: o revendedor leva 1 frasco extra de um perfume pelo preço de mostruário do cadastro do produto quando compra pelo menos 1 dele no preço normal (1+1), uma vez por perfume no período. Não conta para o nível e não entra no estoque de venda. Reserva: tempo que o vendedor tem para pagar; depois disso o kit é cancelado sozinho e os frascos voltam para a distribuidora. Kit com comprovante enviado não expira.</div></div>
  </section>
  <section class="panel"><div class="panel-h"><h2>Banners da loja</h2><span class="sp"></span><span class="note">giram sozinhos · foto horizontal 1600 × 600 px</span><button class="btn sm" data-bnadd>+ Banner</button></div>
   ${S.banners.map((b,i)=>`<div class="bnrow"><div class="bnprev" style="background:${SLBG[b.pub]||SLBG['']}">${b.img?`<img src="${esc(fotoSrc(b.img,'banners'))}" alt="" onerror="${esc(fbk(b.img))}">`:''}<span>${i+1}</span></div>
@@ -1508,12 +1508,12 @@ function vCancel(vid){const adm=curUser()?.perfil==='adm';
  </div>
  <section class="panel"><div class="panel-h"><h2>Vendas canceladas</h2><span class="sp"></span><span class="note">venda ao cliente final · frascos voltaram ao vendedor</span></div>
  ${V.length?`<div class="tbl"><table><thead><tr><th>Cancelada</th><th>Cliente</th>${vid?'':'<th class="hide-sm">Vendedor</th>'}<th>Perfumes</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
- ${vr.map(v=>`<tr><td>${dt(v.cancel)}<div class="s note">${v.num?NUMF(v.num,'P')+' · ':''}venda ${br(v.data)}</div></td><td>${esc(v.cliente)}<div class="s note">${PAY[v.pag]||''}${v.cancel?.ant?' · estava '+(v.cancel.ant==='pago'?'paga':'a receber'):''}</div></td>${vid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome||'')}</td>`}
+ ${vr.map(v=>`<tr><td>${dt(v.cancel)}<div class="s note">${v.num?NUMF(v.num,'P')+' · ':''}venda ${br(v.data)}</div></td><td style="white-space:nowrap">${esc(v.cliente)}<div class="s note">${PAY[v.pag]||''}${v.cancel?.ant?' · estava '+(v.cancel.ant==='pago'?'paga':'a receber'):''}</div></td>${vid?'':`<td class="hide-sm" style="white-space:nowrap">${esc(vend(v.vid)?.nome||'')}</td>`}
  <td>${its(v.itens)}</td><td class="n">${U(v.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(+v.total)}</td><td>${mot(v.cancel)}</td><td style="white-space:nowrap">${devSit(v.cancel,v.total,'data-vdevreg','data-verdevv',v.id,UI.role==='vend')}</td></tr>`).join('')}
  </tbody></table></div>${vc}`:'<p class="empty">Nenhuma venda cancelada no período.</p>'}</section>
  <section class="panel"><div class="panel-h"><h2>Kits cancelados</h2><span class="sp"></span><span class="note">pedido do vendedor à 3mix · frascos voltaram à distribuidora</span></div>
  ${K.length?`<div class="tbl"><table><thead><tr><th>Cancelado</th>${vid?'':'<th>Vendedor</th>'}<th>Perfumes</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${dt(k.cancel)||br(k.data)}<div class="s note">${(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num)?NUMF(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num,'K')+' · ':''}pedido ${br(k.data)}</div></td>${vid?'':`<td>${esc(vend(k.vid)?.nome||'')}</td>`}<td>${its(k.itens)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}${k.parcial?'<div class="s note">parcial</div>':''}</td><td class="n">${R(+k.total)}</td><td>${mot(k.cancel)}</td><td style="white-space:nowrap">${k.parcial?devSit(k.cancel,k.total,'data-pdevreg','data-pverdev',k.id,adm,!adm):devSit(k.cancel,k.total,'data-devreg','data-verdev',k.id,adm,!adm)}</td></tr>`).join('')}
+ ${kr.map(k=>`<tr><td>${dt(k.cancel)||br(k.data)}<div class="s note">${(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num)?NUMF(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num,'K')+' · ':''}pedido ${br(k.data)}</div></td>${vid?'':`<td style="white-space:nowrap">${esc(vend(k.vid)?.nome||'')}</td>`}<td>${its(k.itens)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}${k.parcial?'<div class="s note">parcial</div>':''}</td><td class="n">${R(+k.total)}</td><td>${mot(k.cancel)}</td><td style="white-space:nowrap">${k.parcial?devSit(k.cancel,k.total,'data-pdevreg','data-pverdev',k.id,adm,!adm):devSit(k.cancel,k.total,'data-devreg','data-verdev',k.id,adm,!adm)}</td></tr>`).join('')}
  </tbody></table></div>${kc}`:'<p class="empty">Nenhum kit cancelado no período.</p>'}</section>`}
 /* loja online no ar até (liberação ou última compra paga + N dias) */
 const diasAte=d=>d?Math.floor((new Date(d+'T12:00:00')-new Date(iso(today)+'T12:00:00'))/864e5):null;
@@ -1563,7 +1563,7 @@ function vEstoqueV(){
   <div class="kpi hl"><span class="l">Lucro previsto</span><span class="v">${R(lucV)}</span><span class="d">se vender tudo</span></div>
  </div>
  <section class="panel"><div class="tbl"><table class="cards"><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$/un)</th><th class="n">Meu preço (R$/un)</th><th class="n">Lucro (R$/un)</th><th></th></tr></thead><tbody>
- ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q+aEntV(r.p.id)} un</span>${aEntV(r.p.id)?`<div class="s note">${r.q} para vender · ${aEntV(r.p.id)} a entregar</div>`:''}</td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px"><small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} ${custom?`· ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button>`:'<span class="sugok">✓</span>'}</small></td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}" ${r.q>0?'':'disabled title="Tudo já vendido · falta entregar"'}>Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
+ ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td style="white-space:nowrap"><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q+aEntV(r.p.id)} un</span>${aEntV(r.p.id)?`<div class="s note">${r.q} para vender · ${aEntV(r.p.id)} a entregar</div>`:''}</td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px"><small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} ${custom?`· ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button>`:'<span class="sugok">✓</span>'}</small></td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}" ${r.q>0?'':'disabled title="Tudo já vendido · falta entregar"'}>Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">💡 <b>Meu preço</b> é quanto você cobra do cliente e é o que aparece na sua loja online. O <b>preço sugerido</b> é a referência da 3mix e continua aparecendo embaixo do seu preço, para você comparar. Cobrar acima do sugerido aumenta seu lucro, mas pode afastar o cliente. Para voltar ao sugerido, clique em "usar".</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table class="kitstbl kitsv cards"><thead><tr><th>Data</th><th class="n">Itens (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-altkit="${k.id}" title="Volta os perfumes para o carrinho para você mudar">Alterar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*,application/pdf" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?`<span class="note">${k.pag==='dinheiro'?'pagamento em dinheiro na entrega':'a 3mix está conferindo'}</span> ${k.comprovante?`<button class="btn sm" data-vercompv="${k.id}">📎 Ver</button> <button class="btn sm" data-comprm="${k.id}" title="Enviou o arquivo errado? Remova e envie de novo">Remover</button>`:''}`:k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>${kitSub(k,1,2)}`).join('')||'<tr><td colspan="6" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
@@ -1661,7 +1661,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-22';
+const VERSAO='2026.11.02-23';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -1703,7 +1703,7 @@ function vLog(){
  const sel=(k,l,o)=>`<label class="f" style="min-width:180px">${l}<select id="lgf-${k}" data-lgf="${k}"><option value="">Todos</option>${o.map(x=>`<option ${x===F[k]?'selected':''}>${esc(x)}</option>`).join('')}</select></label>`;
  return `<div class="head"><div><h1>Log do sistema</h1><p class="sub">${U(S.log.length)} registros · quem fez o quê e quando</p></div><div class="sp"></div>${sel('u','Usuário',us)}${sel('a','Ação',as)}</div>
  <section class="panel">${L.length?`<div class="tbl"><table><thead><tr><th>Data e hora</th><th>Usuário</th><th>Ação</th><th>Detalhe</th></tr></thead><tbody>
- ${rows.map(x=>`<tr><td style="white-space:nowrap">${brt(x.t)}</td><td>${esc(x.u)}</td><td><b>${esc(x.a)}</b></td><td class="note">${esc(x.d)}</td></tr>`).join('')}
+ ${rows.map(x=>`<tr><td style="white-space:nowrap">${brt(x.t)}</td><td style="white-space:nowrap">${esc(x.u)}</td><td style="white-space:nowrap"><b>${esc(x.a)}</b></td><td class="note" style="min-width:240px">${esc(x.d)}</td></tr>`).join('')}
  </tbody></table></div>${ctl}`:'<p class="empty">Nenhum registro.</p>'}</section>`;
 }
 
@@ -1940,13 +1940,14 @@ const falta=un=>un?(MIN-un%MIN)%MIN:MIN;
 const metaTxt=un=>!un?`Adicione ${MIN} un para fechar o pedido`:falta(un)?`Faltam ${falta(un)} un para fechar ${un+falta(un)} un`:`Pedido fechado em ${un} un`;
 const cartBtn=()=>{const n=cartTot(cartV()).un;return `<button class="cartbtn" data-carrinho aria-label="Carrinho, ${n} itens">${ic('comprar')}${n?`<span class="badge">${n}</span>`:''}</button>`};
 /* mostruário: 1 frasco de cada perfume por revendedor a cada N meses, preço fixo */
-const MP_=()=>+S.mostraPreco||20,MM_=()=>+S.mostraMeses||6;
+const MPp=p=>+(p&&p.precoMostra)||0,MM_=()=>+S.mostraMeses||6;
+const cartMval=m=>Object.keys(m).reduce((a,pid)=>a+MPp(prod(pid)),0);
 const addMeses=(s,m)=>{let [y,mo,d]=String(s).slice(0,10).split('-').map(Number);mo+=m;y+=Math.floor((mo-1)/12);mo=(mo-1)%12+1;const u=new Date(Date.UTC(y,mo,0)).getUTCDate();return `${y}-${String(mo).padStart(2,'0')}-${String(Math.min(d,u)).padStart(2,'0')}`};
 function mostraLib(vid,pid){let ult=null;S.kits.forEach(k=>{if(k.vid===vid&&k.status!=='cancelado'&&k.itens.some(i=>i.m&&i.pid===pid)&&(!ult||k.data>ult))ult=k.data});
  if(!ult)return null;const lib=addMeses(ult,MM_());return lib>iso(today)?lib:null}
 /* mostruários marcados no carrinho (só vale com 1+ frasco do mesmo perfume no preço normal) */
 const cartM=()=>{const c=cartV(),m=UI.mcart||(UI.mcart={});Object.keys(m).forEach(pid=>{if(!c[pid])delete m[pid]});return m};
-const MOSTRA_TXT=()=>`Mostruário: comprando 1 frasco de um perfume no preço normal, você leva mais 1 dele por ${Ri(MP_())} para demonstração (1 vez a cada ${MM_()===12?'ano':MM_()+' meses'} por perfume). Marque no carrinho.`;
+const MOSTRA_TXT=()=>`Mostruário: comprando 1 frasco de um perfume no preço normal, você leva mais 1 dele com preço especial de mostruário (1 vez a cada ${MM_()===12?'ano':MM_()+' meses'} por perfume). Marque no carrinho.`;
 function vComprar(){
  const c=cartV(),t=cartTot(c),nM=Object.keys(cartM()).length,f=falta(t.un),ch=champRank();const rk={};abc(S.vendas.filter(v=>daysAgo(v.data)<30)).forEach((r,i)=>rk[r.p.id]=i);
  const disp=S.prods.filter(p=>p.estoque>0),g=UI.cg||'';
@@ -1956,7 +1957,7 @@ function vComprar(){
  return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido mínimo de ${MIN} un, pode variar os perfumes. Preço já com seu desconto de revendedor.</p><p class="note" style="margin:4px 0 0">🎁 ${MOSTRA_TXT()}</p></div><div class="sp"></div><button class="btn" data-top6>+ ${MIN} mais vendidos${g?' · '+GEN[g]:''}</button></div>
  <div class="tabs gtabs" role="group">${[['','Todos',disp.length],...gens.map(k=>[k,GEN[k],disp.filter(p=>p.genero===k).length])].map(([k,l,n])=>`<button data-cg="${k}" aria-pressed="${g===k}">${l} <span class="gn">${n}</span></button>`).join('')}</div>
  <div class="cat">${rows.map(p=>buyCard(p,c[p.id]||0,ch[p.id])).join('')}</div>${ctl}
- ${t.un?`<div class="cartbar">${ic('comprar').replace('<svg','<svg width="20" height="20"')}<b>${t.un} un${nM?` + ${nM} mostruário`:''}</b><span>${Ri(t.tot+nM*MP_())}</span><span class="chip ${f?'warn':'good'}">${metaTxt(t.un)}</span><span class="sp"></span><button class="btn pri" data-carrinho>Ver carrinho</button></div>`:''}`;
+ ${t.un?`<div class="cartbar">${ic('comprar').replace('<svg','<svg width="20" height="20"')}<b>${t.un} un${nM?` + ${nM} mostruário`:''}</b><span>${Ri(t.tot+cartMval(cartM()))}</span><span class="chip ${f?'warn':'good'}">${metaTxt(t.un)}</span><span class="sp"></span><button class="btn pri" data-carrinho>Ver carrinho</button></div>`:''}`;
 }
 function buyCard(p,q,r){
  const ph=foto(p),pr=precoRev(p,UI.vid);
@@ -2143,10 +2144,10 @@ const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',inform
 const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
 function drawCarrinho(){
- const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean),m=cartM(),nM=Object.keys(m).length,vM=nM*MP_();
- const mLin=p=>{const on=!!m[p.id],lib=mostraLib(UI.vid,p.id);if(lib)return `<div class="mlin note">Mostruário deste perfume libera em ${br(lib)}</div>`;
+ const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean),m=cartM(),nM=Object.keys(m).length,vM=cartMval(m);
+ const mLin=p=>{const on=!!m[p.id],lib=mostraLib(UI.vid,p.id);if(!MPp(p))return '';if(lib)return `<div class="mlin note">Mostruário deste perfume libera em ${br(lib)}</div>`;
   if(!on&&(c[p.id]||0)+1>p.estoque)return `<div class="mlin note">Mostruário: sem estoque na distribuidora</div>`;
-  return `<div class="mlin"><button class="btn sm" data-mt="${p.id}" aria-pressed="${on}" style="${on?'background:var(--good);color:#fff;border-color:var(--good)':''}">${on?'✓ Mostruário incluído':'+ Levar 1 de mostruário'} · ${Ri(MP_())}</button>${on?` <button class="btn sm" data-mt="${p.id}">Tirar</button>`:''}</div>`};
+  return `<div class="mlin"><button class="btn sm" data-mt="${p.id}" aria-pressed="${on}" style="${on?'background:var(--good);color:#fff;border-color:var(--good)':''}">${on?'✓ Mostruário incluído':'+ Levar 1 de mostruário'} · ${Ri(MPp(p))}</button>${on?` <button class="btn sm" data-mt="${p.id}">Tirar</button>`:''}</div>`};
  const rows=its,ctl='';const pct=t.un?Math.round((t.un%MIN||MIN)/MIN*100):0;
  UI.modal=`<h3>Meu carrinho</h3>
  ${its.length?`<div class="list rolar">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">você paga ${Ri(pr)}/un · vende a ${Ri(precoVend(p,UI.vid))}/un</div></div>
@@ -2223,6 +2224,7 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
   <div class="pc-g" style="margin-top:10px"><span></span><b>Markup (%)</b><b>Preço (R$)</b>
    <span class="pc-l">3mix → vendedor</span><label class="f"><input id="f-mk3" data-mk="precoRev"${D} value="${fmt(mkp(pRev(p),custoFinal(p)))}" title="Markup 3mix (%)"></label><label class="f"><input id="f-precoRev" data-f="precoRev"${D} value="${fmt(pRev(p))}" title="Preço ao vendedor (R$)"></label>
    <span class="pc-l">Vendedor → cliente<small>preço sugerido</small></span><label class="f"><input id="f-mkv" data-mk="preco"${D} value="${fmt(mkp(+p.preco,pRev(p)))}" title="Markup vendedor (%)"></label><label class="f"><input id="f-preco" data-f="preco"${D} value="${fmt(p.preco)}" title="Preço sugerido ao cliente (R$)"></label>
+   <span class="pc-l">Mostruário (amostra)<small>1+1 · ao vendedor</small></span><label class="f"><input id="f-mkm" data-mk="precoMostra"${D} value="${fmt(mkp(+p.precoMostra||0,custoFinal(p)))}" title="Markup sobre o custo final (%)"></label><label class="f"><input id="f-precoMostra" data-f="precoMostra"${D} value="${fmt(+p.precoMostra||0)}" title="Preço do mostruário ao vendedor (R$). Zero = sem mostruário"></label>
   </div>
   <div class="calc pc-box" style="margin-top:10px">
    <b class="pc-h">Taxas sobre venda</b><b class="pc-h n">%</b><b class="pc-h n">R$</b>
@@ -2429,7 +2431,7 @@ document.addEventListener('click',e=>{
  if(d.pg){UI.pages[d.pg]=(UI.pages[d.pg]||0)+ +d.d;if(d.pg==='kit')drawKit();else if(UI.cartOpen)drawCarrinho();else render();return}
  if('kit' in d){UI.view='comprar';UI.modal=null;render();return}
  if('carrinho' in d){mCarrinho();return}
- if(d.mt){const p=prod(d.mt),c=cartV(),m=cartM();if(m[d.mt])delete m[d.mt];else{if(mostraLib(UI.vid,d.mt)){toast('Mostruário deste perfume ainda não liberado');return}if((c[d.mt]||0)+1>p.estoque){toast('Sem estoque na distribuidora para o mostruário');return}m[d.mt]=1}
+ if(d.mt){const p=prod(d.mt),c=cartV(),m=cartM();if(m[d.mt])delete m[d.mt];else{if(!MPp(p)){toast('Este perfume não tem preço de mostruário');return}if(mostraLib(UI.vid,d.mt)){toast('Mostruário deste perfume ainda não liberado');return}if((c[d.mt]||0)+1>p.estoque){toast('Sem estoque na distribuidora para o mostruário');return}m[d.mt]=1}
   if(UI.cartOpen)drawCarrinho();else render();return}
  if(d.bc){const p=prod(d.bc),c=cartV(),m=cartM();c[d.bc]=Math.max(0,Math.min(p.estoque-(m[d.bc]?1:0),(c[d.bc]||0)+ +d.d));if(!c[d.bc]){delete c[d.bc];delete m[d.bc]}save();
   if(UI.cartOpen)drawCarrinho();else render();return}
@@ -2632,16 +2634,16 @@ document.addEventListener('click',e=>{
  if('addit' in d){UI.draft.itens.push({pid:(S.prods.find(p=>eV(UI.draft.vid,p.id)>0)||S.prods[0]).id,qtd:1});drawVenda();return}
  if(d.rmit){UI.draft.itens.splice(+d.rmit,1);drawVenda();return}
  if(d.pay){UI.draft.pag=d.pay;drawVenda();return}
- if('saveprod' in d){const x=UI.draft;['custo','frete','ipi','preco','precoRev'].forEach(k=>x[k]=+x[k]||0);
+ if('saveprod' in d){const x=UI.draft;['custo','frete','ipi','preco','precoRev','precoMostra'].forEach(k=>x[k]=+x[k]||0);
   if(x.precoRev>0&&x.preco<x.precoRev){toast('O preço sugerido ao cliente não pode ser menor que o preço ao vendedor');return}
   x.comissao=x.preco>0?Math.round((1-x.precoRev/x.preco)*1e8)/1e6:0;['min','ml'].forEach(k=>x[k]=+x[k]||0);x.code=String(x.code||'').trim().toUpperCase();if(!x.code){toast('Informe o código do produto');return}if(S.prods.some(p=>p.code===x.code&&p.id!==d.saveprod)){toast(`Código ${x.code} já existe`);return}if(!String(x.nome||'').trim()){toast('Informe o nome do perfume');return}
   rodar(async()=>{let foto=x.foto||'';if(foto.startsWith('data:'))foto=await subirFoto(foto,'produtos',x.code);
-   const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,ipi_pct:+x.ipi||0,preco:x.preco,preco_rev:x.precoRev,preco_vista:0,comissao:x.comissao,
+   const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,ipi_pct:+x.ipi||0,preco:x.preco,preco_rev:x.precoRev,preco_mostra:x.precoMostra,preco_vista:0,comissao:x.comissao,
     estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:(x.sku||'').trim(),sku_rev:(x.skuRev||'').trim()};
    const est=Math.max(0,Math.round(+x.estoque||0)),antes=d.saveprod?(+prod(d.saveprod)?.estoque||0):0;
    if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',{...row,estoque:est});
    if(d.saveprod&&est!==antes)await rpc('aplicar_inventario',{p_local:'central',p_itens:[{pid:d.saveprod,cont:est}]});
-   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)} + IPI ${pc(x.ipi)}`);UI.modal=null},'Produto salvo');return}
+   log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · mostruário R$ ${fmt(x.precoMostra)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)} + IPI ${pc(x.ipi)}`);UI.modal=null},'Produto salvo');return}
  if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=num(x.custo);if(q<=0){toast('Quantidade deve ser maior que zero');return}
   if(x.id){rodar(async()=>{await rpc('editar_entrada',{p_id:x.id,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},'Entrada corrigida');return}
   rodar(async()=>{await rpc('registrar_entrada',{p_pid:x.pid,p_qtd:q,p_custo:c,p_data:x.data||iso(today)});UI.modal=null},`Entrada de ${q} un registrada`);return}
@@ -2671,11 +2673,11 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
- if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','ipi','preco','precoRev','taxagw','outros'].includes(d.f)){UI.draft[d.f]=num(t.value);
+ if(d.f){UI.draft[d.f]=t.value;if(['custo','frete','ipi','preco','precoRev','precoMostra','taxagw','outros'].includes(d.f)){UI.draft[d.f]=num(t.value);
   if(d.f==='taxagw'||d.f==='outros'){S.taxas[d.f]=num(t.value);cfgSave('Taxa atualizada',`${d.f==='taxagw'?'Gateway/MP':'Outros'}: ${pc(num(t.value))}`)}
   const D=UI.draft,cf=custoFinal(D);
   if(d.f==='precoVista'&&!D.precoVista)D.precoVista=0;
-  if(d.f!=='preco')$('#f-mk3').value=fmt(mkp(+D.precoRev,cf));$('#f-mkv').value=fmt(mkp(+D.preco,+D.precoRev));pCalc()}return}
+  if(d.f!=='preco')$('#f-mk3').value=fmt(mkp(+D.precoRev,cf));$('#f-mkv').value=fmt(mkp(+D.preco,+D.precoRev));if($('#f-mkm'))$('#f-mkm').value=fmt(mkp(+D.precoMostra||0,cf));pCalc()}return}
  if(d.mk){const D=UI.draft,base=d.mk==='preco'?+D.precoRev||0:custoFinal(D),v=Math.round(base*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);
   if(d.mk==='precoRev')$('#f-mkv').value=fmt(mkp(+D.preco,v));pCalc();return}
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){const c=+(prod(t.value)?.custo)||0;$('#e-custo').value=fmt(c);UI.draft.custo=c}return}
@@ -2720,8 +2722,6 @@ document.addEventListener('change',e=>{
   rodar(async()=>{await upd('config',{min_kit:n},1);log('Pedido mínimo alterado',`${n} frascos`)},`Pedido mínimo: ${n} frascos`);return}
  if('infrasalva' in d){const o={obs:($('#inf-obs')?.value||'').trim()};INFRA.forEach(([k])=>{o[k]={conta:($('#inf-'+k+'-conta')?.value||'').trim(),link:($('#inf-'+k+'-link')?.value||'').trim()}});
   rodar(async()=>{await upd('config',{infra:o},1);UI.infra=o;log('Dados de infraestrutura atualizados','Sobre')},'Salvo');return}
- if(d.mostrapreco!==undefined){const n=num(t.value);if(!(n>0&&n<=500)){toast('Informe um preço válido');render();return}
-  rodar(async()=>{await upd('config',{mostra_preco:n},1);log('Preço do mostruário alterado',Ri(n))},`Mostruário: ${Ri(n)} por frasco`);return}
  if(d.mostrameses!==undefined){const n=+t.value;if(![6,12].includes(n)){render();return}
   rodar(async()=>{await upd('config',{mostra_meses:n},1);log('Período do mostruário alterado',n===12?'1 ano':'6 meses')},`Mostruário: recompra a cada ${n===12?'1 ano':'6 meses'}`);return}
  if(d.lojadias!==undefined){const n=Math.round(+t.value);if(!(n>=7&&n<=365)){toast('Informe de 7 a 365 dias');render();return}
