@@ -1256,7 +1256,7 @@ function vVendas(onlyVid,ro){
 }
 
 function vVendasKits(){
- const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));
+ const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort(kitOrd);
  const KF=[['todos','Todos'],['informado','Pgto informado'],['aguardando','Aguardando pgto'],['pago','A entregar'],['entregue','Entregues'],['cancelado','Cancelados']];const {rows:kr,ctl:kc}=page('kits'+kf,K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
   const LP=kPagos().filter(inPer),tp=ksum(LP);
  return `<div class="head"><div><h1>Vendas</h1><p class="sub">Kits vendidos pela 3mix aos revendedores · ${UI.per} dias: ${LP.length} kits pagos · ${U(tp.un)} · ${Ri(tp.rec)}</p></div><div class="sp"></div>${perTabs()}</div>
@@ -1272,7 +1272,7 @@ function vEquipe(){
  const KP=kPagos().filter(inPer);
  const rows=S.vend.map(v=>{const kv=KP.filter(k=>k.vid===v.id);const s={rec:kv.reduce((a,k)=>a+kitVal(k),0),un:kv.reduce((a,k)=>a+k.itens.reduce((b,i)=>b+i.qtd,0),0)};const cm=comprasMes(v.id,iso(today).slice(0,7));const n=nivelDe(v.id,iso(today));const last=kPagos().filter(k=>k.vid===v.id).map(k=>k.data).sort().pop();return {v,s,cm,n,last}});
  const {rows:pr,ctl}=page('eq',rows,8);
- const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));
+ const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort(kitOrd);
  const KF=[['todos','Todos'],['informado','Pgto informado'],['aguardando','Aguardando pgto'],['pago','A entregar'],['entregue','Entregues'],['cancelado','Cancelados']];const {rows:kr,ctl:kc}=page('kits'+kf,K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
  return `<div class="head"><div><h1>Vendedores</h1><p class="sub">${S.vend.filter(v=>v.ativo).length} ativos · nível pelas compras de kits: vale no mês em que atingir e no mês seguinte</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-vend="">+ Cadastrar vendedor</button></div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Vendedor</th><th>Nível</th><th class="n">Compras ${UI.per} dias (R$)</th><th class="n">Qtd (un)</th><th class="n">Compras no mês (R$)</th><th class="n">Em mãos (un)</th><th class="hide-sm">Última compra</th><th></th></tr></thead><tbody>
@@ -1579,7 +1579,7 @@ function vEstoqueV(){
  const its=S.prods.filter(p=>eV(v.id,p.id)>0||aEntP(v.id,p.id)>0).map(p=>({p,q:eV(v.id,p.id),c:precoRev(p,v.id),s:L.reduce((a,x)=>a+x.itens.filter(i=>i.pid===p.id).reduce((s,i)=>s+i.qtd,0),0)}));
  const aEntV=pid=>aEntP(v.id,pid),aEntT=S.prods.reduce((a,p)=>a+aEntV(p.id),0);
  const {rows,ctl}=page('ev'+v.id,its,9);
- const K=S.kits.filter(k=>k.vid===v.id).sort((a,b)=>b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kv'+v.id,K,4);
+ const K=S.kits.filter(k=>k.vid===v.id).sort(kitOrd);const {rows:kr,ctl:kc}=page('kv'+v.id,K,4);
  const valV=its.reduce((a,r)=>a+r.q*precoVend(r.p,v.id),0),lucV=its.reduce((a,r)=>a+r.q*(precoVend(r.p,v.id)-r.c),0),cusV=its.reduce((a,r)=>a+r.q*r.c,0);
  return `<div class="head"><div><h1>Meu estoque</h1><p class="sub">Perfumes que estão com você para vender</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
  <div class="grid-kpi" style="grid-template-columns:repeat(4,minmax(0,1fr))">
@@ -1687,7 +1687,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-30';
+const VERSAO='2026.11.02-31';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2168,6 +2168,8 @@ function kitActs(k){const vazio='<span></span>';let c1=vazio,c2=vazio,c3=vazio;
  return `<div class="kact">${c1}${c2}${c3}</div>`}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
+/* mais recente em cima: data e hora do pedido, depois o número */
+const kitOrd=(a,b)=>String(b.criado||b.data).localeCompare(String(a.criado||a.data))||(b.num||0)-(a.num||0);
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
 function drawCarrinho(){
  const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean),m=cartM(),nM=Object.keys(m).length,vM=cartMval(m);
