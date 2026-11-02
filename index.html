@@ -704,6 +704,58 @@ h1{font-size:22px}
 .vpag{margin-top:2px;font-size:11px}
 /* celular: campos com 16px para o iPhone/Android não darem zoom ao tocar (era isso que "expandia" a tela no login) */
 @media (pointer:coarse){input,select,textarea{font-size:16px!important}}
+/* ===== celular: padrão único ===== */
+@container (max-width:720px){
+ /* cabeçalho das telas: título em cima, período ocupando a largura, botão principal largo */
+ .head{flex-direction:column;align-items:stretch;gap:10px}
+ .head>.sp{display:none}
+ .head .tabs{display:flex;width:100%}.head .tabs button{flex:1}
+ .head>.btn{width:100%}
+ /* filtros: todos do mesmo tamanho, 2 por linha */
+ .filtros{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .filtros select{max-width:none;width:100%;grid-column:1/-1}
+ .filtros label{flex-direction:column;align-items:stretch;gap:3px}
+ .filtros label input{width:100%}
+ .filtros .btn{grid-column:1/-1;justify-content:center}
+ /* tabelas em cartões */
+ .tbl table,.tbl table tbody,.tbl table tfoot,table.cards,table.cards tbody,table.cards tfoot{display:block;width:100%}
+ table.cards thead{display:none}
+ .tbl table thead{display:none}
+ table.cards tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;padding:12px 2px;border-bottom:1px solid var(--line)}
+ .tbl table tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;padding:12px 2px;border-bottom:1px solid var(--line)}
+ table.cards td{display:block;border:0;padding:0!important;text-align:left!important;min-width:0;white-space:normal!important;max-width:none!important}
+ .tbl table td{display:block;border:0;padding:0!important;text-align:left!important;min-width:0;white-space:normal!important;max-width:none!important}
+ table.cards td[data-l]::before{content:attr(data-l);display:block;margin-bottom:2px;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+ .tbl table td[data-l]::before{content:attr(data-l);display:block;margin-bottom:2px;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+ table.cards td[data-l=""]::before{display:none}
+ .tbl table td[data-l=""]::before{display:none}
+ table.cards td:empty{display:none}
+ .tbl table td:empty{display:none}
+ table.cards .acc{width:auto;min-width:0;gap:4px;justify-content:flex-start}
+ .tbl table .acc{width:auto;min-width:0;gap:4px;justify-content:flex-start}
+ table.cards td .kact,table.cards td>.btn{justify-content:flex-start}
+ .tbl table td .kact,.tbl table td>.btn{justify-content:flex-start}
+ table.cards td:last-child:not(:first-child){grid-column:1/-1}
+ .tbl table td:last-child:not(:first-child){grid-column:1/-1}
+ table.cards td .kact{display:flex!important;flex-wrap:wrap;gap:6px;width:100%}table.cards td .kact .btn{width:auto!important;flex:0 0 auto}table.cards td>.btn,table.cards td>label.btn{margin:0 6px 6px 0!important}table.cards td .kact>span:empty{display:none}
+ .tbl table td .kact{display:flex!important;flex-wrap:wrap;gap:6px;width:100%}.tbl table td .kact .btn{width:auto!important;flex:0 0 auto}.tbl table td>.btn,.tbl table td>label.btn{margin:0 6px 6px 0!important}.tbl table td .kact>span:empty{display:none}
+ table.cards tr.vsub td{display:block}table.cards tr.vsub{grid-template-columns:1fr auto auto;align-items:center;gap:4px 10px;background:var(--sunk);padding:8px 8px;border-radius:8px;margin:2px 0}
+ .tbl table tr.vsub td{display:block}.tbl table tr.vsub{grid-template-columns:1fr auto auto;align-items:center;gap:4px 10px;background:var(--sunk);padding:8px 8px;border-radius:8px;margin:2px 0}
+ table.cards tr.vsub td:empty{display:none}
+ .tbl table tr.vsub td:empty{display:none}
+ table.cards tfoot tr{grid-template-columns:1fr 1fr;border-top:2px solid var(--accent);border-bottom:0}
+ .tbl table tfoot tr{grid-template-columns:1fr 1fr;border-top:2px solid var(--accent);border-bottom:0}
+ table.cards tfoot td{grid-column:auto}
+ .tbl table tfoot td{grid-column:auto}
+ table.cards tfoot td.vtot-l{grid-column:1/-1}
+ .tbl table tfoot td.vtot-l{grid-column:1/-1}
+ table.cards .empty{grid-column:1/-1;display:block;text-align:center!important}
+ .tbl table .empty{grid-column:1/-1;display:block;text-align:center!important}
+ table.cards .ksit{max-width:none!important}
+ .tbl table .ksit{max-width:none!important}
+ .tbl{overflow:visible}
+}
+.ksit>.chip,.ksit>button{flex-shrink:0}
 </style>
 </head>
 <body class="carregando">
@@ -1105,7 +1157,7 @@ function vVendas(onlyVid,ro){
   <select data-vf="pid" aria-label="Perfume"><option value="">Todos os perfumes (SKU)</option>${S.prods.map(p=>`<option value="${p.id}" ${F.pid===p.id?'selected':''}>${p.code} · ${esc(p.nome)}</option>`).join('')}</select>
   <label>De<input type="date" data-vf="de" value="${F.de||''}"></label><label>Até<input type="date" data-vf="ate" value="${F.ate||''}"></label>
   ${F.vid||F.pag||F.pid||F.st||cust?'<button class="btn sm" data-vflimpa>Limpar filtros</button>':''}</div>`:''}
- <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
+ <section class="panel"><div class="tbl"><table class="cards"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
  ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}</span><div class="s note kvend">${onlyVid?'':esc((vend(v.vid)?.nome||'').split(' ')[0])}${v.origem?` <span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</div></td><td>${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button><div class="s note vcods">${v.itens.map(i=>`${prod(i.pid)?.code||'?'}${i.qtd>1?' ×'+i.qtd:''}`).join(' · ')}</div>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}${v.itens[0]?.qtd>1?' ×'+v.itens[0].qtd:''}</span>`}</td>
  <td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
  <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}</div></td>
@@ -1123,7 +1175,7 @@ function vVendasKits(){
  return `<div class="head"><div><h1>Vendas</h1><p class="sub">Kits vendidos pela 3mix aos revendedores · ${UI.per} dias: ${LP.length} kits pagos · ${U(tp.un)} · ${Ri(tp.rec)}</p></div><div class="sp"></div>${perTabs()}</div>
  <section class="panel"><div class="panel-h"><h2>Pedidos dos revendedores</h2><span class="sp"></span>${kInf?`<span class="chip warn">${kInf} pgto informado · conferir</span>`:''}${kEnt?` <span class="chip A">${kEnt} a entregar</span>`:''}${!kInf&&!kEnt?'<span class="note">pagamento confirmado vira "a entregar"; na entrega o estoque entra para o vendedor</span>':''}</div>
  <div class="tabs ktabs" role="group">${KF.map(([s,l])=>{const n=s==='todos'?S.kits.length:S.kits.filter(k=>k.status===s).length;return `<button data-kf="${s}" aria-pressed="${kf===s}" ${!n&&s!=='todos'?'class="vz"':''}>${l} <span class="gn">${n}</span></button>`}).join('')}</div>
- <div class="tbl"><table class="kitstbl"><thead><tr><th>Pedido</th><th class="n">Qtd (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
+ <div class="tbl"><table class="kitstbl cards"><thead><tr><th>Pedido</th><th class="n">Qtd (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}<div class="s note kvend">${esc((vend(k.vid)?.nome||'').split(' ')[0])}</div></td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td>
  <td class="n">${kitActs(k)}</td></tr>${kitSub(k,1,2)}`).join('')||`<tr><td colspan="6" class="empty">${kf==='todos'?'Nenhum kit pedido.':'Nenhum kit nesta situação.'}</td></tr>`}
  </tbody>${(()=>{const T=K.filter(k=>k.status!=='cancelado');if(!T.length)return '';return `<tfoot><tr class="vtot"><td class="vtot-l">Total · ${T.length} kit${T.length>1?'s':''}</td><td class="n">${U(T.reduce((a,k)=>a+k.itens.reduce((b,i)=>b+i.qtd,0),0))}</td><td></td><td class="n">${R(T.reduce((a,k)=>a+kitVal(k),0))}</td><td colspan="2" class="note">${kf==='todos'?'sem os cancelados':''}</td></tr></tfoot>`})()}</table></div>${kc}</section>
@@ -1141,7 +1193,7 @@ function vEquipe(){
  <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> ${+r.n.bonus?`<div class="s note">−R$ ${fmt(r.n.bonus)} por frasco</div>`:''}</td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.cm)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
  </tbody></table></div>${ctl}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">desconto em R$ em cada frasco comprado no kit</span></div>
- <table><thead><tr><th>Nível</th><th class="n">Compras de kits no mês (R$)</th><th class="n">Desconto por frasco (R$)</th></tr></thead><tbody>
+ <table class="cards"><thead><tr><th>Nível</th><th class="n">Compras de kits no mês (R$)</th><th class="n">Desconto por frasco (R$)</th></tr></thead><tbody>
  ${S.niveis.map((n,i)=>`<tr><td><span class="lvl ${n.nome}">${n.nome}</span></td><td class="n">${i===0?'até '+fmt(n.ate):i===S.niveis.length-1?'acima de '+fmt(S.niveis[i-1].ate):fmt(S.niveis[i-1].ate)+' a '+fmt(n.ate)}</td><td class="n">${+n.bonus?R(n.bonus):'—'}</td></tr>`).join('')}</tbody></table></section>`;
 }
 
@@ -1440,10 +1492,10 @@ function vEstoqueV(){
   <div class="kpi"><span class="l">Valor de venda</span><span class="v">${R(valV)}</span><span class="d">ao seu preço</span></div>
   <div class="kpi hl"><span class="l">Lucro previsto</span><span class="v">${R(lucV)}</span><span class="d">se vender tudo</span></div>
  </div>
- <section class="panel"><div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$/un)</th><th class="n">Meu preço (R$/un)</th><th class="n">Lucro (R$/un)</th><th></th></tr></thead><tbody>
+ <section class="panel"><div class="tbl"><table class="cards"><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$/un)</th><th class="n">Meu preço (R$/un)</th><th class="n">Lucro (R$/un)</th><th></th></tr></thead><tbody>
  ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q} un</span>${aEntV(r.p.id)?`<div class="s note">+ ${aEntV(r.p.id)} a entregar</div>`:''}</td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px"><small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} ${custom?`· ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button>`:'<span class="sugok">✓</span>'}</small></td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}">Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">💡 <b>Meu preço</b> é quanto você cobra do cliente e é o que aparece na sua loja online. O <b>preço sugerido</b> é a referência da 3mix e continua aparecendo embaixo do seu preço, para você comparar. Cobrar acima do sugerido aumenta seu lucro, mas pode afastar o cliente. Para voltar ao sugerido, clique em "usar".</p></section>
- <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table class="kitstbl kitsv"><thead><tr><th>Data</th><th class="n">Itens (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
+ <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table class="kitstbl kitsv cards"><thead><tr><th>Data</th><th class="n">Itens (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-altkit="${k.id}" title="Volta os perfumes para o carrinho para você mudar">Alterar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*,application/pdf" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?`<span class="note">${k.pag==='dinheiro'?'pagamento em dinheiro na entrega':'a 3mix está conferindo'}</span> ${k.comprovante?`<button class="btn sm" data-vercompv="${k.id}">📎 Ver</button> <button class="btn sm" data-comprm="${k.id}" title="Enviou o arquivo errado? Remova e envie de novo">Remover</button>`:''}`:k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>${kitSub(k,1,2)}`).join('')||'<tr><td colspan="6" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
@@ -1539,7 +1591,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-12';
+const VERSAO='2026.11.02-14';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -1555,6 +1607,9 @@ async function checaVersao(){if(location.protocol==='file:'||document.getElement
    if(!ocupado){location.reload();return}
    const el=document.createElement('div');el.id='novaver';el.className='novaver';el.innerHTML='<span>Saiu uma versão nova do sistema.</span><button class="btn pri sm" onclick="location.reload()">Atualizar agora</button>';document.body.appendChild(el)}}catch(e){}}
 setTimeout(checaVersao,1500);setInterval(checaVersao,2*60e3);addEventListener('focus',checaVersao);addEventListener('pageshow',e=>{if(e.persisted)checaVersao()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)checaVersao()});
+/* tabelas .cards: cada célula ganha o nome da coluna, para virar cartão no celular */
+function rotula(){document.querySelectorAll('#main table.cards,#main .tbl table,#modal table.cards').forEach(t=>{const H=[...t.querySelectorAll('thead th')].map(th=>th.textContent.trim());
+ t.querySelectorAll('tbody tr:not(.vsub)').forEach(tr=>{let c=0;[...tr.children].forEach(td=>{const n=+td.colSpan||1;if(n===1&&H[c]&&!td.dataset.l)td.dataset.l=H[c];c+=n})})})}
 function vSobre(){const adm=curUser()?.perfil==='adm';
  if(adm&&UI.infra===undefined){UI.infra=null;sb.from('config').select('infra').eq('id',1).maybeSingle().then(({data})=>{UI.infra=data?.infra||{};if(UI.view==='sobre')render()})}
  const I=UI.infra||{};
@@ -2224,7 +2279,7 @@ function render(){
  else if(UI.role==='loja')h=vLoja();
  else if(UI.role==='revenda')h=vRevenda();
  else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,interesses:()=>vInteresses(UI.vid),cancel:()=>vCancel(UI.vid),vendas:()=>vVendas(UI.vid),vender:vInicio,sobre:vSobre}[UI.view]();
- $('#main').innerHTML=h;
+ $('#main').innerHTML=h;rotula();
  {const sc=document.querySelector('.scrim');if(sc&&sc.isConnected){try{sc.remove()}catch(_){}}}
  if(UI.modal){const s=document.createElement('div');s.className='scrim';s.innerHTML=`<div class="sheet ${UI.msize||'md'}" role="dialog" aria-modal="true">${UI.modal}</div>`;$('#shell').appendChild(s);pCalc()}
 }
