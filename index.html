@@ -231,6 +231,7 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .dre td small{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
 .dre tr.sub td{font-weight:700;background:var(--sunk)}
 .dre tr.tot td{font-weight:700}
+tr.vtot td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent);white-space:nowrap}tr.vtot .note{font-weight:600}
 .dre tr.fim td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent)}
 .dre td.n{white-space:nowrap}
 /* CEP */
@@ -1009,9 +1010,9 @@ function card(p,cl,admin,qty){
 }
 
 function vVendas(onlyVid,ro){
- let L=[...S.vendas].filter(v=>!onlyVid||v.vid===onlyVid).sort((a,b)=>b.data.localeCompare(a.data));
- const {rows,ctl}=page('vds'+(onlyVid||''),L,10);
- const t=sum(L.filter(inPer));
+ let L=[...S.vendas].filter(v=>(!onlyVid||v.vid===onlyVid)&&inPer(v)).sort((a,b)=>b.data.localeCompare(a.data)||(b.num||0)-(a.num||0));
+ const {rows,ctl}=page('vds'+(onlyVid||'')+UI.per,L,10);
+ const t=sum(L);
  const byPay={};L.filter(inPer).forEach(v=>{const c=saleCalc(v);byPay[v.pag]=byPay[v.pag]||{rec:0,n:0,tax:0};byPay[v.pag].rec+=c.rec;byPay[v.pag].n++;byPay[v.pag].tax+=c.tax});
  return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas dos revendedores'}</h1><p class="sub">${UI.per} dias: ${L.filter(inPer).length} vendas · ${U(t.un)}${onlyVid?'':' · dinheiro dos vendedores'}</p></div><div class="sp"></div>${perTabs()}${ro?'':'<button class="btn pri" data-nova>+ Nova venda</button>'}</div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th><th class="hide-sm">Itens</th><th>Pgto</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro vend. (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
@@ -1020,8 +1021,8 @@ function vVendas(onlyVid,ro){
  <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}</td>
  <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
  ${ro?'':`<td><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
- ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="3"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${9+(ro?0:1)}" class="empty">Nenhuma venda ainda.</td></tr>`}
- </tbody></table></div>${ctl}</section>
+ ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="3"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${9+(ro?0:1)}" class="empty">Nenhuma venda nos últimos ${UI.per} dias.</td></tr>`}
+ </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="4">Total · ${L.length} venda${L.length>1?'s':''} em ${UI.per} dias${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
  ${onlyVid?'':'<p class="note">Vendas dos revendedores aos clientes finais, só para acompanhar. O dinheiro é do revendedor e não entra no caixa da 3mix. Pagamento, entrega e cancelamento são feitos pelo próprio revendedor.</p>'}`;
 }
 
@@ -2290,7 +2291,7 @@ document.addEventListener('click',e=>{
     :`<p class="note" style="margin-top:10px">${esc(first)} vai te passar a chave Pix pelo WhatsApp.</p>`)
     :`<p class="note" style="margin-top:10px">Pagamento em dinheiro na entrega. ${esc(first)} vai combinar com você.</p>`}
    ${fone?`<a class="btn pri" style="margin-top:12px;display:inline-flex" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${pix?'Enviar comprovante para':'Avisar'} ${esc(first)} no WhatsApp</a>`:''}
-   ${pub?'':`<p class="note" style="margin-top:12px;background:var(--accent-soft);border-radius:8px;padding:6px 8px">Você está vendo a sua loja como cliente. Este pedido entrou em Vendas como <b>A receber</b>: marque como pago quando o dinheiro cair.</p>`}
+
    <div class="actions"><button class="btn" data-close>Fechar</button></div>`;render()});return}
  if(d.delvend){const v=vend(d.delvend);if(!UI.dvArm){UI.dvArm=true;armar(b,'Excluir?',1);toast('O estoque em mãos e os kits não entregues voltam para a distribuidora; o login é apagado',4500);return}UI.dvArm=false;
   rodar(async()=>{await rpc('excluir_vendedor',{p_vid:v.id,p_devolver:true});UI.modal=null},`${v.nome} excluído`);return}
