@@ -1007,6 +1007,8 @@ const vend=id=>S.vend.find(v=>v.id===id);
 const eV=(vid,pid)=>((S.estV||{})[vid]||{})[pid]||0;
 const addEV=(vid,pid,q)=>{S.estV[vid]=S.estV[vid]||{};S.estV[vid][pid]=Math.max(0,eV(vid,pid)+q)};
 const emRev=pid=>Object.values(S.estV).reduce((a,o)=>a+(o[pid]||0),0);
+/* vendido ao cliente e ainda não entregue: o frasco continua fisicamente com o revendedor (a loja já não oferece, para não vender duas vezes) */
+const aEntP=(vid,pid)=>S.vendas.filter(v=>(!vid||v.vid===vid)&&!v.entregue&&v.status!=='cancelada').reduce((a,v)=>a+v.itens.filter(i=>i.pid===pid).reduce((s,i)=>s+i.qtd,0),0);
 const maosV=vid=>Object.values(S.estV[vid]||{}).reduce((a,b)=>a+b,0);
 /* desconto do nível = valor fixo em R$ por frasco (Prata R$ 1,00 · Ouro R$ 2,00) */
 const precoRev=(p,vid)=>Math.max(0,Math.round((pRev(p)-(+nivelDe(vid,iso(today)).bonus||0))*100)/100);
@@ -1181,7 +1183,7 @@ function vProdutos(){
   ${rows.map(r=>{const p=r.p;const mg=pRev(p)?(pRev(p)-custoFinal(p))/pRev(p)*100:0;const cob=r.un?Math.round(p.estoque/(r.un/UI.per)):'—';
    return `<tr><td><span class="chip ${r.cl}">${r.cl}</span></td><td><button class="btn ghost sm" style="padding:0;border:0" data-edit="${p.id}"><b>${p.code}</b>&nbsp;${esc(p.nome)}</button></td>
    <td class="n">${R(custoFinal(p))}</td><td class="n">${R(pRev(p))}</td><td class="n">${R(p.preco)}</td><td class="n">${P(mg)}</td><td class="n hide-sm">${P(p.comissao)}</td><td class="n hide-sm">${R(r.rec)}</td><td class="n hide-sm">${U(r.un)}</td>
-   <td class="n"><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></td><td class="n hide-sm">${U(emRev(p.id))}</td><td class="hide-sm">${br(p.ultimaCompra)}</td><td class="n hide-sm">${cob}</td></tr>`}).join('')}
+   <td class="n"><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></td><td class="n hide-sm">${U(emRev(p.id)+aEntP(null,p.id))}</td><td class="hide-sm">${br(p.ultimaCompra)}</td><td class="n hide-sm">${cob}</td></tr>`}).join('')}
   </tbody></table></div>${ctl}<p class="note">Margem 3mix = preço ao vendedor − custo final, antes das taxas (gateway + outros). Cobertura = estoque ÷ média diária de saída em kits.</p></section>`;
  }else{
   const C=[...S.compras].sort((a,b)=>b.data.localeCompare(a.data));const {rows,ctl}=page('cmp',C,10);
@@ -1355,8 +1357,8 @@ function vSocios(){
 /* estoque disponível: distribuidora (central) e com vendedores / comigo */
 function vEstoquePainel(vid){
  const adm=!vid,emKit=pid=>S.kits.filter(k=>k.status==='pago').reduce((a,k)=>a+k.itens.filter(i=>i.pid===pid).reduce((s,i)=>s+i.qtd,0),0);
- const aEnt=pid=>S.vendas.filter(v=>v.vid===vid&&!v.entregue).reduce((a,v)=>a+v.itens.filter(i=>i.pid===pid).reduce((s,i)=>s+i.qtd,0),0);
- const L=S.prods.map(p=>({p,c:+p.estoque||0,m:adm?emRev(p.id):eV(vid,p.id),k:adm?emKit(p.id):aEnt(p.id)})).filter(r=>r.c||r.m||r.k).sort((a,b)=>(b.c+b.m)-(a.c+a.m));
+ const aEnt=pid=>aEntP(vid,pid);
+ const L=S.prods.map(p=>({p,c:+p.estoque||0,m:adm?emRev(p.id)+aEntP(null,p.id):eV(vid,p.id),k:adm?emKit(p.id):aEnt(p.id)})).filter(r=>r.c||r.m||r.k).sort((a,b)=>(b.c+b.m)-(a.c+a.m));
  const rows=L; /* lista contínua com rolagem própria (não cresce a tela) */
  const tc=L.reduce((a,r)=>a+r.c,0),tm=L.reduce((a,r)=>a+r.m,0),tk=L.reduce((a,r)=>a+r.k,0);
  const vc=L.reduce((a,r)=>a+r.c*(adm?custoFinal(r.p):pRev(r.p)),0),vm=L.reduce((a,r)=>a+r.m*(adm?custoFinal(r.p):r.p.preco),0);
@@ -1548,8 +1550,8 @@ function vInicio(){
 }
 function vEstoqueV(){
  const v=vend(UI.vid);const L=S.vendas.filter(x=>x.vid===v.id&&daysAgo(x.data)<30);
- const its=S.prods.filter(p=>eV(v.id,p.id)>0).map(p=>({p,q:eV(v.id,p.id),c:precoRev(p,v.id),s:L.reduce((a,x)=>a+x.itens.filter(i=>i.pid===p.id).reduce((s,i)=>s+i.qtd,0),0)}));
- const aEntV=pid=>S.vendas.filter(x=>x.vid===v.id&&!x.entregue).reduce((a,x)=>a+x.itens.filter(i=>i.pid===pid).reduce((s,i)=>s+i.qtd,0),0),aEntT=S.prods.reduce((a,p)=>a+aEntV(p.id),0);
+ const its=S.prods.filter(p=>eV(v.id,p.id)>0||aEntP(v.id,p.id)>0).map(p=>({p,q:eV(v.id,p.id),c:precoRev(p,v.id),s:L.reduce((a,x)=>a+x.itens.filter(i=>i.pid===p.id).reduce((s,i)=>s+i.qtd,0),0)}));
+ const aEntV=pid=>aEntP(v.id,pid),aEntT=S.prods.reduce((a,p)=>a+aEntV(p.id),0);
  const {rows,ctl}=page('ev'+v.id,its,9);
  const K=S.kits.filter(k=>k.vid===v.id).sort((a,b)=>b.data.localeCompare(a.data));const {rows:kr,ctl:kc}=page('kv'+v.id,K,4);
  const valV=its.reduce((a,r)=>a+r.q*precoVend(r.p,v.id),0),lucV=its.reduce((a,r)=>a+r.q*(precoVend(r.p,v.id)-r.c),0),cusV=its.reduce((a,r)=>a+r.q*r.c,0);
@@ -1561,14 +1563,14 @@ function vEstoqueV(){
   <div class="kpi hl"><span class="l">Lucro previsto</span><span class="v">${R(lucV)}</span><span class="d">se vender tudo</span></div>
  </div>
  <section class="panel"><div class="tbl"><table class="cards"><thead><tr><th>Produto</th><th class="n">Em mãos (un)</th><th class="n">Vendido 30d (un)</th><th class="n">Meu custo (R$/un)</th><th class="n">Meu preço (R$/un)</th><th class="n">Lucro (R$/un)</th><th></th></tr></thead><tbody>
- ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q+aEntV(r.p.id)} un</span>${aEntV(r.p.id)?`<div class="s note">${r.q} para vender · ${aEntV(r.p.id)} a entregar</div>`:''}</td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px"><small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} ${custom?`· ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button>`:'<span class="sugok">✓</span>'}</small></td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}">Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
+ ${rows.map(r=>{const pv=precoVend(r.p,v.id),sug=+r.p.preco,custom=pv!==sug;return `<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.q<=1?'warn':'good'}">${r.q+aEntV(r.p.id)} un</span>${aEntV(r.p.id)?`<div class="s note">${r.q} para vender · ${aEntV(r.p.id)} a entregar</div>`:''}</td><td class="n">${U(r.s)}</td><td class="n">${R(r.c)}</td><td class="n"><input class="dec vpreco" data-vpreco="${r.p.id}" type="text" inputmode="decimal" value="${fmt(pv)}" style="width:72px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:4px 6px"><small class="note sugv" title="Preço sugerido pela 3mix ao cliente final. Você decide quanto cobrar.">Sugerido ${Ri(sug)} ${custom?`· ${pv>sug?'+':'−'}${Ri(Math.abs(pv-sug))} <button data-vprecosug="${r.p.id}" title="Voltar ao preço sugerido">usar</button>`:'<span class="sugok">✓</span>'}</small></td><td class="n">${R(pv-r.c)}</td><td class="n" style="white-space:nowrap"><button class="btn pri sm" data-vender="${r.p.id}" ${r.q>0?'':'disabled title="Tudo já vendido · falta entregar"'}>Vender</button> <button class="btn sm" data-share="${r.p.id}" title="Copiar texto para o WhatsApp">Copiar</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Sem estoque. Compre um kit para começar.</td></tr>'}
  </tbody></table></div>${ctl}<p class="note">💡 <b>Meu preço</b> é quanto você cobra do cliente e é o que aparece na sua loja online. O <b>preço sugerido</b> é a referência da 3mix e continua aparecendo embaixo do seu preço, para você comparar. Cobrar acima do sugerido aumenta seu lucro, mas pode afastar o cliente. Para voltar ao sugerido, clique em "usar".</p></section>
  <section class="panel"><div class="panel-h"><h2>Meus kits</h2></div><div class="tbl"><table class="kitstbl kitsv cards"><thead><tr><th>Data</th><th class="n">Itens (un)</th><th>Perfumes</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
  ${kr.map(k=>`<tr><td>${br(k.data)}${numTag(k.num,'K')}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</td><td>${kitPerf(k)}</td><td class="n">${R(kitVal(k))}</td><td>${kitSit(k)}</td><td class="n" style="white-space:nowrap">${k.status==='aguardando'?`<button class="btn pri sm" data-pagkit="${k.id}">Pagar</button> <button class="btn sm" data-altkit="${k.id}" title="Volta os perfumes para o carrinho para você mudar">Alterar</button> <label class="btn sm" style="cursor:pointer"><input type="file" accept="image/*,application/pdf" data-compkit="${k.id}" hidden>📎 Comprovante</label> <button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`:k.status==='informado'?`<span class="note">${k.pag==='dinheiro'?'pagamento em dinheiro na entrega':'a 3mix está conferindo'}</span> ${k.comprovante?`<button class="btn sm" data-vercompv="${k.id}">📎 Ver</button> <button class="btn sm" data-comprm="${k.id}" title="Enviou o arquivo errado? Remova e envie de novo">Remover</button>`:''}`:k.status==='pago'?'<span class="note">pago · aguarde a entrega</span>':''}</td></tr>${kitSub(k,1,2)}`).join('')||'<tr><td colspan="6" class="empty">Nenhum kit ainda.</td></tr>'}</tbody></table></div>${kc}</section>`;
 }
 
 /* ===== inventário: acerto de estoque pela contagem física ===== */
-const invSis=(loc,p)=>loc==='central'?p.estoque:eV(loc,p.id);
+const invSis=(loc,p)=>loc==='central'?p.estoque:eV(loc,p.id)+aEntP(loc,p.id);
 const invLocNome=loc=>loc==='central'?'Estoque central':(vend(loc)?.nome||'—');
 function invDif(p){const I=UI.inv,c=I.cont[p.id];if(c===undefined||c==='')return null;return (+c||0)-invSis(I.local,p)}
 function invCells(p){const d=invDif(p);
@@ -1659,7 +1661,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-21';
+const VERSAO='2026.11.02-22';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
