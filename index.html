@@ -1348,7 +1348,7 @@ function vSocios(){
   <label class="f">Mostruário: recompra a cada<select id="cfg-mm" data-mostrameses>${[6,12].map(m=>`<option value="${m}" ${MM_()===m?'selected':''}>${m===12?'1 ano':'6 meses'}</option>`).join('')}</select></label>
   <div class="note" style="align-self:end">Pedido mínimo: frascos por kit. Mostruário: o revendedor leva 1 frasco extra de um perfume pelo preço de mostruário do cadastro do produto quando compra pelo menos 1 dele no preço normal (1+1), uma vez por perfume no período. Não conta para o nível e não entra no estoque de venda. Reserva: tempo que o vendedor tem para pagar; depois disso o kit é cancelado sozinho e os frascos voltam para a distribuidora. Kit com comprovante enviado não expira.</div></div>
  </section>
- <section class="panel"><div class="panel-h"><h2>Banners da loja</h2><span class="sp"></span><span class="note">giram sozinhos · foto horizontal 1600 × 600 px</span><button class="btn sm" data-bnadd>+ Banner</button></div>
+ <section class="panel"><div class="panel-h"><h2>Banners da loja</h2><span class="sp"></span><span class="note">giram sozinhos · foto horizontal 1600 × 600 px · arte com texto: "Só a imagem"</span><button class="btn sm" data-bnadd>+ Banner</button></div>
   ${S.banners.map((b,i)=>`<div class="bnrow"><div class="bnprev" style="background:${SLBG[b.pub]||SLBG['']}">${b.img?`<img src="${esc(fotoSrc(b.img,'banners'))}" alt="" onerror="${esc(fbk(b.img))}">`:''}<span>${i+1}</span></div>
   <div class="fg bnfg">
    <label class="f">Imagem (arquivo ou URL)<input id="bn-img-${i}" data-bn="${i}" data-k="img" value="${esc(b.img)}" placeholder="ex.: banner-ela.jpg — bucket banners do Supabase"></label>
@@ -1687,7 +1687,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-29';
+const VERSAO='2026.11.02-30';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2770,7 +2770,7 @@ document.addEventListener('change',e=>{
  if(d.bn!==undefined){const bn=S.banners[+d.bn],val=t.type==='checkbox'?t.checked:t.value;bn[d.k]=val;
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao',so:'so_imagem'}[d.k];
   upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub'||d.k==='so')render()},err=>toast(msgErro(err),4000));return}
- if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome}`)},'Foto do banner enviada'));return}
+ if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome,so_imagem:true},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome} · só a imagem`)},'Foto enviada · marcado "Só a imagem" (desmarque se quiser o texto da loja por cima)'));return}
  if(d.despnome!==undefined){S.despesas[+d.despnome].nome=t.value;cfgSave('Despesa renomeada',t.value);return}
  if(d.despval!==undefined){S.despesas[+d.despval].valor=num(t.value);cfgSave('Valor de despesa alterado',`${S.despesas[+d.despval].nome}: R$ ${fmt(num(t.value))}`);render();return}
  if(d.sf!==undefined){const so=S.socios[+d.sf],v=Math.max(0,num(t.value));if(v>so.pct){toast(`O fundo não pode passar da participação de ${so.nome} (${pc(so.pct)})`);render();return}so.fundo=v;cfgSave('Fundo do sócio alterado',`${so.nome}: ${pc(v)} do lucro fica no fundo`);render();return}
