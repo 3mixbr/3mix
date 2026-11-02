@@ -1067,7 +1067,7 @@ function vSocios(){
  <div class="two"><section class="panel"><div class="panel-h"><h2>Resultado do período</h2><span class="sp"></span><span class="note">últimos ${UI.per} dias · kits pagos</span></div>
   ${(()=>{const p=n=>tp.rec?pc(Math.abs(n)/tp.rec*100):'—',nD=S.despesas.length;
    /* kits que estavam pagos e foram cancelados (total ou parcial) no período: saem do faturamento */
-   const cT=S.kits.filter(k=>k.status==='cancelado'&&k.cancel?.ant==='pago'&&inPer(k)).reduce((a,k)=>a+kitVal(k),0);
+   const cT=S.kits.filter(k=>k.status==='cancelado'&&['pago','entregue'].includes(k.cancel?.ant)&&inPer(k)).reduce((a,k)=>a+kitVal(k),0);
    const cP=(S.kitParciais||[]).filter(x=>x.ant==='pago'||x.ant==='entregue').filter(x=>{const k=S.kits.find(y=>y.id===x.kid);return k&&inPer(k)}).reduce((a,x)=>a+ +x.valor,0);
    const canc=cT+cP;
    const pend=S.kits.filter(k=>k.cancel?.dev==='pendente').reduce((a,k)=>a+(+k.cancel.valor||+k.total),0)+(S.kitParciais||[]).filter(x=>x.cancel?.dev==='pendente').reduce((a,x)=>a+(+x.cancel.valor||+x.valor),0)+S.kits.filter(k=>k.exc?.dev==='pendente').reduce((a,k)=>a+ +k.exc.valor,0);
@@ -1751,14 +1751,15 @@ async function verArq(path,titulo,sub,acoes){UI.msize='md';
 /* ===== cancelamento do kit: motivo, observação, devolução do dinheiro e comprovante ===== */
 const DEVF=['Não houve pagamento','Pix para o vendedor','Estorno no Mercado Pago','Dinheiro'];
 function mCancelKit(kid){const k=S.kits.find(x=>x.id===kid);if(!k)return;const adm=curUser()?.perfil==='adm';
- const q={};k.itens.forEach(i=>q[i.pid]=(q[i.pid]||0)+i.qtd);
+ const q={};k.itens.forEach(i=>q[i.pid]=(q[i.pid]||0)+cxMax(k,i));
  UI.cx={kid,motivo:'',obs:'',forma:adm&&k.status!=='aguardando'?'Pix para o vendedor':'Não houve pagamento',valor:+k.total,novo:false,q};drawCancel()}
-const cxSel=(x,k)=>{let un=0,val=0;k.itens.forEach(i=>{const q=Math.min(i.qtd,+x.q[i.pid]||0);un+=q;val+=q*i.preco});return {un,val,tot:k.itens.reduce((a,i)=>a+i.qtd,0)}};
+const cxMax=(k,i)=>k.status==='entregue'?Math.min(i.qtd,+((S.estV[k.vid]||{})[i.pid])||0):i.qtd;
+const cxSel=(x,k)=>{let un=0,val=0;k.itens.forEach(i=>{const q=Math.min(cxMax(k,i),+x.q[i.pid]||0);un+=q;val+=q*i.preco});return {un,val,tot:k.itens.reduce((a,i)=>a+i.qtd,0)}};
 function cxLer(){const g=id=>$(id);if(!UI.cx)return;if(g('#cx-motivo'))UI.cx.motivo=g('#cx-motivo').value;if(g('#cx-obs'))UI.cx.obs=g('#cx-obs').value;if(g('#cx-valor'))UI.cx.valor=num(g('#cx-valor').value)}
 function drawCancel(){const x=UI.cx,k=S.kits.find(y=>y.id===x.kid);if(!k)return;const adm=curUser()?.perfil==='adm',v=vend(k.vid)||{};UI.msize='lg';
  const un=k.itens.reduce((a,i)=>a+i.qtd,0),M=S.motivosCancel||[];
  const sel=cxSel(x,k),parcial=sel.un<sel.tot;
- const pago={aguardando:'aguardando pagamento',informado:'comprovante enviado',pago:'pago, a entregar'}[k.status]||k.status;
+ const pago={aguardando:'aguardando pagamento',informado:'comprovante enviado',pago:'pago, a entregar',entregue:'entregue ao revendedor'}[k.status]||k.status;
  const dev=adm?`<div class="cxsec"><b>Devolução do dinheiro</b>
   <div class="pay cxpay">${DEVF.map(f=>`<button data-cxforma="${esc(f)}" aria-pressed="${x.forma===f}">${f}</button>`).join('')}</div>
   ${x.forma==='Não houve pagamento'?`<p class="note" style="margin:6px 0 0">Nada a devolver: o vendedor não pagou este kit.</p>`:`
@@ -1767,14 +1768,14 @@ function drawCancel(){const x=UI.cx,k=S.kits.find(y=>y.id===x.kid);if(!k)return;
   ${x.forma==='Pix para o vendedor'?(v.pix?`<div class="pixline">Pix do vendedor: <b>${esc(v.pix)}</b><button class="btn sm" data-copy="${esc(v.pix)}">Copiar</button></div>`:'<p class="note" style="margin:6px 0 0">O vendedor não tem chave Pix cadastrada (Vendedores → Editar).</p>'):''}
   ${x.forma==='Estorno no Mercado Pago'?'<p class="note" style="margin:6px 0 0">Faça o estorno no painel do Mercado Pago (Atividade → pagamento → Devolver) e anexe o comprovante.</p>':''}
   <p class="note" style="margin:6px 0 0">Sem comprovante, fica <b>pendente</b> para anexar depois.</p>`}</div>`:'';
- const itensHtml=`<div class="cxsec"><b>Frascos a cancelar</b><div class="cxits">${k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},q=Math.min(i.qtd,+x.q[i.pid]||0);return `<div class="cxit"><span class="grow"><b>${p.code}</b> ${esc(p.nome)}<small>${i.qtd} un no kit · ${Ri(i.preco)}/un</small></span><div class="qty"><button data-cxq="${i.pid}" data-d="-1" aria-label="Menos" ${q<=0?'disabled':''}>−</button><span>${q}</span><button data-cxq="${i.pid}" data-d="1" aria-label="Mais" ${q>=i.qtd?'disabled':''}>+</button></div></div>`}).join('')}</div>
+ const itensHtml=`<div class="cxsec"><b>Frascos a cancelar</b><div class="cxits">${k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},mx=cxMax(k,i),q=Math.min(mx,+x.q[i.pid]||0);return `<div class="cxit"><span class="grow"><b>${p.code}</b> ${esc(p.nome)}<small>${i.qtd} un no kit${k.status==='entregue'?` · <b>${mx} em mãos</b>`:''} · ${Ri(i.preco)}/un</small></span><div class="qty"><button data-cxq="${i.pid}" data-d="-1" aria-label="Menos" ${q<=0?'disabled':''}>−</button><span>${q}</span><button data-cxq="${i.pid}" data-d="1" aria-label="Mais" ${q>=mx?'disabled':''}>+</button></div></div>`}).join('')}</div>
   <div class="cxtot"><span>${parcial?`Cancelando <b>${sel.un} de ${sel.tot}</b> frascos`:`Cancelando o pedido <b>inteiro</b> (${sel.tot} un)`}</span><b>${Ri(sel.val)}</b></div>
   ${parcial?`<p class="note" style="margin:4px 0 0">O kit continua com ${sel.tot-sel.un} un e passa a valer ${Ri(+k.total-sel.val)}.</p>`:''}
   <div class="btnrow" style="margin-top:4px"><button class="btn sm" data-cxall="1">Cancelar tudo</button><button class="btn sm" data-cxall="0">Zerar</button></div></div>`;
  modal(`<h3>${parcial?'Cancelar parte do pedido':'Cancelar pedido de kit'}</h3>
  <div class="cxres"><div><span>Vendedor</span><b>${esc(v.nome||'')}</b></div><div><span>Frascos</span><b>${un} un</b></div><div><span>Valor</span><b>${Ri(+k.total)}</b></div><div><span>Situação</span><b>${pago}</b></div></div>
  <div class="cxgrid"><div>${itensHtml}
- <div class="cxinfo">↩ ${sel.un===1?'O frasco cancelado volta':`Os ${sel.un} frascos cancelados voltam`} para o estoque central da distribuidora.</div>
+ <div class="cxinfo">↩ ${k.status==='entregue'?`${sel.un===1?'O frasco sai':`Os ${sel.un} frascos saem`} do estoque de ${esc((v.nome||'').split(' ')[0])} e ${sel.un===1?'volta':'voltam'} para o estoque central. Só dá para cancelar o que o revendedor ainda tem em mãos.`:`${sel.un===1?'O frasco cancelado volta':`Os ${sel.un} frascos cancelados voltam`} para o estoque central da distribuidora.`}</div>
  </div><div>
  <div class="cxsec" style="margin-top:0"><b>Motivo do cancelamento</b>
   <div class="cxmot"><select id="cx-motivo"><option value="">Escolha o motivo…</option>${M.map(m=>`<option ${m===x.motivo?'selected':''}>${esc(m)}</option>`).join('')}</select>${adm?`<button class="btn sm" data-cxnovo title="Criar novo motivo">+</button>`:''}</div>
@@ -1870,6 +1871,9 @@ function kitActs(k){const vazio='<span></span>';let c1=vazio,c2=vazio,c3=vazio;
   c1=`<button class="btn sm" data-etqk="${k.id}" title="Imprimir etiqueta 10×15 para entrega">🖨 Etiqueta</button>`;
   c2=`<button class="btn pri sm" data-entkit="${k.id}" title="Marcar como entregue ao vendedor">Entregue</button>`;
   c3=`<button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`}
+ else if(k.status==='entregue'){
+  c1=`<button class="btn sm" data-etqk="${k.id}" title="Imprimir etiqueta 10×15">🖨 Etiqueta</button>`;
+  c3=`<button class="btn sm" data-cancelkit="${k.id}" title="Cancelar frascos que o revendedor ainda tem em mãos">Cancelar</button>`}
  return `<div class="kact">${c1}${c2}${c3}</div>`}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
@@ -2170,8 +2174,8 @@ document.addEventListener('click',e=>{
   else{det='Motivo de cancelamento excluído: '+L[+d.motdel];L.splice(+d.motdel,1)}
   rodar(async()=>{await upd('config',{motivos_cancel:L},1);log(det,'')});return}
  if(d.cxforma){cxLer();UI.cx.forma=d.cxforma;drawCancel();return}
- if(d.cxq){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid),it=k.itens.find(i=>i.pid===d.cxq);UI.cx.q[d.cxq]=Math.max(0,Math.min(it.qtd,(+UI.cx.q[d.cxq]||0)+(+d.d)));UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
- if(d.cxall!==undefined){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid);k.itens.forEach(i=>UI.cx.q[i.pid]=d.cxall==='1'?i.qtd:0);UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
+ if(d.cxq){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid),it=k.itens.find(i=>i.pid===d.cxq);UI.cx.q[d.cxq]=Math.max(0,Math.min(cxMax(k,it),(+UI.cx.q[d.cxq]||0)+(+d.d)));UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
+ if(d.cxall!==undefined){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid);k.itens.forEach(i=>UI.cx.q[i.pid]=d.cxall==='1'?cxMax(k,i):0);UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
  if(d.anxrm){anxLimpa(d.anxrm);anxRedesenha(d.anxrm);return}
  if(d.anxver){const a=UI.anx?.[d.anxver];if(a?.url)window.open(a.url,'_blank');return}
  {const AX={cxok:'cx-file',cvok:'cv-file',dvok:'dv-file',vdvok:'vdv-file',excok:'exc-file',pdvok:'pdv-file'};
