@@ -756,6 +756,27 @@ h1{font-size:22px}
  .tbl{overflow:visible}
 }
 .ksit>.chip,.ksit>button{flex-shrink:0}
+/* gaveta do menu (só no celular) */
+.gaveta,.gaveta-fundo{display:none}
+@container (max-width:720px){
+ .nav.open button.x{display:none!important}
+ .nav.open button{flex:1!important}
+ .nav.open .mais{order:0}
+}
+@media (max-width:720px){
+ .gaveta-fundo{display:block;position:fixed;inset:0;z-index:40;border:0;padding:0;background:rgba(10,14,20,.45);flex:none!important}
+ .gaveta{display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:41;width:min(84vw,320px);background:var(--surface);box-shadow:8px 0 30px -10px rgba(0,0,0,.45);padding:calc(10px + env(safe-area-inset-top,0px)) 0 calc(10px + env(safe-area-inset-bottom,0px));animation:gavIn .18s ease-out}
+ @keyframes gavIn{from{transform:translateX(-100%)}to{transform:none}}
+ .gav-top{display:flex;align-items:center;gap:10px;padding:6px 14px 12px;border-bottom:1px solid var(--line)}
+ .gav-u{display:flex;flex-direction:column;flex:1;min-width:0}.gav-u b{font-size:15px}.gav-u small{color:var(--muted);font-size:12px}
+ .gav-x{border:0;background:transparent;padding:6px;display:flex;flex:none!important;color:var(--muted)}.gav-x svg{width:22px;height:22px}
+ .gav-lista{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:2px}
+ .gaveta .gav-lista button{display:flex!important;flex:none!important;flex-direction:row!important;align-items:center;gap:12px;width:100%;padding:10px 12px!important;font-size:15px!important;text-align:left;border-radius:10px}
+ .gaveta .gav-lista button svg{width:20px;height:20px}
+ .gaveta .gav-lista button[aria-current="page"]{background:var(--accent-soft);color:var(--ink)}
+ .gav-pe{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px 4px;border-top:1px solid var(--line)}.gav-pe .note{width:100%;font-size:11px}
+ .gaveta .gav-lista button{border:0;background:transparent;color:var(--ink);font-weight:600;font-family:inherit}
+}
 </style>
 </head>
 <body class="carregando">
@@ -862,6 +883,7 @@ const ICON={
  log:'<path d="M4 6h16M4 12h9M4 18h6"/><circle cx="17.5" cy="16.5" r="3.5"/><path d="M17.5 15v1.6l1 .8"/>',
  busca:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
  fundo:'<path d="M4 10h16M5 10V19M9.5 10v9M14.5 10v9M19 10v9M3 20h18M12 3l9 5H3z"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
  mais:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
  fechar:'<path d="M6 6l12 12M18 6L6 18"/>',
  whats:'<path d="M4 20l1.3-3.8A8 8 0 1 1 8.2 19z"/><path d="M9.2 8.6c-.6.4-.8 1.2-.5 2.1.7 2 2.3 3.6 4.3 4.3.9.3 1.7.1 2.1-.5l-1.6-1.2-1 .6a4.6 4.6 0 0 1-2.1-2.1l.6-1-1.2-1.6z"/>',
@@ -1591,7 +1613,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-14';
+const VERSAO='2026.11.02-15';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2270,10 +2292,18 @@ function render(){
  if(!dentro)return;
  $('#userBox').innerHTML=u&&!UI.publico?`${UI.role==='loja'?'<button class="btn sm" data-voltar>Voltar ao painel</button>':''}${UI.role==='vend'?cartBtn():''}<span class="av">${ini(u.nome)}</span><span class="uname"><b>${esc(u.nome.split(' ')[0])}</b><small>${PERFIL[u.perfil]}</small></span><button class="btn sm" data-senha title="Trocar senha">Senha</button><button class="btn sm" data-sair>Sair</button>`:'';
  $('#shell').classList.toggle('store',UI.role==='loja'||UI.role==='revenda');
- const NL=navList(),xtra=NL.length>5;
+ const NL=navList(),xtra=NL.length>5,FAV={socio:['painel','vendas','vendasrev','equipe'],vend:['inicio','comprar','estoque','vendas']}[UI.role]||[];
  $('#nav').classList.toggle('open',!!UI.navOpen);
- $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l],i)=>`<button data-view="${k}" class="${xtra&&i>=4?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
-  +`<div class="navver">versão ${VERSAO}</div>`+(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
+ const btnNav=([k,l])=>`<button data-view="${k}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`;
+ /* celular: 4 atalhos embaixo + "Menu" (☰) que abre a gaveta lateral com tudo. Computador: menu lateral de sempre */
+ const cu=curUser();
+ const gaveta=UI.navOpen?`<button class="gaveta-fundo" data-navmais aria-label="Fechar menu"></button><aside class="gaveta" aria-label="Menu">
+  <div class="gav-top"><span class="av">${cu?ini(cu.nome):''}</span><span class="gav-u"><b>${esc(cu?.nome||'')}</b><small>${cu?PERFIL[cu.perfil]||'':''}</small></span><button class="gav-x" data-navmais aria-label="Fechar menu">${ic('fechar')}</button></div>
+  <div class="gav-lista">${NL.map(btnNav).join('')}</div>
+  <div class="gav-pe"><button class="btn sm" data-senha>Trocar senha</button><button class="btn sm" data-sair>Sair</button><span class="note">versão ${VERSAO}</span></div></aside>`:'';
+ $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l])=>`<button data-view="${k}" class="${FAV.length&&!FAV.includes(k)?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
+  +`<div class="navver">versão ${VERSAO}</div>`+(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic('menu')}<span>Menu</span></button>`:'');
+ {let g=document.getElementById('gavRoot');if(!g){g=document.createElement('div');g.id='gavRoot';document.body.appendChild(g)}g.innerHTML=gaveta;}
  let h='';
  if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:vVendasKits,vendasrev:()=>vVendas(null,true),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo,sobre:vSobre}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
