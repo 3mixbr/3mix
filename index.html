@@ -812,6 +812,8 @@ h1{font-size:22px}
  .main{overflow:visible!important;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))!important}
  .shell{height:auto!important;min-height:calc(100dvh - 50px)!important}
 }
+.mlin{padding:0 0 10px;margin-top:-2px;border-bottom:1px solid var(--line)}.mlin.note{font-size:12px}.list .row:has(+.mlin){border-bottom:0}
+.cnits{font-size:12.5px;line-height:1.35}.cnits>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
 </style>
 </head>
 <body class="carregando">
@@ -1043,7 +1045,7 @@ function monthSales(vid,ref){const d=new Date((ref||iso(today))+'T12:00:00');con
  return S.vendas.filter(v=>v.vid===vid&&new Date(v.data+'T12:00:00').getMonth()===m&&new Date(v.data+'T12:00:00').getFullYear()===y)}
 const _nv={};
 /* compras de kits (pagos ou entregues) do revendedor num mês 'AAAA-MM', pelo valor pago à 3mix */
-const comprasMes=(vid,ym)=>S.kits.filter(k=>k.vid===vid&&KPAGO.includes(k.status)&&String(k.data).slice(0,7)===ym).reduce((a,k)=>a+kitVal(k),0);
+const comprasMes=(vid,ym)=>S.kits.filter(k=>k.vid===vid&&KPAGO.includes(k.status)&&String(k.data).slice(0,7)===ym).reduce((a,k)=>a+k.itens.filter(i=>!i.m).reduce((b,i)=>b+i.preco*i.qtd,0),0);
 function nivelDe(vid,ref){
  const key=vid+(ref||'').slice(0,7);if(_nv[key])return _nv[key];
  // nível pelas COMPRAS de kits do mês anterior (o que o revendedor comprou da 3mix)
@@ -1316,7 +1318,9 @@ function vSocios(){
   <div class="fg"><label class="f">Pedido mínimo (frascos)<input id="cfg-min" data-minkit type="number" min="1" max="100" inputmode="numeric" value="${MIN}" style="text-align:right"></label>
   <label class="f">Loja pausa após (dias sem compra)<input id="cfg-ldias" data-lojadias type="number" min="7" max="365" inputmode="numeric" value="${+S.lojaDias||30}" style="text-align:right"></label>
   <label class="f">Reserva do pedido (horas)<input id="cfg-res" data-reserva type="text" inputmode="decimal" class="dec" value="${fmt(RES_H())}" style="text-align:right"></label>
-  <div class="note" style="align-self:end">Pedido mínimo: frascos por kit. Reserva: tempo que o vendedor tem para pagar; depois disso o kit é cancelado sozinho e os frascos voltam para a distribuidora. Kit com comprovante enviado não expira.</div></div>
+  <label class="f">Mostruário: preço (R$/frasco)<input id="cfg-mpr" data-mostrapreco type="text" inputmode="decimal" class="dec" value="${fmt(MP_())}" style="text-align:right"></label>
+  <label class="f">Mostruário: recompra a cada<select id="cfg-mm" data-mostrameses>${[6,12].map(m=>`<option value="${m}" ${MM_()===m?'selected':''}>${m===12?'1 ano':'6 meses'}</option>`).join('')}</select></label>
+  <div class="note" style="align-self:end">Pedido mínimo: frascos por kit. Mostruário: o revendedor leva 1 frasco extra de um perfume por esse preço quando compra pelo menos 1 dele no preço normal (1+1), uma vez por perfume no período. Não conta para o nível e não entra no estoque de venda. Reserva: tempo que o vendedor tem para pagar; depois disso o kit é cancelado sozinho e os frascos voltam para a distribuidora. Kit com comprovante enviado não expira.</div></div>
  </section>
  <section class="panel"><div class="panel-h"><h2>Banners da loja</h2><span class="sp"></span><span class="note">giram sozinhos · foto horizontal 1600 × 600 px</span><button class="btn sm" data-bnadd>+ Banner</button></div>
   ${S.banners.map((b,i)=>`<div class="bnrow"><div class="bnprev" style="background:${SLBG[b.pub]||SLBG['']}">${b.img?`<img src="${esc(fotoSrc(b.img,'banners'))}" alt="" onerror="${esc(fbk(b.img))}">`:''}<span>${i+1}</span></div>
@@ -1492,6 +1496,7 @@ function vCancel(vid){const adm=curUser()?.perfil==='adm';
  const PV=(S.vendasCanc||[]).filter(v=>(!vid||v.vid===vid)&&v.cancel?.dev==='pendente'),PK=[...S.kits.filter(k=>(!vid||k.vid===vid)&&k.cancel?.dev==='pendente'),...(S.kitParciais||[]).filter(p=>(!vid||p.vid===vid)&&p.cancel?.dev==='pendente').map(p=>({total:p.valor,cancel:p.cancel})),...S.kits.filter(k=>(!vid||k.vid===vid)&&k.exc?.dev==='pendente').map(k=>({total:k.exc.valor,cancel:{valor:k.exc.valor}}))];
  const {rows:vr,ctl:vc}=page('cnv'+(vid||''),V,6),{rows:kr,ctl:kc}=page('cnk'+(vid||''),K,6);
  const mot=c=>`<div class="t">${esc(c?.motivo||'sem motivo')}</div>${c?.obs?`<div class="s note"><i>${esc(c.obs)}</i></div>`:''}`;
+ const its=L=>`<div class="cnits">${(L||[]).map(i=>{const p=prod(i.pid)||{code:'?',nome:''};return `<div>${i.qtd}× <b>${esc(p.code)}</b> ${esc(p.nome)}${i.m?' '+MCHIP:''}</div>`}).join('')}</div>`;
  const dt=c=>c?.em?new Date(c.em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
  return `<div class="head"><div><h1>Cancelamentos</h1><p class="sub">Histórico de vendas${vid?' e kits seus':' e kits'} cancelados, com motivo e devolução do dinheiro</p></div><div class="sp"></div>${perTabs()}</div>
  <div class="grid-kpi" style="grid-template-columns:repeat(3,minmax(0,1fr))">
@@ -1500,13 +1505,13 @@ function vCancel(vid){const adm=curUser()?.perfil==='adm';
   <div class="kpi ${PV.length+PK.length?'hl':''}"><span class="l">Devoluções pendentes</span><span class="v">${PV.length+PK.length}</span><span class="d">${Ri(PV.reduce((a,v)=>a+(+v.cancel.valor||+v.total),0)+PK.reduce((a,k)=>a+(+k.cancel.valor||+k.total),0))} a devolver</span></div>
  </div>
  <section class="panel"><div class="panel-h"><h2>Vendas canceladas</h2><span class="sp"></span><span class="note">venda ao cliente final · frascos voltaram ao vendedor</span></div>
- ${V.length?`<div class="tbl"><table><thead><tr><th>Cancelada</th><th>Cliente</th>${vid?'':'<th class="hide-sm">Vendedor</th>'}<th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
+ ${V.length?`<div class="tbl"><table><thead><tr><th>Cancelada</th><th>Cliente</th>${vid?'':'<th class="hide-sm">Vendedor</th>'}<th>Perfumes</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
  ${vr.map(v=>`<tr><td>${dt(v.cancel)}<div class="s note">${v.num?NUMF(v.num,'P')+' · ':''}venda ${br(v.data)}</div></td><td>${esc(v.cliente)}<div class="s note">${PAY[v.pag]||''}${v.cancel?.ant?' · estava '+(v.cancel.ant==='pago'?'paga':'a receber'):''}</div></td>${vid?'':`<td class="hide-sm">${esc(vend(v.vid)?.nome||'')}</td>`}
- <td class="n">${U(v.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(+v.total)}</td><td>${mot(v.cancel)}</td><td style="white-space:nowrap">${devSit(v.cancel,v.total,'data-vdevreg','data-verdevv',v.id,UI.role==='vend')}</td></tr>`).join('')}
+ <td>${its(v.itens)}</td><td class="n">${U(v.itens.reduce((a,i)=>a+i.qtd,0))}</td><td class="n">${R(+v.total)}</td><td>${mot(v.cancel)}</td><td style="white-space:nowrap">${devSit(v.cancel,v.total,'data-vdevreg','data-verdevv',v.id,UI.role==='vend')}</td></tr>`).join('')}
  </tbody></table></div>${vc}`:'<p class="empty">Nenhuma venda cancelada no período.</p>'}</section>
  <section class="panel"><div class="panel-h"><h2>Kits cancelados</h2><span class="sp"></span><span class="note">pedido do vendedor à 3mix · frascos voltaram à distribuidora</span></div>
- ${K.length?`<div class="tbl"><table><thead><tr><th>Cancelado</th>${vid?'':'<th>Vendedor</th>'}<th class="n">Itens (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
- ${kr.map(k=>`<tr><td>${dt(k.cancel)||br(k.data)}<div class="s note">${(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num)?NUMF(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num,'K')+' · ':''}pedido ${br(k.data)}</div></td>${vid?'':`<td>${esc(vend(k.vid)?.nome||'')}</td>`}<td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}${k.parcial?'<div class="s note">parcial</div>':''}</td><td class="n">${R(+k.total)}</td><td>${mot(k.cancel)}${k.parcial?`<div class="s note">${k.itens.map(i=>`${i.qtd}x ${prod(i.pid)?.code||'?'}`).join(', ')}</div>`:''}</td><td style="white-space:nowrap">${k.parcial?devSit(k.cancel,k.total,'data-pdevreg','data-pverdev',k.id,adm,!adm):devSit(k.cancel,k.total,'data-devreg','data-verdev',k.id,adm,!adm)}</td></tr>`).join('')}
+ ${K.length?`<div class="tbl"><table><thead><tr><th>Cancelado</th>${vid?'':'<th>Vendedor</th>'}<th>Perfumes</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th>Motivo</th><th>Devolução</th></tr></thead><tbody>
+ ${kr.map(k=>`<tr><td>${dt(k.cancel)||br(k.data)}<div class="s note">${(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num)?NUMF(k.parcial?(S.kits.find(y=>y.id===k.kid)||{}).num:k.num,'K')+' · ':''}pedido ${br(k.data)}</div></td>${vid?'':`<td>${esc(vend(k.vid)?.nome||'')}</td>`}<td>${its(k.itens)}</td><td class="n">${U(k.itens.reduce((a,i)=>a+i.qtd,0))}${k.parcial?'<div class="s note">parcial</div>':''}</td><td class="n">${R(+k.total)}</td><td>${mot(k.cancel)}</td><td style="white-space:nowrap">${k.parcial?devSit(k.cancel,k.total,'data-pdevreg','data-pverdev',k.id,adm,!adm):devSit(k.cancel,k.total,'data-devreg','data-verdev',k.id,adm,!adm)}</td></tr>`).join('')}
  </tbody></table></div>${kc}`:'<p class="empty">Nenhum kit cancelado no período.</p>'}</section>`}
 /* loja online no ar até (liberação ou última compra paga + N dias) */
 const diasAte=d=>d?Math.floor((new Date(d+'T12:00:00')-new Date(iso(today)+'T12:00:00'))/864e5):null;
@@ -1654,7 +1659,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-18';
+const VERSAO='2026.11.02-21';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -1932,16 +1937,24 @@ function cartTot(c){let un=0,tot=0,luc=0;for(const pid in c){const p=prod(pid);i
 const falta=un=>un?(MIN-un%MIN)%MIN:MIN;
 const metaTxt=un=>!un?`Adicione ${MIN} un para fechar o pedido`:falta(un)?`Faltam ${falta(un)} un para fechar ${un+falta(un)} un`:`Pedido fechado em ${un} un`;
 const cartBtn=()=>{const n=cartTot(cartV()).un;return `<button class="cartbtn" data-carrinho aria-label="Carrinho, ${n} itens">${ic('comprar')}${n?`<span class="badge">${n}</span>`:''}</button>`};
+/* mostruário: 1 frasco de cada perfume por revendedor a cada N meses, preço fixo */
+const MP_=()=>+S.mostraPreco||20,MM_=()=>+S.mostraMeses||6;
+const addMeses=(s,m)=>{let [y,mo,d]=String(s).slice(0,10).split('-').map(Number);mo+=m;y+=Math.floor((mo-1)/12);mo=(mo-1)%12+1;const u=new Date(Date.UTC(y,mo,0)).getUTCDate();return `${y}-${String(mo).padStart(2,'0')}-${String(Math.min(d,u)).padStart(2,'0')}`};
+function mostraLib(vid,pid){let ult=null;S.kits.forEach(k=>{if(k.vid===vid&&k.status!=='cancelado'&&k.itens.some(i=>i.m&&i.pid===pid)&&(!ult||k.data>ult))ult=k.data});
+ if(!ult)return null;const lib=addMeses(ult,MM_());return lib>iso(today)?lib:null}
+/* mostruários marcados no carrinho (só vale com 1+ frasco do mesmo perfume no preço normal) */
+const cartM=()=>{const c=cartV(),m=UI.mcart||(UI.mcart={});Object.keys(m).forEach(pid=>{if(!c[pid])delete m[pid]});return m};
+const MOSTRA_TXT=()=>`Mostruário: comprando 1 frasco de um perfume no preço normal, você leva mais 1 dele por ${Ri(MP_())} para demonstração (1 vez a cada ${MM_()===12?'ano':MM_()+' meses'} por perfume). Marque no carrinho.`;
 function vComprar(){
- const c=cartV(),t=cartTot(c),f=falta(t.un),ch=champRank();const rk={};abc(S.vendas.filter(v=>daysAgo(v.data)<30)).forEach((r,i)=>rk[r.p.id]=i);
+ const c=cartV(),t=cartTot(c),nM=Object.keys(cartM()).length,f=falta(t.un),ch=champRank();const rk={};abc(S.vendas.filter(v=>daysAgo(v.data)<30)).forEach((r,i)=>rk[r.p.id]=i);
  const disp=S.prods.filter(p=>p.estoque>0),g=UI.cg||'';
  const its=disp.filter(p=>!g||p.genero===g).sort((a,b)=>rk[a.id]-rk[b.id]);
  const {rows,ctl}=page('cmpV'+g,its,8);
  const gens=Object.keys(GEN).filter(k=>disp.some(p=>p.genero===k));
- return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido mínimo de ${MIN} un, pode variar os perfumes. Preço já com seu desconto de revendedor.</p></div><div class="sp"></div><button class="btn" data-top6>+ ${MIN} mais vendidos${g?' · '+GEN[g]:''}</button></div>
+ return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido mínimo de ${MIN} un, pode variar os perfumes. Preço já com seu desconto de revendedor.</p><p class="note" style="margin:4px 0 0">🎁 ${MOSTRA_TXT()}</p></div><div class="sp"></div><button class="btn" data-top6>+ ${MIN} mais vendidos${g?' · '+GEN[g]:''}</button></div>
  <div class="tabs gtabs" role="group">${[['','Todos',disp.length],...gens.map(k=>[k,GEN[k],disp.filter(p=>p.genero===k).length])].map(([k,l,n])=>`<button data-cg="${k}" aria-pressed="${g===k}">${l} <span class="gn">${n}</span></button>`).join('')}</div>
  <div class="cat">${rows.map(p=>buyCard(p,c[p.id]||0,ch[p.id])).join('')}</div>${ctl}
- ${t.un?`<div class="cartbar">${ic('comprar').replace('<svg','<svg width="20" height="20"')}<b>${t.un} un</b><span>${Ri(t.tot)}</span><span class="chip ${f?'warn':'good'}">${metaTxt(t.un)}</span><span class="sp"></span><button class="btn pri" data-carrinho>Ver carrinho</button></div>`:''}`;
+ ${t.un?`<div class="cartbar">${ic('comprar').replace('<svg','<svg width="20" height="20"')}<b>${t.un} un${nM?` + ${nM} mostruário`:''}</b><span>${Ri(t.tot+nM*MP_())}</span><span class="chip ${f?'warn':'good'}">${metaTxt(t.un)}</span><span class="sp"></span><button class="btn pri" data-carrinho>Ver carrinho</button></div>`:''}`;
 }
 function buyCard(p,q,r){
  const ph=foto(p),pr=precoRev(p,UI.vid);
@@ -1960,7 +1973,7 @@ setInterval(()=>{document.querySelectorAll('.relogio[data-exp]').forEach(e=>{con
 async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
  const titulo=r.reabrir?'Pagamento do kit':'Pedido realizado ✓';
  const exp=r.criado?new Date(r.criado).getTime()+RES_H()*3600e3:Date.now()+RES_H()*3600e3;
- const base=`<h3>${titulo}${r.numero?` <span class="pnum big">${NUMF(r.numero,'K')}</span>`:''}</h3><p style="margin:0"><b>${r.un} un</b> · total ${Ri(+r.total)}</p>
+ const base=`<h3>${titulo}${r.numero?` <span class="pnum big">${NUMF(r.numero,'K')}</span>`:''}</h3><p style="margin:0"><b>${r.un} un</b>${+r.mostra?` + ${r.mostra} de mostruário`:''} · total ${Ri(+r.total)}</p>
   <div class="reserva">⏱ Seus frascos ficam reservados por ${fmtH(RES_H())}. ${relogio(exp)}<small>Sem pagamento nesse prazo, o pedido é cancelado e os frascos voltam para a distribuidora.</small></div>`;
  const comprovanteHtml=`<div style="margin-top:12px"><p class="note" style="margin:0 0 6px;font-weight:700">Pagou o Pix? Envie o comprovante:</p><label class="btn sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer"><input type="file" accept="image/*,application/pdf" data-compkit="${r.id}" hidden>📎 Enviar comprovante</label></div>`;
  const rodape=`<p class="note" style="margin-top:16px">Acompanhe o status do pedido em Estoque → Meus kits.</p>`;
@@ -1981,7 +1994,7 @@ async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
  if(UI.kitPg===r.id&&UI.modal)modal(base+pixHtml+mp(st)+din+rodape)}
 const fmtH=h=>{h=+h;const H=Math.floor(h),M=Math.round((h-H)*60);return (H?H+(H>1?' horas':' hora'):'')+(H&&M?' e ':'')+(M?M+' min':'')||'0 min'};
 /* situação do kit: chip + relógio da reserva + motivo do cancelamento + devolução */
-function kitSit(k){const adm=curUser()?.perfil==='adm',c=k.cancel||{};let s=KST[k.status]||'';
+function kitSit(k){const adm=curUser()?.perfil==='adm',c=k.cancel||{};let s=(KST[k.status]||'')+(k.mostra?' <span class="chip st">+ mostruário</span>':'');
  if(k.pag==='dinheiro'&&k.status!=='cancelado')s+=` <span class="chip st">Dinheiro</span>`;
  if(k.status==='aguardando')s+='<br>'+relogio(kitExp(k));
  if(k.exc&&k.exc.dev)s+=`<div class="ksit">${k.exc.dev==='pendente'?(adm?`<span class="chip warn">Pago a mais ${Ri(+k.exc.valor)} · devolver</span> <button class="btn sm" data-excreg="${k.id}">Registrar devolução</button>`:`<span class="chip warn">Pago a mais · a receber ${Ri(+k.exc.valor)}</span> <span class="note">a 3mix vai te devolver</span>`):`<span class="chip good">${adm?'Excedente devolvido':'Excedente recebido'} · ${esc(k.exc.forma||'')}</span>`}</div>`;
@@ -1997,10 +2010,11 @@ async function verArq(path,titulo,sub,acoes){UI.msize='md';
 /* ===== cancelamento do kit: motivo, observação, devolução do dinheiro e comprovante ===== */
 const DEVF=['Não houve pagamento','Pix para o vendedor','Estorno no Mercado Pago','Dinheiro'];
 function mCancelKit(kid){const k=S.kits.find(x=>x.id===kid);if(!k)return;const adm=curUser()?.perfil==='adm';
- const q={};k.itens.forEach(i=>q[i.pid]=(q[i.pid]||0)+cxMax(k,i));
+ const q={};k.itens.forEach(i=>q[cxK(i)]=cxMax(k,i));
  UI.cx={kid,motivo:'',obs:'',forma:adm&&k.status!=='aguardando'?'Pix para o vendedor':'Não houve pagamento',valor:+k.total,novo:false,q};drawCancel()}
-const cxMax=(k,i)=>k.status==='entregue'?Math.min(i.qtd,+((S.estV[k.vid]||{})[i.pid])||0):i.qtd;
-const cxSel=(x,k)=>{let un=0,val=0;k.itens.forEach(i=>{const q=Math.min(cxMax(k,i),+x.q[i.pid]||0);un+=q;val+=q*i.preco});return {un,val,tot:k.itens.reduce((a,i)=>a+i.qtd,0)}};
+const cxK=i=>i.pid+(i.m?':m':'');
+const cxMax=(k,i)=>k.status==='entregue'&&!i.m?Math.min(i.qtd,+((S.estV[k.vid]||{})[i.pid])||0):i.qtd;
+const cxSel=(x,k)=>{let un=0,val=0;k.itens.forEach(i=>{const q=Math.min(cxMax(k,i),+x.q[cxK(i)]||0);un+=q;val+=q*i.preco});return {un,val,tot:k.itens.reduce((a,i)=>a+i.qtd,0)}};
 function cxLer(){const g=id=>$(id);if(!UI.cx)return;if(g('#cx-motivo'))UI.cx.motivo=g('#cx-motivo').value;if(g('#cx-obs'))UI.cx.obs=g('#cx-obs').value;if(g('#cx-valor'))UI.cx.valor=num(g('#cx-valor').value)}
 function drawCancel(){const x=UI.cx,k=S.kits.find(y=>y.id===x.kid);if(!k)return;const adm=curUser()?.perfil==='adm',v=vend(k.vid)||{};UI.msize='lg';
  const un=k.itens.reduce((a,i)=>a+i.qtd,0),M=S.motivosCancel||[];
@@ -2014,7 +2028,8 @@ function drawCancel(){const x=UI.cx,k=S.kits.find(y=>y.id===x.kid);if(!k)return;
   ${x.forma==='Pix para o vendedor'?(v.pix?`<div class="pixline">Pix do vendedor: <b>${esc(v.pix)}</b><button class="btn sm" data-copy="${esc(v.pix)}">Copiar</button></div>`:'<p class="note" style="margin:6px 0 0">O vendedor não tem chave Pix cadastrada (Vendedores → Editar).</p>'):''}
   ${x.forma==='Estorno no Mercado Pago'?'<p class="note" style="margin:6px 0 0">Faça o estorno no painel do Mercado Pago (Atividade → pagamento → Devolver) e anexe o comprovante.</p>':''}
   <p class="note" style="margin:6px 0 0">Sem comprovante, fica <b>pendente</b> para anexar depois.</p>`}</div>`:'';
- const itensHtml=`<div class="cxsec"><b>Frascos a cancelar</b><div class="cxits">${k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},mx=cxMax(k,i),q=Math.min(mx,+x.q[i.pid]||0);return `<div class="cxit"><span class="grow"><b>${p.code}</b> ${esc(p.nome)}<small>${i.qtd} un no kit${k.status==='entregue'?` · <b>${mx} em mãos</b>`:''} · ${Ri(i.preco)}/un</small></span><div class="qty"><button data-cxq="${i.pid}" data-d="-1" aria-label="Menos" ${q<=0?'disabled':''}>−</button><span>${q}</span><button data-cxq="${i.pid}" data-d="1" aria-label="Mais" ${q>=mx?'disabled':''}>+</button></div></div>`}).join('')}</div>
+ const itensHtml=`<div class="cxsec"><b>Frascos a cancelar</b><div class="cxits">${k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},mx=cxMax(k,i),q=Math.min(mx,+x.q[cxK(i)]||0);return `<div class="cxit"><span class="grow"><b>${p.code}</b> ${esc(p.nome)} ${i.m?MCHIP:''}<small>${i.qtd} un no kit${k.status==='entregue'&&!i.m?` · <b>${mx} em mãos</b>`:''} · ${Ri(i.preco)}/un</small></span><div class="qty"><button data-cxq="${cxK(i)}" data-d="-1" aria-label="Menos" ${q<=0?'disabled':''}>−</button><span>${q}</span><button data-cxq="${cxK(i)}" data-d="1" aria-label="Mais" ${q>=mx?'disabled':''}>+</button></div></div>`}).join('')}</div>
+  ${k.itens.some(i=>i.m)?'<p class="note" style="margin:4px 0 0">O mostruário só vale junto com 1 frasco do mesmo perfume: cancelando todos os frascos normais de um perfume, o mostruário dele é cancelado junto.</p>':''}
   <div class="cxtot"><span>${parcial?`Cancelando <b>${sel.un} de ${sel.tot}</b> frascos`:`Cancelando o pedido <b>inteiro</b> (${sel.tot} un)`}</span><b>${Ri(sel.val)}</b></div>
   ${parcial?`<p class="note" style="margin:4px 0 0">O kit continua com ${sel.tot-sel.un} un e passa a valer ${Ri(+k.total-sel.val)}.</p>`:''}
   <div class="btnrow" style="margin-top:4px"><button class="btn sm" data-cxall="1">Cancelar tudo</button><button class="btn sm" data-cxall="0">Zerar</button></div></div>`;
@@ -2059,10 +2074,11 @@ function mCompPrev(kid,file){compLimpa();const k=S.kits.find(x=>x.id===kid);cons
  <p class="note" style="margin:0">O comprovante só é visto pelos administradores da 3mix. Se enviar o arquivo errado, dá para remover em Estoque → Meus kits.</p>
  <div class="actions"><button class="btn ghost" data-compcancela>Cancelar</button><label class="btn" style="cursor:pointer;margin-right:auto"><input type="file" accept="image/*,application/pdf" data-compkit="${kid}" hidden>Escolher outro</label><button class="btn pri" data-compenviar>Enviar comprovante</button></div>`)}
 /* perfumes do kit: um só = código e nome; vários = abre por linha */
+const MCHIP='<span class="chip st" style="font-size:10px;padding:0 6px">mostruário</span>';
 function kitPerf(k){if(k.itens.length===1){const p=prod(k.itens[0].pid);return `<span class="note kperf" title="${esc((p?.code||'')+' '+(p?.nome||''))}">${p?.code||''} ${esc(p?.nome||'')}</span>`}
- return `<button class="vexp" data-kexp="${k.id}" aria-expanded="${UI.kexp===k.id}">${k.itens.length} perfumes ${UI.kexp===k.id?'▾':'▸'}</button>`}
+ return `<button class="vexp" data-kexp="${k.id}" aria-expanded="${UI.kexp===k.id}">${new Set(k.itens.map(i=>i.pid)).size} perfume${new Set(k.itens.map(i=>i.pid)).size>1?'s':''}${k.itens.some(i=>i.m)?' + mostr.':''} ${UI.kexp===k.id?'▾':'▸'}</button>`}
 function kitSub(k,antes,depois){if(UI.kexp!==k.id||k.itens.length<2)return '';
- return k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''};return `<tr class="vsub"><td colspan="${antes}"></td><td class="n">${U(i.qtd)}</td><td><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${R(i.qtd*i.preco)}</td><td colspan="${depois}"></td></tr>`}).join('')}
+ return k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''};return `<tr class="vsub"><td colspan="${antes}"></td><td class="n">${U(i.qtd)}</td><td><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} ${i.m?MCHIP:''}<span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${R(i.qtd*i.preco)}</td><td colspan="${depois}"></td></tr>`}).join('')}
 /* número único do pedido: P-00001 (pedido do cliente) · K-00001 (kit do vendedor) */
 const NUMF=(n,p)=>n?`${p}-${String(n).padStart(5,'0')}`:'';
 const numTag=(n,p)=>n?`<div class="pnum">${NUMF(n,p)}</div>`:'';
@@ -2106,7 +2122,7 @@ function imprimirEtiqueta(o){
 function etqKit(k){const ven=vend(k.vid)||{};
  return {tipo:'K',num:k.num,data:br(k.data),pag:'Kit do vendedor',status:({aguardando:'AGUARDANDO PAGAMENTO',informado:'PAGAMENTO INFORMADO',pago:'PAGO · A ENTREGAR',entregue:'ENTREGUE',cancelado:'CANCELADO'})[k.status]||k.status,
   rem:{nome:S.pixNome||'3mix Distribuidora',tel:S.whats3mix||'',end:esc(S.pixCidade||'')},dest:{nome:ven.nome,tel:ven.tel,end:etqEnd(ven)},
-  itens:k.itens.map(i=>{const p=prod(i.pid)||{};return {code:p.code,nome:p.nome,qtd:i.qtd,preco:i.preco}}),total:kitVal(k)}}
+  itens:k.itens.map(i=>{const p=prod(i.pid)||{};return {code:p.code,nome:(p.nome||'')+(i.m?' (MOSTRUÁRIO)':''),qtd:i.qtd,preco:i.preco}}),total:kitVal(k)}}
 /* ações do kit em 3 colunas fixas (sempre alinhadas): documento · ação principal · cancelar */
 function kitActs(k){const vazio='<span></span>';let c1=vazio,c2=vazio,c3=vazio;
  if(['aguardando','informado'].includes(k.status)){
@@ -2125,14 +2141,18 @@ const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',inform
 const KPAGO=['pago','entregue'];
 function mCarrinho(){UI.msize='md';UI.cartOpen=true;drawCarrinho()}
 function drawCarrinho(){
- const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean);
+ const c=cartV(),t=cartTot(c),f=falta(t.un),its=Object.keys(c).map(prod).filter(Boolean),m=cartM(),nM=Object.keys(m).length,vM=nM*MP_();
+ const mLin=p=>{const on=!!m[p.id],lib=mostraLib(UI.vid,p.id);if(lib)return `<div class="mlin note">Mostruário deste perfume libera em ${br(lib)}</div>`;
+  if(!on&&(c[p.id]||0)+1>p.estoque)return `<div class="mlin note">Mostruário: sem estoque na distribuidora</div>`;
+  return `<div class="mlin"><button class="btn sm" data-mt="${p.id}" aria-pressed="${on}" style="${on?'background:var(--good);color:#fff;border-color:var(--good)':''}">${on?'✓ Mostruário incluído':'+ Levar 1 de mostruário'} · ${Ri(MP_())}</button>${on?` <button class="btn sm" data-mt="${p.id}">Tirar</button>`:''}</div>`};
  const rows=its,ctl='';const pct=t.un?Math.round((t.un%MIN||MIN)/MIN*100):0;
  UI.modal=`<h3>Meu carrinho</h3>
  ${its.length?`<div class="list rolar">${rows.map(p=>{const q=c[p.id],pr=precoRev(p,UI.vid);return `<div class="row"><div class="grow"><div class="t">${p.code} · ${esc(p.nome)}</div><div class="s">você paga ${Ri(pr)}/un · vende a ${Ri(precoVend(p,UI.vid))}/un</div></div>
-  <div class="qty"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div><span style="min-width:116px">${R(q*pr)}</span></div>`}).join('')}</div>`
+  <div class="qty"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div><span style="min-width:116px">${R(q*pr)}</span></div>${mLin(p)}`}).join('')}</div>`
  :'<p class="empty">Seu carrinho está vazio. Vá em Comprar e adicione perfumes.</p>'}
  <div class="meta"><div class="t">${metaTxt(t.un)}</div><div class="bar"><span style="width:${pct}%;${f?'':'background:var(--good)'}"></span></div></div>
- <div class="calc c4"><div>Frascos<b>${t.un} un</b></div><div>Você paga<b>${Ri(t.tot)}</b></div><div>Você vende por<b>${Ri(t.tot+t.luc)}</b></div><div>Seu lucro<b>${Ri(t.luc)}</b></div></div>
+ ${its.length?`<p class="note" style="margin:6px 0 0">🎁 ${MOSTRA_TXT().replace(' Marque no carrinho.','')} O mostruário não entra no seu estoque de venda.</p>`:''}
+ <div class="calc c4"><div>Frascos<b>${t.un} un${nM?`<small> + ${nM} mostr.</small>`:''}</b></div><div>Você paga<b>${Ri(t.tot+vM)}</b></div><div>Você vende por<b>${Ri(t.tot+t.luc)}</b></div><div>Seu lucro<b>${Ri(t.luc)}</b></div></div>
  <div class="actions"><button class="btn ghost" data-close>Continuar comprando</button><button class="btn pri" data-fecharcarrinho ${!t.un||f?'disabled':''}>Enviar pedido</button></div>`;
  render();
 }
@@ -2407,7 +2427,9 @@ document.addEventListener('click',e=>{
  if(d.pg){UI.pages[d.pg]=(UI.pages[d.pg]||0)+ +d.d;if(d.pg==='kit')drawKit();else if(UI.cartOpen)drawCarrinho();else render();return}
  if('kit' in d){UI.view='comprar';UI.modal=null;render();return}
  if('carrinho' in d){mCarrinho();return}
- if(d.bc){const p=prod(d.bc),c=cartV();c[d.bc]=Math.max(0,Math.min(p.estoque,(c[d.bc]||0)+ +d.d));if(!c[d.bc])delete c[d.bc];save();
+ if(d.mt){const p=prod(d.mt),c=cartV(),m=cartM();if(m[d.mt])delete m[d.mt];else{if(mostraLib(UI.vid,d.mt)){toast('Mostruário deste perfume ainda não liberado');return}if((c[d.mt]||0)+1>p.estoque){toast('Sem estoque na distribuidora para o mostruário');return}m[d.mt]=1}
+  if(UI.cartOpen)drawCarrinho();else render();return}
+ if(d.bc){const p=prod(d.bc),c=cartV(),m=cartM();c[d.bc]=Math.max(0,Math.min(p.estoque-(m[d.bc]?1:0),(c[d.bc]||0)+ +d.d));if(!c[d.bc]){delete c[d.bc];delete m[d.bc]}save();
   if(UI.cartOpen)drawCarrinho();else render();return}
  if('top6' in d){const c=cartV(),g=UI.cg||'';
   /* mais vendidos dos últimos 30 dias, respeitando a aba aberta (Feminino/Masculino); completa com os demais disponíveis */
@@ -2418,7 +2440,7 @@ document.addEventListener('click',e=>{
  if('fecharcarrinho' in d){const c=cartV(),vid=UI.vid;const its=Object.keys(c).map(pid=>({pid,qtd:c[pid]}));const un=its.reduce((a,i)=>a+i.qtd,0);
   if(!un||un%MIN){toast(metaTxt(un));return}
   UI.cartOpen=false;let r=null;
-  rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its});r.itens=its;S.carts[vid]={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
+  const pm=Object.keys(cartM()).filter(pid=>c[pid]>0);rodar(async()=>{r=await rpc('pedir_kit',{p_vid:vid,p_itens:its,p_mostra:pm.length?pm:null});r.itens=its;S.carts[vid]={};UI.mcart={};save()}).then(ok=>{if(ok){UI.view='estoque';mKitOk(r)}});return}
  if(d.cancelkit){mCancelKit(d.cancelkit);return}
  if('motvadd' in d||d.motvdel!==undefined){const L=[...(S.motivosVenda||[])];let det;
   if('motvadd' in d){const n=($('#motv-novo')?.value||'').trim();if(!n){toast('Escreva o motivo');return}if(L.some(m=>m.toLowerCase()===n.toLowerCase())){toast('Esse motivo já existe');return}L.push(n);det='Motivo de cancelamento de venda criado: '+n}
@@ -2431,8 +2453,8 @@ document.addEventListener('click',e=>{
  if(d.cxforma){cxLer();UI.cx.forma=d.cxforma;drawCancel();return}
  if(d.cvq){cvLer();const v=S.vendas.find(y=>y.id===UI.cv.id),it=v.itens.find(i=>i.pid===d.cvq);UI.cv.q[d.cvq]=Math.max(0,Math.min(it.qtd,(+UI.cv.q[d.cvq]||0)+(+d.d)));drawCancelVenda();return}
  if(d.cvall!==undefined){cvLer();const v=S.vendas.find(y=>y.id===UI.cv.id);v.itens.forEach(i=>UI.cv.q[i.pid]=d.cvall==='1'?i.qtd:0);drawCancelVenda();return}
- if(d.cxq){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid),it=k.itens.find(i=>i.pid===d.cxq);UI.cx.q[d.cxq]=Math.max(0,Math.min(cxMax(k,it),(+UI.cx.q[d.cxq]||0)+(+d.d)));UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
- if(d.cxall!==undefined){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid);k.itens.forEach(i=>UI.cx.q[i.pid]=d.cxall==='1'?cxMax(k,i):0);UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
+ if(d.cxq){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid),it=k.itens.find(i=>cxK(i)===d.cxq);UI.cx.q[d.cxq]=Math.max(0,Math.min(cxMax(k,it),(+UI.cx.q[d.cxq]||0)+(+d.d)));UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
+ if(d.cxall!==undefined){cxLer();const k=S.kits.find(y=>y.id===UI.cx.kid);k.itens.forEach(i=>UI.cx.q[cxK(i)]=d.cxall==='1'?cxMax(k,i):0);UI.cx.valor=cxSel(UI.cx,k).val;drawCancel();return}
  if(d.anxrm){anxLimpa(d.anxrm);anxRedesenha(d.anxrm);return}
  if(d.anxver){const a=UI.anx?.[d.anxver];if(a?.url)window.open(a.url,'_blank');return}
  {const AX={cxok:'cx-file',cvok:'cv-file',dvok:'dv-file',vdvok:'vdv-file',excok:'exc-file',pdvok:'pdv-file'};
@@ -2446,7 +2468,7 @@ document.addEventListener('click',e=>{
   const kk=S.kits.find(y=>y.id===x.kid),sel=cxSel(x,kk);if(!sel.un){toast('Escolha quantos frascos cancelar');return}
   if(sel.un<sel.tot){const temD=adm&&x.forma!=='Não houve pagamento',fl=temD?anxFile('cx-file'):null;
    rodar(async()=>{const comp=await subirDev(x.kid,fl);
-    await rpc('cancelar_kit_parcial',{p_id:x.kid,p_itens:kk.itens.map(i=>({pid:i.pid,qtd:Math.min(i.qtd,+x.q[i.pid]||0)})).filter(i=>i.qtd>0),p_motivo:x.motivo,p_obs:x.obs||null,p_dev_forma:adm?x.forma:null,p_dev_valor:temD?x.valor:null,p_dev_comprovante:comp});UI.modal=null;UI.cx=null},
+    await rpc('cancelar_kit_parcial',{p_id:x.kid,p_itens:kk.itens.map(i=>({pid:i.pid,m:!!i.m,qtd:Math.min(i.qtd,+x.q[cxK(i)]||0)})).filter(i=>i.qtd>0),p_motivo:x.motivo,p_obs:x.obs||null,p_dev_forma:adm?x.forma:null,p_dev_valor:temD?x.valor:null,p_dev_comprovante:comp});UI.modal=null;UI.cx=null},
     `${sel.un} frasco${sel.un>1?'s':''} cancelado${sel.un>1?'s':''} · voltaram ao estoque central · kit atualizado`);return}
   const temDev=adm&&x.forma!=='Não houve pagamento',file=temDev?anxFile('cx-file'):null;
   
@@ -2494,11 +2516,11 @@ document.addEventListener('click',e=>{
   if(vr!==null&&kk&&vr+0.01<+kk.total){toast(`Recebido R$ ${fmt(vr)} é menor que o kit (R$ ${fmt(+kk.total)}). Confira antes de confirmar.`,4500);return}
   rodar(()=>rpc('confirmar_kit',{p_id:d.confkit,p_valor:vr}),'Pagamento confirmado · kit a entregar');return}
  if(d.altkit){const k=S.kits.find(x=>x.id===d.altkit);if(!k||k.status!=='aguardando'){toast('Só dá para alterar kit aguardando pagamento');return}
-  rodar(async()=>{await rpc('cancelar_kit',{p_id:k.id,p_motivo:'Alterado pelo vendedor (pedido refeito)'});const c=cartV();for(const k2 in c)delete c[k2];k.itens.forEach(i=>c[i.pid]=(c[i.pid]||0)+i.qtd);save()},'Kit voltou para o carrinho · ajuste e envie de novo')
+  rodar(async()=>{await rpc('cancelar_kit',{p_id:k.id,p_motivo:'Alterado pelo vendedor (pedido refeito)'});const c=cartV();for(const k2 in c)delete c[k2];UI.mcart={};k.itens.forEach(i=>{if(i.m)UI.mcart[i.pid]=1;else c[i.pid]=(c[i.pid]||0)+i.qtd});save()},'Kit voltou para o carrinho · ajuste e envie de novo')
    .then(ok=>{if(ok){UI.view='comprar';mCarrinho()}});return}
- if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,numero:k.num,total:k.total,un:k.itens.reduce((a,i)=>a+i.qtd,0),itens:k.itens,criado:k.criado,reabrir:true});return}
+ if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,numero:k.num,total:k.total,un:k.itens.filter(i=>!i.m).reduce((a,i)=>a+i.qtd,0),mostra:k.itens.filter(i=>i.m).length,itens:k.itens,criado:k.criado,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
- if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;armar(b,'Confirmar?');return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),'Kit entregue · frascos entraram no estoque do vendedor');return}
+ if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;armar(b,'Confirmar?');return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),S.kits.find(k=>k.id===d.entkit)?.mostra?'Kit entregue · frascos no estoque do vendedor (mostruário fora do estoque de venda)':'Kit entregue · frascos entraram no estoque do vendedor');return}
  if(d.cancv){mCancelVenda(d.cancv);return}
  if(d.cvforma){cvLer();UI.cv.forma=d.cvforma;drawCancelVenda();return}
  if('cvnovo' in d){cvLer();UI.cv.novo=!UI.cv.novo;drawCancelVenda();setTimeout(()=>$('#cv-novo')?.focus(),30);return}
@@ -2696,6 +2718,10 @@ document.addEventListener('change',e=>{
   rodar(async()=>{await upd('config',{min_kit:n},1);log('Pedido mínimo alterado',`${n} frascos`)},`Pedido mínimo: ${n} frascos`);return}
  if('infrasalva' in d){const o={obs:($('#inf-obs')?.value||'').trim()};INFRA.forEach(([k])=>{o[k]={conta:($('#inf-'+k+'-conta')?.value||'').trim(),link:($('#inf-'+k+'-link')?.value||'').trim()}});
   rodar(async()=>{await upd('config',{infra:o},1);UI.infra=o;log('Dados de infraestrutura atualizados','Sobre')},'Salvo');return}
+ if(d.mostrapreco!==undefined){const n=num(t.value);if(!(n>0&&n<=500)){toast('Informe um preço válido');render();return}
+  rodar(async()=>{await upd('config',{mostra_preco:n},1);log('Preço do mostruário alterado',Ri(n))},`Mostruário: ${Ri(n)} por frasco`);return}
+ if(d.mostrameses!==undefined){const n=+t.value;if(![6,12].includes(n)){render();return}
+  rodar(async()=>{await upd('config',{mostra_meses:n},1);log('Período do mostruário alterado',n===12?'1 ano':'6 meses')},`Mostruário: recompra a cada ${n===12?'1 ano':'6 meses'}`);return}
  if(d.lojadias!==undefined){const n=Math.round(+t.value);if(!(n>=7&&n<=365)){toast('Informe de 7 a 365 dias');render();return}
   rodar(async()=>{await upd('config',{loja_dias:n},1);log('Prazo da loja alterado',`${n} dias sem compra`)},`Loja pausa após ${n} dias sem compra`);return}
  if(d.reserva!==undefined){const n=num(t.value);if(!(n>0&&n<=72)){toast('Informe de 0,5 a 72 horas');render();return}
