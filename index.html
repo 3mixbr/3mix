@@ -693,6 +693,8 @@ h1{font-size:23px}
 .kitsv td:last-child{white-space:normal!important;max-width:250px}.kitsv td:last-child>.btn,.kitsv td:last-child>label{margin:2px 0}
 .filtros select{max-width:200px}
 .vcods{margin-top:3px;font-size:11px;white-space:nowrap}
+.navver{margin-top:auto;padding:10px 10px 2px;font-size:10.5px;color:var(--muted);opacity:.8}
+@container (max-width:1100px){.navver{display:none}}
 </style>
 </head>
 <body class="carregando">
@@ -1526,7 +1528,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-4';
+const VERSAO='2026.11.02-5';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -1536,8 +1538,12 @@ const INFRA=[
 /* avisa quando subir uma versão nova (evita usar a versão antiga guardada no navegador) */
 async function checaVersao(){if(location.protocol==='file:'||document.getElementById('novaver'))return;
  try{const r=await fetch('/index.html?_v='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/const VERSAO='([^']+)'/);
-  if(m&&m[1]!==VERSAO){const el=document.createElement('div');el.id='novaver';el.className='novaver';el.innerHTML='<span>Saiu uma versão nova do sistema.</span><button class="btn pri sm" onclick="location.reload()">Atualizar agora</button>';document.body.appendChild(el)}}catch(e){}}
-setTimeout(checaVersao,3000);setInterval(checaVersao,3*60e3);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checaVersao()});
+  if(m&&m[1]!==VERSAO){
+   /* sem nada aberto ou sendo digitado: atualiza sozinho; no meio de algo: só avisa */
+   const ae=document.activeElement,ocupado=!!UI.modal||(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName));
+   if(!ocupado){location.reload();return}
+   const el=document.createElement('div');el.id='novaver';el.className='novaver';el.innerHTML='<span>Saiu uma versão nova do sistema.</span><button class="btn pri sm" onclick="location.reload()">Atualizar agora</button>';document.body.appendChild(el)}}catch(e){}}
+setTimeout(checaVersao,1500);setInterval(checaVersao,2*60e3);addEventListener('focus',checaVersao);addEventListener('pageshow',e=>{if(e.persisted)checaVersao()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)checaVersao()});
 function vSobre(){const adm=curUser()?.perfil==='adm';
  if(adm&&UI.infra===undefined){UI.infra=null;sb.from('config').select('infra').eq('id',1).maybeSingle().then(({data})=>{UI.infra=data?.infra||{};if(UI.view==='sobre')render()})}
  const I=UI.infra||{};
@@ -2201,7 +2207,7 @@ function render(){
  const NL=navList(),xtra=NL.length>5;
  $('#nav').classList.toggle('open',!!UI.navOpen);
  $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l],i)=>`<button data-view="${k}" class="${xtra&&i>=4?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
-  +(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
+  +`<div class="navver">versão ${VERSAO}</div>`+(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
  let h='';
  if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:vVendasKits,vendasrev:()=>vVendas(null,true),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo,sobre:vSobre}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
