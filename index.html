@@ -231,7 +231,11 @@ td .chip.tag,.chip.tag{height:18px;min-width:52px;padding:0 6px;font-size:9.5px;
 .dre td small{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
 .dre tr.sub td{font-weight:700;background:var(--sunk)}
 .dre tr.tot td{font-weight:700}
-tr.vtot td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent);white-space:nowrap}tr.vtot .note{font-weight:600}
+.sobre-cab{display:flex;align-items:center;gap:14px}.sobre-cab b{display:block;font-size:17px}.sobre-dev{font-size:15px;margin:14px 0 4px}.lp-dev{margin:18px 0 0;font-size:11.5px;color:var(--muted);text-align:center}
+.infra{display:flex;flex-direction:column;gap:10px}.infra-it{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.infra-t{display:flex;flex-direction:column;align-self:center;min-width:0}.infra-t .note{font-size:11.5px}
+@container (max-width:720px){.infra-it{grid-template-columns:1fr}}
+tr.vtot td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent);white-space:nowrap}tr.vtot td.vtot-l{white-space:normal}tr.vtot .note{font-weight:600}
 .dre tr.fim td{font-weight:800;background:var(--accent-soft);border-top:2px solid var(--accent)}
 .dre td.n{white-space:nowrap}
 /* CEP */
@@ -662,6 +666,7 @@ input.dec{text-align:right}
         <button type="button" class="lp-link" data-authform="rec">Esqueci minha senha</button>
         <span>Não tem acesso? Fale com a distribuidora 3mix.</span>
       </div>
+      <p class="lp-dev">Desenvolvido por Elo Sistemas de Informação</p>
     </form>
 
     <form id="fRec" class="lp-f" novalidate hidden>
@@ -715,6 +720,7 @@ const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
 const ICON={
  vendasrev:'<path d="M3 7h18l-2 12H5z"/><path d="M8 7a4 4 0 0 1 8 0"/><path d="M9 13h6"/>',
+ sobre:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".9" fill="currentColor"/>',
  candidatos:'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M19 8v6M16 11h6"/>',
  cancel:'<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
  interesses:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
@@ -854,12 +860,13 @@ function saleCalc(v){
 function monthSales(vid,ref){const d=new Date((ref||iso(today))+'T12:00:00');const m=d.getMonth(),y=d.getFullYear();
  return S.vendas.filter(v=>v.vid===vid&&new Date(v.data+'T12:00:00').getMonth()===m&&new Date(v.data+'T12:00:00').getFullYear()===y)}
 const _nv={};
+/* compras de kits (pagos ou entregues) do revendedor num mês 'AAAA-MM', pelo valor pago à 3mix */
+const comprasMes=(vid,ym)=>S.kits.filter(k=>k.vid===vid&&KPAGO.includes(k.status)&&String(k.data).slice(0,7)===ym).reduce((a,k)=>a+kitVal(k),0);
 function nivelDe(vid,ref){
  const key=vid+(ref||'').slice(0,7);if(_nv[key])return _nv[key];
- // nível pelo mês anterior (como ciclos Natura/Avon)
+ // nível pelas COMPRAS de kits do mês anterior (o que o revendedor comprou da 3mix)
  const d=new Date((ref||iso(today))+'T12:00:00');d.setDate(1);d.setDate(0);
- const prev=S.vendas.filter(v=>v.vid===vid&&v.data.slice(0,7)===iso(d).slice(0,7));
- const tot=prev.reduce((a,v)=>a+v.itens.reduce((s,i)=>s+i.preco*i.qtd,0),0);
+ const tot=comprasMes(vid,iso(d).slice(0,7));
  return _nv[key]=S.niveis.find(n=>tot<n.ate)||S.niveis[0];
 }
 const inPer=v=>daysAgo(v.data)<UI.per;
@@ -1021,8 +1028,8 @@ function vVendas(onlyVid,ro){
  <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}</td>
  <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
  ${ro?'':`<td><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
- ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="3"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${9+(ro?0:1)}" class="empty">Nenhuma venda nos últimos ${UI.per} dias.</td></tr>`}
- </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="4">Total · ${L.length} venda${L.length>1?'s':''} em ${UI.per} dias${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
+ ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="2" class="vsub-c"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="hide-sm"></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${9+(ro?0:1)}" class="empty">Nenhuma venda nos últimos ${UI.per} dias.</td></tr>`}
+ </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="2" class="vtot-l">Total · ${L.length} venda${L.length>1?'s':''} em ${UI.per} dias${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td class="hide-sm"></td><td></td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
  ${onlyVid?'':'<p class="note">Vendas dos revendedores aos clientes finais, só para acompanhar. O dinheiro é do revendedor e não entra no caixa da 3mix. Pagamento, entrega e cancelamento são feitos pelo próprio revendedor.</p>'}`;
 }
 
@@ -1045,13 +1052,13 @@ function vEquipe(){
  const {rows:pr,ctl}=page('eq',rows,8);
  const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));
  const KF=[['todos','Todos'],['informado','Pgto informado'],['aguardando','Aguardando pgto'],['pago','A entregar'],['entregue','Entregues'],['cancelado','Cancelados']];const {rows:kr,ctl:kc}=page('kits'+kf,K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
- return `<div class="head"><div><h1>Vendedores</h1><p class="sub">${S.vend.filter(v=>v.ativo).length} ativos · nível definido pelas vendas do mês anterior</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-vend="">+ Cadastrar vendedor</button></div>
+ return `<div class="head"><div><h1>Vendedores</h1><p class="sub">${S.vend.filter(v=>v.ativo).length} ativos · nível definido pelas compras de kits do mês anterior</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-vend="">+ Cadastrar vendedor</button></div>
  <section class="panel"><div class="tbl"><table><thead><tr><th>Vendedor</th><th class="hide-sm">Cidade</th><th>Nível</th><th class="n">Vendido ${UI.per}d (R$)</th><th class="n">Qtd (un)</th><th class="n">Ganho (R$)</th><th class="n">Em mãos (un)</th><th class="hide-sm">Última venda</th><th></th></tr></thead><tbody>
  ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.tel)}${r.v.lojaAte?(diasAte(r.v.lojaAte)<0?' · <span class="chip bad">loja pausada</span>':` · loja até ${br(r.v.lojaAte)}`):''}</div></div></div></td><td class="hide-sm">${esc(r.v.cidade)}${r.v.uf?'/'+esc(r.v.uf):''}</td>
  <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> <span class="note">+${r.n.bonus}pp</span></td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.s.com)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
  </tbody></table></div>${ctl}</section>
  <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
- <table><thead><tr><th>Nível</th><th class="n">Vendas no mês anterior (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
+ <table><thead><tr><th>Nível</th><th class="n">Compras de kits no mês anterior (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
  ${S.niveis.map((n,i)=>`<tr><td><span class="lvl ${n.nome}">${n.nome}</span></td><td class="n">${i===0?'até '+fmt(n.ate):i===S.niveis.length-1?'acima de '+fmt(S.niveis[i-1].ate):fmt(S.niveis[i-1].ate)+' a '+fmt(n.ate)}</td><td class="n">+${n.bonus}</td></tr>`).join('')}</tbody></table></section>`;
 }
 
@@ -1311,7 +1318,8 @@ function lojaAviso(v){const n=diasAte(v.lojaAte);if(n===null)return '';const dt=
 function vInicio(){
  const v=vend(UI.vid);const M=monthSales(v.id);const t=sum(M);const n=nivelDe(v.id,iso(today));
  const idx=S.niveis.indexOf(n);const next=S.niveis[idx+1];
- const prog=next?Math.min(100,t.rec/n.ate*100):100;
+ const cm=comprasMes(v.id,iso(today).slice(0,7));
+ const prog=next?Math.min(100,cm/n.ate*100):100;
  const pend=sum(M.filter(x=>x.status==='pago')).com;
  const cl={};S.vendas.filter(x=>x.vid===v.id).forEach(x=>{if(!cl[x.cliente]||cl[x.cliente].data<x.data)cl[x.cliente]=x});
  const reat=Object.values(cl).filter(x=>daysAgo(x.data)>=25).sort((a,b)=>a.data.localeCompare(b.data));
@@ -1327,7 +1335,7 @@ function vInicio(){
  <div class="grid-kpi" style="grid-template-columns:repeat(3,minmax(0,1fr))">
   <div class="kpi hl"><span class="l">Vendido em ${today.toLocaleDateString('pt-BR',{month:'long'})}</span><span class="v">${R(t.rec)}</span><span class="d">${U(t.un)} · ${M.length} vendas</span></div>
   <div class="kpi"><span class="l">Meu lucro</span><span class="v">${R(t.com)}</span><span class="d">${Ri(pend)} já recebido</span></div>
-  <div class="kpi"><span class="l">Próximo nível</span><span class="v">${next?next.nome:'Topo'}</span><div class="bar"><span style="width:${prog}%"></span></div><span class="d">${next?`faltam ${Ri(Math.max(0,n.ate-t.rec))}`:'Você está no nível máximo'}</span></div>
+  <div class="kpi"><span class="l">Próximo nível</span><span class="v">${next?next.nome:'Topo'}</span><div class="bar"><span style="width:${prog}%"></span></div><span class="d">${next?`comprou ${Ri(cm)} em kits este mês · faltam ${Ri(Math.max(0,n.ate-cm))}`:'Você está no nível máximo'}</span></div>
  </div>
  ${vChamp(v.id)}
  <section class="panel"><div class="panel-h"><h2>Clientes para recompra</h2><span class="sp"></span><span class="note">última compra há 25 dias ou mais</span></div>
@@ -1445,6 +1453,31 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
  <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-fmsave>Registrar</button></div>`)}
 
 /* ===== log do sistema (só administrador) ===== */
+/* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
+const VERSAO='2026.11.02';
+const INFRA=[
+ ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
+ ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
+ ['github','GitHub','Código do sistema (index.html, Logo_3mix.png, vercel.json)','https://github.com/3mixbr/3mix','Repositório 3mixbr/3mix'],
+ ['gmail','E-mail (Gmail)','Conta usada para criar e recuperar os acessos acima','https://mail.google.com',''],
+ ['yampi','Yampi','Loja/checkout antigo (não usado no momento)','https://app.yampi.com.br','']];
+function vSobre(){const adm=curUser()?.perfil==='adm';
+ if(adm&&UI.infra===undefined){UI.infra=null;sb.from('config').select('infra').eq('id',1).maybeSingle().then(({data})=>{UI.infra=data?.infra||{};if(UI.view==='sobre')render()})}
+ const I=UI.infra||{};
+ return `<div class="head"><div><h1>Sobre</h1><p class="sub">3mix · perfumaria em venda direta</p></div></div>
+ <section class="panel sobre"><div class="sobre-cab"><img class="logo-img on-light" src="Logo_3mix.png" alt="3mix" style="height:54px" onerror="this.hidden=true">
+  <div><b>Sistema 3mix</b><span class="note">Versão ${VERSAO}</span></div></div>
+  <p class="sobre-dev">Desenvolvido por <b>Elo Sistemas de Informação</b></p>
+  <p class="note">Painel de gestão da distribuidora, app do revendedor, lojas online e página de divulgação "Seja revendedor".</p></section>
+ ${adm?`<section class="panel"><div class="panel-h"><h2>Onde o sistema roda</h2><span class="sp"></span><span class="note">só administradores veem · não guarde senhas aqui</span></div>
+  ${UI.infra===null?'<p class="note">Carregando…</p>':`<div class="infra">${INFRA.map(([k,nome,desc,link,conta])=>{const x=I[k]||{};return `<div class="infra-it">
+   <div class="infra-t"><b>${nome}</b><span class="note">${desc}</span></div>
+   <label class="f">Conta (e-mail do login)<input id="inf-${k}-conta" type="email" maxlength="120" placeholder="${k==='gmail'?'ex.: 3mix@gmail.com':'e-mail usado para entrar'}" value="${esc(x.conta||'')}"></label>
+   <label class="f">Link / identificação<input id="inf-${k}-link" maxlength="200" value="${esc(x.link||(conta?conta:''))}"></label>
+   <a class="btn sm" href="${esc(link)}" target="_blank" rel="noopener">Abrir</a></div>`}).join('')}</div>
+  <label class="f" style="margin-top:10px">Observações<textarea id="inf-obs" rows="2" maxlength="600" placeholder="Ex.: quem é o responsável por cada conta, plano contratado, vencimentos">${esc(I.obs||'')}</textarea></label>
+  <div class="btnrow" style="margin-top:10px"><button class="btn pri" data-infrasalva>Salvar</button></div>
+  <p class="note">Senhas e chaves (como o token do Mercado Pago) não ficam aqui: guarde num gerenciador de senhas. O token do Mercado Pago fica em Supabase → Edge Functions → Secrets.</p>`}</section>`:''}`}
 function vLog(){
  const F=UI.lgf||(UI.lgf={u:'',a:''});const all=[...S.log].reverse();
  const L=all.filter(x=>(!F.u||x.u===F.u)&&(!F.a||x.a===F.a));
@@ -2074,13 +2107,13 @@ function toast(t){const el=document.createElement('div');el.className='toast';el
 
 /* ===== render ===== */
 const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['vendasrev','Vendas revendedores'],['equipe','Vendedores'],['candidatos','Candidatos'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
-            vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas'],['interesses','Interesses'],['cancel','Cancelamentos']],loja:[],revenda:[]};
+            vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas'],['interesses','Interesses'],['cancel','Cancelamentos'],['sobre','Sobre']],loja:[],revenda:[]};
 function curUser(){return S.users.find(u=>u.id===UI.user&&u.status==='ativo')||null}
 function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
  if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}}
 function showAuth(k){['login','rec'].forEach(x=>$({login:'#fLogin',rec:'#fRec'}[x]).hidden=x!==k);document.querySelectorAll('.lp-erro,.lp-ok').forEach(e=>e.hidden=true)}
 function authMsg(id,t){const e=$(id);e.textContent=t;e.hidden=false}
-const navList=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log']]:NAVS[UI.role];
+const navList=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log'],['sobre','Sobre']]:NAVS[UI.role];
 function render(){
  if(!UI.modal&&UI.anx&&Object.keys(UI.anx).length)anxTodos();
  const u=curUser();const dentro=!!u||(['loja','revenda'].includes(UI.role)&&UI.publico);
@@ -2093,10 +2126,10 @@ function render(){
  $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l],i)=>`<button data-view="${k}" class="${xtra&&i>=4?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
   +(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic(UI.navOpen?'fechar':'mais')}<span>${UI.navOpen?'Fechar':'Mais'}</span></button>`:'');
  let h='';
- if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:vVendasKits,vendasrev:()=>vVendas(null,true),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo}[UI.view]();
+ if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:vVendasKits,vendasrev:()=>vVendas(null,true),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo,sobre:vSobre}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
  else if(UI.role==='revenda')h=vRevenda();
- else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,interesses:()=>vInteresses(UI.vid),cancel:()=>vCancel(UI.vid),vendas:()=>vVendas(UI.vid),vender:vInicio}[UI.view]();
+ else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,interesses:()=>vInteresses(UI.vid),cancel:()=>vCancel(UI.vid),vendas:()=>vVendas(UI.vid),vender:vInicio,sobre:vSobre}[UI.view]();
  $('#main').innerHTML=h;
  {const sc=document.querySelector('.scrim');if(sc&&sc.isConnected){try{sc.remove()}catch(_){}}}
  if(UI.modal){const s=document.createElement('div');s.className='scrim';s.innerHTML=`<div class="sheet ${UI.msize||'md'}" role="dialog" aria-modal="true">${UI.modal}</div>`;$('#shell').appendChild(s);pCalc()}
@@ -2425,6 +2458,8 @@ document.addEventListener('change',e=>{
  if(d.lgf){UI.lgf[d.lgf]=t.value;render();return}
  if(d.minkit!==undefined){const n=Math.round(+t.value);if(!(n>=1&&n<=100)){toast('Informe de 1 a 100 frascos');render();return}
   rodar(async()=>{await upd('config',{min_kit:n},1);log('Pedido mínimo alterado',`${n} frascos`)},`Pedido mínimo: ${n} frascos`);return}
+ if('infrasalva' in d){const o={obs:($('#inf-obs')?.value||'').trim()};INFRA.forEach(([k])=>{o[k]={conta:($('#inf-'+k+'-conta')?.value||'').trim(),link:($('#inf-'+k+'-link')?.value||'').trim()}});
+  rodar(async()=>{await upd('config',{infra:o},1);UI.infra=o;log('Dados de infraestrutura atualizados','Sobre')},'Salvo');return}
  if(d.lojadias!==undefined){const n=Math.round(+t.value);if(!(n>=7&&n<=365)){toast('Informe de 7 a 365 dias');render();return}
   rodar(async()=>{await upd('config',{loja_dias:n},1);log('Prazo da loja alterado',`${n} dias sem compra`)},`Loja pausa após ${n} dias sem compra`);return}
  if(d.reserva!==undefined){const n=num(t.value);if(!(n>0&&n<=72)){toast('Informe de 0,5 a 72 horas');render();return}
