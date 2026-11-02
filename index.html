@@ -702,6 +702,8 @@ h1{font-size:22px}
 @container (max-width:1100px){.navver{display:none}}
 .kitstbl .kact{grid-template-columns:100px 86px 78px;gap:5px}.kitstbl .kperf{max-width:130px}.kitstbl .ksit{max-width:190px}
 .vpag{margin-top:2px;font-size:11px}
+/* celular: campos com 16px para o iPhone/Android não darem zoom ao tocar (era isso que "expandia" a tela no login) */
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
 </style>
 </head>
 <body class="carregando">
@@ -1537,7 +1539,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-11';
+const VERSAO='2026.11.02-12';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
