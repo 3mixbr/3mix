@@ -777,6 +777,20 @@ h1{font-size:22px}
  .gav-pe{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px 4px;border-top:1px solid var(--line)}.gav-pe .note{width:100%;font-size:11px}
  .gaveta .gav-lista button{border:0;background:transparent;color:var(--ink);font-weight:600;font-family:inherit}
 }
+/* ☰ no topo à esquerda (celular); barra de baixo só com os atalhos */
+.hamb{display:none}.nav .nc{display:none}
+@media (max-width:720px){
+ .topbar .hamb:not([hidden]){display:flex;align-items:center;justify-content:center;border:0;background:transparent;color:var(--plum-ink);padding:6px;margin-left:-6px;border-radius:8px}
+ .topbar .hamb:active{background:rgba(255,255,255,.12)}
+}
+@container (max-width:720px){
+ .nav .mais{display:none!important}
+ .nav .nl{display:none}.nav .nc{display:inline}
+ /* datas do filtro: duas caixas iguais, lado a lado, com borda */
+ .filtros label{gap:4px}
+ .filtros input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-height:40px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 10px;width:100%;box-sizing:border-box}
+ .filtros select{min-height:40px}
+}
 </style>
 </head>
 <body class="carregando">
@@ -825,6 +839,7 @@ h1{font-size:22px}
 </div>
 
 <header class="topbar">
+  <button class="hamb" data-navmais aria-label="Abrir menu" hidden><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   <div class="brand"><img class="logo-img on-dark" src="Logo_3mix.png" alt="3mix" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>3mix</span><small>perfumes · venda direta</small></div>
   <div class="sp"></div>
   <div class="who" id="userBox"></div>
@@ -1613,7 +1628,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-15';
+const VERSAO='2026.11.02-16';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2292,16 +2307,17 @@ function render(){
  if(!dentro)return;
  $('#userBox').innerHTML=u&&!UI.publico?`${UI.role==='loja'?'<button class="btn sm" data-voltar>Voltar ao painel</button>':''}${UI.role==='vend'?cartBtn():''}<span class="av">${ini(u.nome)}</span><span class="uname"><b>${esc(u.nome.split(' ')[0])}</b><small>${PERFIL[u.perfil]}</small></span><button class="btn sm" data-senha title="Trocar senha">Senha</button><button class="btn sm" data-sair>Sair</button>`:'';
  $('#shell').classList.toggle('store',UI.role==='loja'||UI.role==='revenda');
+ {const hb=document.querySelector('.topbar .hamb');if(hb)hb.hidden=!(curUser()&&!UI.publico&&['socio','vend'].includes(UI.role))}
  const NL=navList(),xtra=NL.length>5,FAV={socio:['painel','vendas','vendasrev','equipe'],vend:['inicio','comprar','estoque','vendas']}[UI.role]||[];
  $('#nav').classList.toggle('open',!!UI.navOpen);
- const btnNav=([k,l])=>`<button data-view="${k}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`;
+ const curto={vendasrev:'Revendedor'};const btnNav=([k,l])=>`<button data-view="${k}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`;
  /* celular: 4 atalhos embaixo + "Menu" (☰) que abre a gaveta lateral com tudo. Computador: menu lateral de sempre */
  const cu=curUser();
  const gaveta=UI.navOpen?`<button class="gaveta-fundo" data-navmais aria-label="Fechar menu"></button><aside class="gaveta" aria-label="Menu">
   <div class="gav-top"><span class="av">${cu?ini(cu.nome):''}</span><span class="gav-u"><b>${esc(cu?.nome||'')}</b><small>${cu?PERFIL[cu.perfil]||'':''}</small></span><button class="gav-x" data-navmais aria-label="Fechar menu">${ic('fechar')}</button></div>
   <div class="gav-lista">${NL.map(btnNav).join('')}</div>
   <div class="gav-pe"><button class="btn sm" data-senha>Trocar senha</button><button class="btn sm" data-sair>Sair</button><span class="note">versão ${VERSAO}</span></div></aside>`:'';
- $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l])=>`<button data-view="${k}" class="${FAV.length&&!FAV.includes(k)?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span>${l}</span></button>`).join('')
+ $('#nav').innerHTML=(UI.role==='socio'?'<div class="navlabel">Gestão</div>':'<div class="navlabel">Meu app</div>')+NL.map(([k,l])=>`<button data-view="${k}" class="${FAV.length&&!FAV.includes(k)?'x':''}" title="${l}" ${UI.view===k?'aria-current="page"':''}>${ic(k==='vendas'&&UI.role==='vend'?'vendas':k)}<span class="nl">${l}</span><span class="nc">${curto[k]||l}</span></button>`).join('')
   +`<div class="navver">versão ${VERSAO}</div>`+(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic('menu')}<span>Menu</span></button>`:'');
  {let g=document.getElementById('gavRoot');if(!g){g=document.createElement('div');g.id='gavRoot';document.body.appendChild(g)}g.innerHTML=gaveta;}
  let h='';
