@@ -682,6 +682,10 @@ h1{font-size:23px}
 .infra-h{background:var(--sunk);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-block:6px}
 .infra-t b{font-size:13.5px}.infra-t .note{font-size:11px;line-height:1.25}
 .infra input{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 9px;font-size:13.5px;width:100%;color:var(--ink)}
+/* tabela contínua com rolagem própria e cabeçalho fixo */
+.tbl.rolar{max-height:236px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.tbl.rolar::-webkit-scrollbar{width:6px}.tbl.rolar::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+.tbl.rolar thead th{position:sticky;top:0;z-index:1}
 </style>
 </head>
 <body class="carregando">
@@ -1208,7 +1212,7 @@ function vSocios(){
 function vEstoquePainel(vid){
  const adm=!vid,emKit=pid=>S.kits.filter(k=>k.status==='pago').reduce((a,k)=>a+k.itens.filter(i=>i.pid===pid).reduce((s,i)=>s+i.qtd,0),0);
  const L=S.prods.map(p=>({p,c:+p.estoque||0,m:adm?emRev(p.id):eV(vid,p.id),k:emKit(p.id)})).filter(r=>r.c||r.m||r.k).sort((a,b)=>(b.c+b.m)-(a.c+a.m));
- const {rows,ctl}=page('estp'+(vid||''),L,adm?6:5);
+ const rows=L; /* lista contínua com rolagem própria (não cresce a tela) */
  const tc=L.reduce((a,r)=>a+r.c,0),tm=L.reduce((a,r)=>a+r.m,0),tk=L.reduce((a,r)=>a+r.k,0);
  const vc=L.reduce((a,r)=>a+r.c*(adm?custoFinal(r.p):pRev(r.p)),0),vm=L.reduce((a,r)=>a+r.m*(adm?custoFinal(r.p):r.p.preco),0);
  return `<section class="panel"><div class="panel-h"><h2>Estoque disponível</h2><span class="sp"></span><span class="note">${adm?'valores a custo final':'distribuidora a preço de revenda · seu estoque a preço sugerido'}</span></div>
@@ -1217,10 +1221,10 @@ function vEstoquePainel(vid){
   <div class="kpi hl"><span class="l">${adm?'Com os vendedores':'Comigo'}</span><span class="v">${U(tm)}</span><span class="d">${Ri(vm)}</span></div>
   ${adm?`<div class="kpi"><span class="l">Pago, a entregar</span><span class="v">${U(tk)}</span><span class="d">kits reservados</span></div>`:''}
  </div>
- ${L.length?`<div class="tbl"><table><thead><tr><th>Produto</th><th class="n">Distribuidora (un)</th><th class="n">${adm?'Com vendedores':'Comigo'} (un)</th>${adm?'<th class="n hide-sm">A entregar (un)</th><th class="n">Total (un)</th>':'<th></th>'}</tr></thead><tbody>
+ ${L.length?`<div class="tbl rolar"><table><thead><tr><th>Produto</th><th class="n">Distribuidora (un)</th><th class="n">${adm?'Com vendedores':'Comigo'} (un)</th>${adm?'<th class="n hide-sm">A entregar (un)</th><th class="n">Total (un)</th>':'<th></th>'}</tr></thead><tbody>
  ${rows.map(r=>`<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n"><span class="chip ${r.c<=0?'bad':r.c<=r.p.min?'warn':'good'}">${r.c} un</span></td><td class="n">${U(r.m)}</td>
   ${adm?`<td class="n hide-sm">${U(r.k)}</td><td class="n"><b>${U(r.c+r.m+r.k)}</b></td>`:`<td class="n">${r.c>0?`<button class="btn sm" data-kit6="${r.p.id}">Pedir</button>`:'<span class="note">esgotado</span>'}</td>`}</tr>`).join('')}
- </tbody></table></div>${ctl}`:'<p class="empty">Sem estoque.</p>'}</section>`;
+ </tbody></table></div><p class="note" style="margin:0;text-align:right">${L.length} perfume${L.length===1?'':'s'} com estoque</p>`:'<p class="empty">Sem estoque.</p>'}</section>`;
 }
 /* clientes que pediram "avise-me quando chegar" (só administrador) */
 function vAvise(){const A=(S.avise||[]).filter(a=>!a.atendido);if(!A.length)return '';const {rows,ctl}=page('avise',A,5);
