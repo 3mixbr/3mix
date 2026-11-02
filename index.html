@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>3mix</title>
-<link rel="icon" href="Logo_3mix.png">
-<link rel="apple-touch-icon" href="Logo_3mix.png">
+<link rel="icon" type="image/png" href="favicon-48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="3mix">
+<meta name="theme-color" content="#131921">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
@@ -662,16 +665,18 @@ td{padding:6px 8px}
  .nav .navlabel{padding:6px 10px 3px}
 }
 @container (min-width:721px) and (max-width:1100px){.nav{padding-block:8px}.nav button{padding:6px 2px}}
-/* fontes e ícones um pouco maiores, mesmo espaçamento */
-body{font-size:14.5px}
-table{font-size:13.5px}
-th{font-size:11px}
-h1{font-size:23px}
-.btn{font-size:13.5px}
+/* fontes e ícones: meio-termo entre legível e compacto */
+body{font-size:14px}
+table{font-size:13px}
+th{font-size:10.5px;letter-spacing:.06em}
+td,th{padding-inline:7px}
+h1{font-size:22px}
+.btn{font-size:13px}
+.chip{font-size:11px}
 .tdiv th{letter-spacing:.02em}.tdiv td:last-child,.tdiv th:last-child{padding-right:2px}.tdiv .acc{min-width:0;gap:6px}.tdiv td,.tdiv th{padding-inline:6px}
 @container (min-width:1101px){
- .nav button{font-size:14.5px;padding:5px 10px}
- .nav button svg{width:20px;height:20px}
+ .nav button{font-size:14px;padding:5px 10px}
+ .nav button svg{width:19px;height:19px}
  .nav .navlabel{font-size:11px}
 }
 /* Sobre compacto */
@@ -695,6 +700,8 @@ h1{font-size:23px}
 .vcods{margin-top:3px;font-size:11px;white-space:nowrap}
 .navver{margin-top:auto;padding:10px 10px 2px;font-size:10.5px;color:var(--muted);opacity:.8}
 @container (max-width:1100px){.navver{display:none}}
+.kitstbl .kact{grid-template-columns:100px 86px 78px;gap:5px}.kitstbl .kperf{max-width:130px}.kitstbl .ksit{max-width:190px}
+.vpag{margin-top:2px;font-size:11px}
 </style>
 </head>
 <body class="carregando">
@@ -887,7 +894,8 @@ const eV=(vid,pid)=>((S.estV||{})[vid]||{})[pid]||0;
 const addEV=(vid,pid,q)=>{S.estV[vid]=S.estV[vid]||{};S.estV[vid][pid]=Math.max(0,eV(vid,pid)+q)};
 const emRev=pid=>Object.values(S.estV).reduce((a,o)=>a+(o[pid]||0),0);
 const maosV=vid=>Object.values(S.estV[vid]||{}).reduce((a,b)=>a+b,0);
-const precoRev=(p,vid)=>Math.round(pRev(p)*(1-nivelDe(vid,iso(today)).bonus/100)*100)/100;
+/* desconto do nível = valor fixo em R$ por frasco (Prata R$ 1,00 · Ouro R$ 2,00) */
+const precoRev=(p,vid)=>Math.max(0,Math.round((pRev(p)-(+nivelDe(vid,iso(today)).bonus||0))*100)/100);
 /* composição do preço: custo + frete (%) = custo final; markup sobre o custo final.
    Um único preço de venda (preco) para todas as formas de pagamento. */
 const VISTA=['pix','dinheiro','debito'];
@@ -912,7 +920,7 @@ function copiar(t,ok){navigator.clipboard?.writeText(t).then(()=>toast(ok),()=>t
 
 /* ===== cálculos ===== */
 /* custo do frasco para o revendedor: preço de revendedor menos o bônus do nível (o que ele paga no kit) */
-function revItem(i,vid,data){if(i.rev!=null&&i.rev!=='')return +i.rev;const p=prod(i.pid);if(!p)return 0;const b=+nivelDe(vid,data).bonus||0;return Math.round(pRev(p)*(1-b/100)*100)/100}
+function revItem(i,vid,data){if(i.rev!=null&&i.rev!=='')return +i.rev;const p=prod(i.pid);if(!p)return 0;const b=+nivelDe(vid,data).bonus||0;return Math.max(0,Math.round((pRev(p)-b)*100)/100)}
 function saleCalc(v){
  let rec=0,cus=0,com=0,un=0;
  v.itens.forEach(i=>{const r=i.preco*i.qtd;rec+=r;cus+=i.custo*i.qtd;com+=(i.preco-revItem(i,v.vid,v.data))*i.qtd;un+=i.qtd});
@@ -1026,9 +1034,9 @@ function vPainel(){
  <div class="two">
   <section class="panel"><div class="panel-h"><h2>Kits pagos × lucro por dia</h2></div>${chartDaily(KP,ksum)}</section>
   <section class="panel"><div class="panel-h"><h2>Divisão do lucro</h2><span class="sp"></span><span class="note">após despesas fixas</span></div>
-   <table class="tdiv"><thead><tr><th>Administrador</th><th class="n">Parte (%)</th><th class="n hide-sm">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
-   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n hide-sm">${pc(+s.fundo||0)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
-   <tr><td class="note" colspan="2" style="white-space:nowrap">Despesas fixas (${UI.per} dias)</td><td class="hide-sm"></td><td class="n">${R(-totalDesp()*UI.per/30)}</td><td></td></tr></tbody></table>
+   <table class="tdiv"><thead><tr><th>Administrador</th><th class="n">Parte (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
+   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}<div class="s note">fundo ${pc(+s.fundo||0)}</div></td><td class="n">${pc(s.pct)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
+   <tr><td class="note" colspan="2" style="white-space:nowrap">Despesas fixas (${UI.per} dias)</td><td class="n">${R(-totalDesp()*UI.per/30)}</td><td></td></tr></tbody></table>
    <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
    <div class="row"><div class="grow"><div class="t">Kits aguardando pagamento</div><div class="s">${abertos.length} kits · ainda não entram no caixa</div></div><b>${R(abertos.reduce((a,k)=>a+kitVal(k),0))}</b></div>
   </section>
@@ -1081,27 +1089,28 @@ function card(p,cl,admin,qty){
 }
 
 function vVendas(onlyVid,ro){
- const F=ro?(UI.vf||(UI.vf={})):{},cust=!!(F.de||F.ate),noPer=v=>cust?((!F.de||v.data>=F.de)&&(!F.ate||v.data<=F.ate)):inPer(v);
- let L=[...S.vendas].filter(v=>(!onlyVid||v.vid===onlyVid)&&noPer(v)&&(!F.vid||v.vid===F.vid)&&(!F.pag||v.pag===F.pag)&&(!F.pid||v.itens.some(i=>i.pid===F.pid)))
+ const fk=ro?'vf':'vfv';UI.vfAtivo=fk;const F=UI[fk]||(UI[fk]={}),cust=!!(F.de||F.ate),noPer=v=>cust?((!F.de||v.data>=F.de)&&(!F.ate||v.data<=F.ate)):inPer(v);
+ let L=[...S.vendas].filter(v=>(!onlyVid||v.vid===onlyVid)&&noPer(v)&&(!F.vid||v.vid===F.vid)&&(!F.pag||v.pag===F.pag)&&(!F.pid||v.itens.some(i=>i.pid===F.pid))&&(!F.st||(F.st==='pago'?v.status==='pago':F.st==='receber'?v.status!=='pago':F.st==='entregue'?!!v.entregue:!v.entregue)))
   .map(v=>F.pid?{...v,itens:v.itens.filter(i=>i.pid===F.pid)}:v).sort((a,b)=>b.data.localeCompare(a.data)||(b.num||0)-(a.num||0));
  const perTxt=cust?`${F.de?br(F.de):'início'} a ${F.ate?br(F.ate):'hoje'}`:`${UI.per} dias`;
  const {rows,ctl}=page('vds'+(onlyVid||'')+UI.per+JSON.stringify(F),L,10);
  const t=sum(L);
  const byPay={};L.filter(inPer).forEach(v=>{const c=saleCalc(v);byPay[v.pag]=byPay[v.pag]||{rec:0,n:0,tax:0};byPay[v.pag].rec+=c.rec;byPay[v.pag].n++;byPay[v.pag].tax+=c.tax});
  return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas dos revendedores'}</h1><p class="sub">${perTxt}: ${L.length} venda${L.length===1?'':'s'} · ${U(t.un)}${onlyVid?'':' · dinheiro dos revendedores'}</p></div><div class="sp"></div>${perTabs()}${ro?'':'<button class="btn pri" data-nova>+ Nova venda</button>'}</div>
- ${ro?`<div class="filtros"><select data-vf="vid" aria-label="Vendedor"><option value="">Todos os vendedores</option>${S.vend.map(v=>`<option value="${v.id}" ${F.vid===v.id?'selected':''}>${esc(v.nome)}</option>`).join('')}</select>
+ ${ro||onlyVid?`<div class="filtros">${ro?`<select data-vf="vid" aria-label="Vendedor"><option value="">Todos os vendedores</option>${S.vend.map(v=>`<option value="${v.id}" ${F.vid===v.id?'selected':''}>${esc(v.nome)}</option>`).join('')}</select>`:''}
+  <select data-vf="st" aria-label="Situação"><option value="">Todas as situações</option>${[['receber','A receber'],['pago','Pago'],['aentregar','A entregar'],['entregue','Entregue']].map(([k,l])=>`<option value="${k}" ${F.st===k?'selected':''}>${l}</option>`).join('')}</select>
   <select data-vf="pag" aria-label="Forma de pagamento"><option value="">Todas as formas de pagamento</option>${Object.entries(PAY).map(([k,l])=>`<option value="${k}" ${F.pag===k?'selected':''}>${l}</option>`).join('')}</select>
   <select data-vf="pid" aria-label="Perfume"><option value="">Todos os perfumes (SKU)</option>${S.prods.map(p=>`<option value="${p.id}" ${F.pid===p.id?'selected':''}>${p.code} · ${esc(p.nome)}</option>`).join('')}</select>
   <label>De<input type="date" data-vf="de" value="${F.de||''}"></label><label>Até<input type="date" data-vf="ate" value="${F.ate||''}"></label>
-  ${F.vid||F.pag||F.pid||cust?'<button class="btn sm" data-vflimpa>Limpar filtros</button>':''}</div>`:''}
- <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th>Pgto</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro vend. (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
- ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}${v.origem?`<span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</span>${onlyVid?'':`<div class="s note kvend">${esc((vend(v.vid)?.nome||'').split(' ')[0])}</div>`}</td><td>${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button><div class="s note vcods">${v.itens.map(i=>`${prod(i.pid)?.code||'?'}${i.qtd>1?' ×'+i.qtd:''}`).join(' · ')}</div>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}${v.itens[0]?.qtd>1?' ×'+v.itens[0].qtd:''}</span>`}</td>
- <td>${PAY[v.pag]}${v.parcelas>1?` ${v.parcelas}x`:''}</td><td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
- <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}</td>
+  ${F.vid||F.pag||F.pid||F.st||cust?'<button class="btn sm" data-vflimpa>Limpar filtros</button>':''}</div>`:''}
+ <section class="panel"><div class="tbl"><table><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
+ ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}</span><div class="s note kvend">${onlyVid?'':esc((vend(v.vid)?.nome||'').split(' ')[0])}${v.origem?` <span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</div></td><td>${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button><div class="s note vcods">${v.itens.map(i=>`${prod(i.pid)?.code||'?'}${i.qtd>1?' ×'+i.qtd:''}`).join(' · ')}</div>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}${v.itens[0]?.qtd>1?' ×'+v.itens[0].qtd:''}</span>`}</td>
+ <td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
+ <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}</div></td>
  <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
  ${ro?'':`<td><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
- ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="2" class="vsub-c"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${9+(ro?0:1)}" class="empty">Nenhuma venda ${cust?'nesse período':'nos últimos '+UI.per+' dias'}${F.vid||F.pag||F.pid?' com esses filtros':''}.</td></tr>`}
- </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="2" class="vtot-l">Total · ${L.length} venda${L.length>1?'s':''} · ${perTxt}${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td></td><td></td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
+ ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="2" class="vsub-c"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${8+(ro?0:1)}" class="empty">Nenhuma venda ${cust?'nesse período':'nos últimos '+UI.per+' dias'}${F.vid||F.pag||F.pid||F.st?' com esses filtros':''}.</td></tr>`}
+ </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="2" class="vtot-l">Total · ${L.length} venda${L.length>1?'s':''} · ${perTxt}${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td></td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
  ${onlyVid?'':'<p class="note">Vendas dos revendedores aos clientes finais, só para acompanhar. O dinheiro é do revendedor e não entra no caixa da 3mix. Pagamento, entrega e cancelamento são feitos pelo próprio revendedor.</p>'}`;
 }
 
@@ -1125,13 +1134,13 @@ function vEquipe(){
  const ord={informado:0,pago:1,aguardando:2,entregue:3,cancelado:4},kf=UI.kf||'todos';const K=[...S.kits].filter(k=>kf==='todos'||k.status===kf).sort((a,b)=>ord[a.status]-ord[b.status]||b.data.localeCompare(a.data));
  const KF=[['todos','Todos'],['informado','Pgto informado'],['aguardando','Aguardando pgto'],['pago','A entregar'],['entregue','Entregues'],['cancelado','Cancelados']];const {rows:kr,ctl:kc}=page('kits'+kf,K,6);const kAg=S.kits.filter(k=>['aguardando','informado'].includes(k.status)).length,kInf=S.kits.filter(k=>k.status==='informado').length,kEnt=S.kits.filter(k=>k.status==='pago').length;
  return `<div class="head"><div><h1>Vendedores</h1><p class="sub">${S.vend.filter(v=>v.ativo).length} ativos · nível pelas compras de kits: vale no mês em que atingir e no mês seguinte</p></div><div class="sp"></div>${perTabs()}<button class="btn pri" data-vend="">+ Cadastrar vendedor</button></div>
- <section class="panel"><div class="tbl"><table><thead><tr><th>Vendedor</th><th class="hide-sm">Cidade</th><th>Nível</th><th class="n">Comprou ${UI.per} dias (R$)</th><th class="n">Qtd comprada (un)</th><th class="n">Comprou no mês (R$)</th><th class="n">Em mãos (un)</th><th class="hide-sm">Última compra</th><th></th></tr></thead><tbody>
- ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.tel)}${r.v.lojaAte?(diasAte(r.v.lojaAte)<0?' · <span class="chip bad">loja pausada</span>':` · loja até ${br(r.v.lojaAte)}`):''}</div></div></div></td><td class="hide-sm">${esc(r.v.cidade)}${r.v.uf?'/'+esc(r.v.uf):''}</td>
- <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> <span class="note">+${r.n.bonus}pp</span></td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.cm)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
+ <section class="panel"><div class="tbl"><table><thead><tr><th>Vendedor</th><th>Nível</th><th class="n">Compras ${UI.per} dias (R$)</th><th class="n">Qtd (un)</th><th class="n">Compras no mês (R$)</th><th class="n">Em mãos (un)</th><th class="hide-sm">Última compra</th><th></th></tr></thead><tbody>
+ ${pr.map(r=>`<tr><td><div style="display:flex;gap:8px;align-items:center"><span class="av">${ini(r.v.nome)}</span><div><div class="t">${esc(r.v.nome)}</div><div class="s note">${esc(r.v.cidade||'')}${r.v.uf?'/'+esc(r.v.uf):''}${r.v.cidade?' · ':''}${esc(r.v.tel)}${r.v.lojaAte?(diasAte(r.v.lojaAte)<0?' · <span class="chip bad">loja pausada</span>':` · loja até ${br(r.v.lojaAte)}`):''}</div></div></div></td>
+ <td><span class="lvl ${r.n.nome}">${r.n.nome}</span> ${+r.n.bonus?`<div class="s note">−R$ ${fmt(r.n.bonus)} por frasco</div>`:''}</td><td class="n">${R(r.s.rec)}</td><td class="n">${U(r.s.un)}</td><td class="n">${R(r.cm)}</td><td class="n">${U(maosV(r.v.id))}</td><td class="hide-sm">${br(r.last)}</td><td class="n"><button class="btn sm" data-vend="${r.v.id}">Editar</button></td></tr>`).join('')}
  </tbody></table></div>${ctl}</section>
- <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">bônus = % de desconto extra no preço ao vendedor</span></div>
- <table><thead><tr><th>Nível</th><th class="n">Compras de kits no mês (R$)</th><th class="n">Desconto extra (%)</th></tr></thead><tbody>
- ${S.niveis.map((n,i)=>`<tr><td><span class="lvl ${n.nome}">${n.nome}</span></td><td class="n">${i===0?'até '+fmt(n.ate):i===S.niveis.length-1?'acima de '+fmt(S.niveis[i-1].ate):fmt(S.niveis[i-1].ate)+' a '+fmt(n.ate)}</td><td class="n">+${n.bonus}</td></tr>`).join('')}</tbody></table></section>`;
+ <section class="panel"><div class="panel-h"><h2>Plano de níveis</h2><span class="sp"></span><span class="note">desconto em R$ em cada frasco comprado no kit</span></div>
+ <table><thead><tr><th>Nível</th><th class="n">Compras de kits no mês (R$)</th><th class="n">Desconto por frasco (R$)</th></tr></thead><tbody>
+ ${S.niveis.map((n,i)=>`<tr><td><span class="lvl ${n.nome}">${n.nome}</span></td><td class="n">${i===0?'até '+fmt(n.ate):i===S.niveis.length-1?'acima de '+fmt(S.niveis[i-1].ate):fmt(S.niveis[i-1].ate)+' a '+fmt(n.ate)}</td><td class="n">${+n.bonus?R(n.bonus):'—'}</td></tr>`).join('')}</tbody></table></section>`;
 }
 
 function vSocios(){
@@ -1398,7 +1407,7 @@ function vInicio(){
  const reat=Object.values(cl).filter(x=>daysAgo(x.data)>=25).sort((a,b)=>a.data.localeCompare(b.data));
  const {rows,ctl}=page('reat'+v.id,reat,5);
  const online=S.vendas.filter(x=>x.vid===v.id&&x.origem==='loja'&&x.status==='receber');
- return `${lojaAviso(v)}${cancAlerta(v.id)}<div class="head"><div><h1>Olá, ${esc(v.nome.split(' ')[0])}</h1><p class="sub">Nível <span class="lvl ${n.nome}">${n.nome}</span> · desconto de revendedor + ${n.bonus} p.p.</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
+ return `${lojaAviso(v)}${cancAlerta(v.id)}<div class="head"><div><h1>Olá, ${esc(v.nome.split(' ')[0])}</h1><p class="sub">Nível <span class="lvl ${n.nome}">${n.nome}</span> · ${+n.bonus?`desconto de ${Ri(n.bonus)} em cada frasco do kit`:'preço de revendedor'}</p></div><div class="sp"></div><button class="btn pri" data-kit>Comprar estoque</button></div>
  <section class="panel"><div class="panel-h"><h2>Minha loja online</h2><span class="sp"></span>${online.length?`<button class="chip warn" style="border:0" data-view="vendas">${online.length} pedido${online.length>1?'s':''} aguardando</button>`:`<span class="note">${v.lojaAte?(diasAte(v.lojaAte)<0?'pausada · compre um kit':'no ar até '+br(v.lojaAte)):'mande nos grupos de clientes'}</span>`}</div>
   <div class="linkbox"><code>${esc(lojaLink(v.id))}</code></div>
   <div class="btnrow"><button class="btn pri sm" data-copymsg>Copiar mensagem p/ grupos</button><button class="btn sm" data-copylink>Copiar só o link</button><button class="btn sm" data-verloja>Ver minha loja</button></div>
@@ -1528,7 +1537,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-5';
+const VERSAO='2026.11.02-10';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2237,7 +2246,7 @@ document.addEventListener('click',e=>{
  if(b.id==='vSite'||b.id==='vApp'){UI.device=b.id==='vApp'?'app':'site';$('#stage').classList.toggle('phone',UI.device==='app');$('#vSite').setAttribute('aria-pressed',UI.device==='site');$('#vApp').setAttribute('aria-pressed',UI.device==='app');return}
  if('navmais' in d){UI.navOpen=!UI.navOpen;render();return}
  if(d.view){UI.navOpen=false;if(d.view==='vender'){mVenda();return}UI.view=d.view;UI.modal=null;render();$('#main').scrollTop=0;return}
- if(d.per){UI.per=+d.per;if(UI.vf){UI.vf.de='';UI.vf.ate=''}render();return}
+ if(d.per){UI.per=+d.per;['vf','vfv'].forEach(k=>{if(UI[k]){UI[k].de='';UI[k].ate=''}});render();return}
  if(d.tab){UI.tab=d.tab;render();return}
  if(d.kq){const p=prod(d.kq);UI.draft.q[d.kq]=Math.max(0,Math.min(p.estoque,(UI.draft.q[d.kq]||0)+ +d.d));drawKit();return}
  if(d.kit6){const c=cartV();c[d.kit6]=Math.min(prod(d.kit6).estoque,(c[d.kit6]||0)+1);save();render();toast(`No carrinho · ${metaTxt(cartTot(c).un)}`);return}
@@ -2431,8 +2440,15 @@ document.addEventListener('click',e=>{
   if(UI.stArm!==key){UI.stArm=key;armar(b,ent?'Confirmar?':'Desfazer?',!ent);setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('marcar_entrega_venda',{p_id:id,p_entregue:ent}),ent?'Venda entregue ao cliente':'Entrega desfeita');return}
  if(d.kitdin){const key='din'+d.kitdin;if(UI.stArm!==key){UI.stArm=key;armar(b,'Confirmar dinheiro?');setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;b.textContent='Vou pagar em dinheiro';b.classList.remove('armed-ok')}},4000);return}
-  UI.stArm=null;rodar(async()=>{await rpc('kit_pagar_dinheiro',{p_id:d.kitdin});UI.modal=null},'Combinado: pagamento em dinheiro na entrega · a 3mix confirma ao receber');return}
- if(d.vflimpa!==undefined){UI.vf={};render();return}
+  UI.stArm=null;const kid=d.kitdin;rodar(async()=>{await rpc('kit_pagar_dinheiro',{p_id:kid});UI.modal=null;
+   /* oferece avisar a 3mix pelo WhatsApp (opcional) */
+   const k=S.kits.find(x=>x.id===kid),v=vend(UI.vid)||{},zapN=String(S.whats3mix||'').replace(/\D/g,'');
+   if(k&&zapN){const its=k.itens.map(i=>`${prod(i.pid)?.code||''} ${prod(i.pid)?.nome||''} ×${i.qtd}`).join('\n');
+    const msg=`Olá, 3mix! Aqui é ${v.nome||''}.\nFiz o pedido ${k.num?NUMF(k.num,'K'):''} de ${k.itens.reduce((a,i)=>a+i.qtd,0)} frascos (R$ ${fmt(kitVal(k))}) e vou pagar em *dinheiro* na entrega/retirada.\n\n${its}\n\nQuando posso receber ou retirar?`;
+    UI.msize='sm';UI.modal=`<h3>Pagamento em dinheiro combinado ✓</h3><p class="note" style="margin:0">O pedido ${k.num?`<b>${NUMF(k.num,'K')}</b> `:''}ficou reservado, sem prazo para vencer. A 3mix confirma quando receber o dinheiro.</p>
+     <p style="margin:12px 0 6px">Quer avisar a 3mix agora para combinar a entrega?</p>
+     <div class="actions"><button class="btn ghost" data-close>Agora não</button><a class="btn pri" href="https://wa.me/${zapN.length<=11?'55'+zapN:zapN}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" onclick="setTimeout(closeModal,400)">Avisar no WhatsApp</a></div>`}},'Combinado: pagamento em dinheiro na entrega');return}
+ if(d.vflimpa!==undefined){UI[UI.vfAtivo||'vf']={};render();return}
  if(d.pagar||d.receber){const id=d.pagar||d.receber,st=d.pagar?'pago':'receber',key=st+id;
   if(UI.stArm!==key){UI.stArm=key;armar(b,st==='pago'?'Confirmar?':'Voltar?');setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('alterar_status_venda',{p_id:id,p_status:st}),st==='pago'?'Venda marcada como paga':'Venda voltou para A receber');return}
@@ -2521,7 +2537,7 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
  const t=e.target,d=t.dataset;
- if(d.vf!==undefined){(UI.vf||(UI.vf={}))[d.vf]=t.value;render();return}
+ if(d.vf!==undefined){const k=UI.vfAtivo||'vf';(UI[k]||(UI[k]={}))[d.vf]=t.value;render();return}
  if(d.vprecosug){const pid=d.vprecosug,vid=UI.vid;if(!vid)return;
   rodar(async()=>{await sb.rpc('salvar_preco_vendedor',{p_vid:vid,p_pid:pid,p_preco:0});if(S.precosV[vid])delete S.precosV[vid][pid]},'Voltou ao preço sugerido');return}
  if(d.vpreco!==undefined){const v=num(t.value),pid=d.vpreco,vid=UI.vid;
