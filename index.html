@@ -791,6 +791,21 @@ h1{font-size:22px}
  .filtros input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-height:40px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 10px;width:100%;box-sizing:border-box}
  .filtros select{min-height:40px}
 }
+/* celular: linha de total como um resumo único, com rótulos */
+@container (max-width:720px){
+ .tbl table tfoot tr,table.cards tfoot tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 10px;background:var(--accent-soft);border-top:2px solid var(--accent);border-radius:0 0 10px 10px;padding:10px 12px;margin-top:6px}
+ .tbl table tfoot td,table.cards tfoot td{background:transparent!important;border:0!important;grid-column:auto!important}
+ .tbl table tfoot td.vtot-l,table.cards tfoot td.vtot-l{grid-column:1/-1!important;font-size:14px;padding-bottom:4px!important}
+ .tbl table tfoot td.vtot-l::before,table.cards tfoot td.vtot-l::before{display:none}
+ .tbl table tfoot td:empty,table.cards tfoot td:empty,.tbl table tfoot td.note{display:none}
+ .tbl table tfoot td b,.tbl table tfoot td{font-size:14px}
+ /* abas de situação: pílulas numa linha que quebra, número ao lado */
+ .ktabs{display:flex!important;flex-wrap:wrap;gap:6px;background:transparent!important;padding:0!important;width:100%}
+ .ktabs button{flex:0 0 auto!important;display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line)!important;background:var(--surface)!important;border-radius:999px!important;padding:5px 10px!important;font-size:12.5px!important;box-shadow:none!important}
+ .ktabs button[aria-pressed="true"]{border-color:var(--accent)!important;background:var(--accent-soft)!important;color:var(--ink)}
+ .ktabs button .gn{margin-left:2px}
+ .ktabs .vz{opacity:.55}
+}
 </style>
 </head>
 <body class="carregando">
@@ -1628,7 +1643,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-16';
+const VERSAO='2026.11.02-17';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -1646,7 +1661,7 @@ async function checaVersao(){if(location.protocol==='file:'||document.getElement
 setTimeout(checaVersao,1500);setInterval(checaVersao,2*60e3);addEventListener('focus',checaVersao);addEventListener('pageshow',e=>{if(e.persisted)checaVersao()});document.addEventListener('visibilitychange',()=>{if(!document.hidden)checaVersao()});
 /* tabelas .cards: cada célula ganha o nome da coluna, para virar cartão no celular */
 function rotula(){document.querySelectorAll('#main table.cards,#main .tbl table,#modal table.cards').forEach(t=>{const H=[...t.querySelectorAll('thead th')].map(th=>th.textContent.trim());
- t.querySelectorAll('tbody tr:not(.vsub)').forEach(tr=>{let c=0;[...tr.children].forEach(td=>{const n=+td.colSpan||1;if(n===1&&H[c]&&!td.dataset.l)td.dataset.l=H[c];c+=n})})})}
+ t.querySelectorAll('tbody tr:not(.vsub),tfoot tr').forEach(tr=>{let c=0;[...tr.children].forEach(td=>{const n=+td.colSpan||1;if(n===1&&H[c]&&!td.dataset.l)td.dataset.l=H[c];c+=n})})})}
 function vSobre(){const adm=curUser()?.perfil==='adm';
  if(adm&&UI.infra===undefined){UI.infra=null;sb.from('config').select('infra').eq('id',1).maybeSingle().then(({data})=>{UI.infra=data?.infra||{};if(UI.view==='sobre')render()})}
  const I=UI.infra||{};
