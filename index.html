@@ -839,6 +839,8 @@ h1{font-size:22px}
  .sl.on .sh-hero-t>*{transition-delay:.5s}.sl.on .ha{transition-delay:.55s}.sl.on .ha1{transition-delay:.7s}.sl.on .ha2{transition-delay:.85s}
 }
 .sl.so.ph::before{display:none}.sl-link{position:absolute;inset:0;z-index:2;border:0;background:transparent;cursor:pointer;padding:0}.sl:not(.on) .sl-link{pointer-events:none}
+.ypbox{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}.ypbox .pc-h{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.yplink{display:flex;align-items:center;gap:6px;min-width:0}.yplink code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)}
 </style>
 </head>
 <body class="carregando">
@@ -969,7 +971,11 @@ function bottle(color){
    Nome simples (ex.: "Good Girl.png") busca primeiro no bucket; se não achar, tenta a pasta do app;
    se não achar em nenhum, mostra o frasco desenhado. URL completa ou foto enviada é usada como está. */
 const SB_URL='https://joebzygbzjpznybyqcql.supabase.co';
+const ypLink=t=>{const y=S.yampi||{};return (y.dominio?`https://${String(y.dominio).replace(/^https?:\/\//,'').replace(/\/$/,'')}`:`https://${y.alias||'3mix'}.pay.yampi.com.br`)+'/r/'+encodeURIComponent(t)};
 const ehNome=f=>!/^(data:|https?:|blob:|\/)/.test(f);
+/* arquivos de foto em uso (o resto pode ser apagado) */
+const arqEmUso=(bk,n)=>bk==='banners'?S.banners.some(b=>b.img===n):S.prods.some(p=>p.foto===n||p.fotoAmb===n);
+async function apagaArq(bk,nomes){nomes=nomes.filter(n=>n&&ehNome(n));if(!nomes.length)return 0;const{error}=await sb.storage.from(bk).remove(nomes);return error?0:nomes.length}
 const fotoSrc=(f,bk='produtos')=>ehNome(f)?`${SB_URL}/storage/v1/object/public/${bk}/${encodeURIComponent(f)}`:f;
 const fotoLocal=f=>ehNome(f)?(location.protocol==='file:'?'':'/')+encodeURI(f):'';
 /* onerror: 1ª falha → pasta do app; 2ª falha → remove a imagem */
@@ -1362,6 +1368,12 @@ function vSocios(){
   </div></div>`).join('')||'<p class="empty">Nenhum banner.</p>'}
   <p class="note">Banner sem foto usa um fundo de cor com os perfumes do público escolhido. Banner de um público sem produto à venda não aparece na loja.</p>
  </section>
+ <section class="panel"><div class="panel-h"><h2>Arquivos de fotos</h2><span class="sp"></span><span class="note">fotos de perfumes e banners trocadas ficam guardadas sem uso</span></div>
+  ${UI.arqs?(UI.arqs.length?`<div class="list">${UI.arqs.map(a=>`<div class="row"><div class="grow"><div class="t">${esc(a.n)}</div><div class="s">${a.b==='banners'?'banner':'foto de perfume'} · ${Math.max(1,Math.round((a.kb||0)))} KB · sem uso</div></div></div>`).join('')}</div>
+   <div class="btnrow" style="margin-top:8px"><button class="btn sm" data-arqdel style="color:var(--bad)">Apagar ${UI.arqs.length} arquivo${UI.arqs.length>1?'s':''} sem uso</button><button class="btn sm" data-arqscan>Procurar de novo</button></div>`
+   :'<p class="note">Nenhum arquivo sem uso. ✓</p>'):'<button class="btn sm" data-arqscan>Procurar arquivos sem uso</button>'}
+  <p class="note">Só aparecem arquivos que nenhum perfume nem banner usa. Daqui pra frente, ao trocar a foto, a antiga é apagada sozinha.</p>
+ </section>
  <section class="panel"><div class="panel-h"><h2>Pagamentos dos kits</h2><span class="sp"></span><span class="note">1º Pix direto (sem taxa) · 2º Mercado Pago</span></div>
   <div class="fg"><label class="f">Chave Pix da 3mix<input id="cfg-pix" data-cfg="pix3mix" value="${esc(S.pix3mix||'')}" placeholder="CNPJ, e-mail ou telefone"></label>
   <label class="f">Nome do recebedor (igual ao banco)<input id="cfg-pixnome" data-cfg="pixNome" value="${esc(S.pixNome||'')}" maxlength="25" placeholder="razão social ou nome fantasia"></label>
@@ -1687,7 +1699,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-31';
+const VERSAO='2026.11.02-33';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2237,7 +2249,9 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <label class="f">Estoque central (un)<input id="f-estoque" data-f="estoque" type="number" min="0" inputmode="numeric" value="${+p.estoque||0}" title="Ajuste manual: fica registrado como inventário"></label>
    <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
    <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="não aparece na loja"></label>
-   <div class="f s3" style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.04em">Foto ambientada da loja (opcional)</span><div class="ambbox" id="ambBox">${ambCorpo(p.fotoAmb)}</div></div>
+   <div class="f" style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Foto ambientada</span><div class="ambbox" id="ambBox">${ambCorpo(p.fotoAmb)}</div></div>
+   <label class="f">ID Yampi · revenda<input id="f-skuRev" data-f="skuRev" value="${esc(p.skuRev||'')}" placeholder="ex.: R9YKCBB93" title="ID do link de compra na Yampi para o revendedor"></label>
+   <label class="f">ID Yampi · cliente final<input id="f-sku" data-f="sku" value="${esc(p.sku||'')}" placeholder="opcional" title="ID do link de compra na Yampi para o cliente final"></label>
   </div>
  </div>
  <div class="pcol pcomp"><div class="pc-t" style="font-size:11px">Composição do preço</div>
@@ -2263,6 +2277,7 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
    <b>Total taxas</b><b class="n" id="pc-tx-pct">—</b><b class="n" id="pc-tx-r">—</b>
   </div>
   <div class="calc pc-box" style="margin-top:10px" id="pCalc"></div>
+
  </div>
  </div>
  <div class="actions">${id?`<button class="btn" data-delprod="${p.id}" style="color:var(--bad);margin-right:auto">Excluir produto</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-saveprod="${p.id}">Salvar produto</button></div>`);
@@ -2469,6 +2484,9 @@ document.addEventListener('click',e=>{
  if(d.pg){UI.pages[d.pg]=(UI.pages[d.pg]||0)+ +d.d;if(d.pg==='kit')drawKit();else if(UI.cartOpen)drawCarrinho();else render();return}
  if('kit' in d){UI.view='comprar';UI.modal=null;render();return}
  if('carrinho' in d){mCarrinho();return}
+ if('arqscan' in d){rodar(async()=>{const out=[];for(const bk of ['produtos','banners']){const{data,error}=await sb.storage.from(bk).list('',{limit:1000});if(error)throw error;(data||[]).filter(o=>o.id&&!arqEmUso(bk,o.name)).forEach(o=>out.push({b:bk,n:o.name,kb:(o.metadata?.size||0)/1024}))}UI.arqs=out});return}
+ if('arqdel' in d){const A=UI.arqs||[];if(!A.length)return;if(!UI.arqArm){UI.arqArm=1;armar(b,`Confirmar: apagar ${A.length}?`,true);return}UI.arqArm=0;
+  rodar(async()=>{let n=0;for(const bk of ['produtos','banners']){const L=A.filter(a=>a.b===bk&&!arqEmUso(bk,a.n)).map(a=>a.n);if(L.length){const{error}=await sb.storage.from(bk).remove(L);if(error)throw error;n+=L.length}}log('Arquivos sem uso apagados',A.map(a=>a.n).join(', '));UI.arqs=null},`Arquivos sem uso apagados`);return}
  if('ambrm' in d){UI.draft.fotoAmb='';const bx=$('#ambBox');if(bx)bx.innerHTML=ambCorpo('');return}
  if(d.mt){const p=prod(d.mt),c=cartV(),m=cartM();if(m[d.mt])delete m[d.mt];else{if(!MPp(p)){toast('Este perfume não tem preço de mostruário');return}if(mostraLib(UI.vid,d.mt)){toast('Mostruário deste perfume ainda não liberado');return}if((c[d.mt]||0)+1>p.estoque){toast('Sem estoque na distribuidora para o mostruário');return}m[d.mt]=1}
   if(UI.cartOpen)drawCarrinho();else render();return}
@@ -2681,7 +2699,9 @@ document.addEventListener('click',e=>{
    const row={codigo:x.code,nome:x.nome.trim(),genero:x.genero,familia:x.familia,descricao:x.descricao||'',ml:x.ml||100,custo:x.custo,frete_pct:+x.frete||0,ipi_pct:+x.ipi||0,preco:x.preco,preco_rev:x.precoRev,preco_mostra:x.precoMostra,preco_vista:0,comissao:x.comissao,
     estoque_min:x.min,ref:x.ref||'',foto,foto_amb:x.fotoAmb||'',sku:(x.sku||'').trim(),sku_rev:(x.skuRev||'').trim()};
    const est=Math.max(0,Math.round(+x.estoque||0)),antes=d.saveprod?(+prod(d.saveprod)?.estoque||0):0;
+   const velho=d.saveprod?prod(d.saveprod):null;
    if(d.saveprod)await upd('produtos',row,d.saveprod);else await ins('produtos',{...row,estoque:est});
+   if(velho){const out=[[velho.foto,foto],[velho.fotoAmb,x.fotoAmb||'']].filter(([a,b])=>a&&a!==b&&!S.prods.some(p=>p.id!==velho.id&&(p.foto===a||p.fotoAmb===a))).map(([a])=>a);try{await apagaArq('produtos',out)}catch(_){}}
    if(d.saveprod&&est!==antes)await rpc('aplicar_inventario',{p_local:'central',p_itens:[{pid:d.saveprod,cont:est}]});
    log(d.saveprod?'Produto editado':'Produto criado',`${x.code} · ${x.nome} · ao vendedor R$ ${fmt(x.precoRev)} · sugerido R$ ${fmt(x.preco)} · mostruário R$ ${fmt(x.precoMostra)} · custo R$ ${fmt(x.custo)} + frete ${pc(x.frete)} + IPI ${pc(x.ipi)}`);UI.modal=null},'Produto salvo');return}
  if('saveent' in d){const x=UI.draft,q=+x.qtd||0,c=num(x.custo);if(q<=0){toast('Quantidade deve ser maior que zero');return}
@@ -2772,7 +2792,7 @@ document.addEventListener('change',e=>{
  if(d.bn!==undefined){const bn=S.banners[+d.bn],val=t.type==='checkbox'?t.checked:t.value;bn[d.k]=val;
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao',so:'so_imagem'}[d.k];
   upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub'||d.k==='so')render()},err=>toast(msgErro(err),4000));return}
- if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner');await upd('banners',{img:nome,so_imagem:true},bn.id);log('Foto de banner enviada',`${bn.tit} · ${nome} · só a imagem`)},'Foto enviada · marcado "Só a imagem" (desmarque se quiser o texto da loja por cima)'));return}
+ if(d.bnup!==undefined&&t.files&&t.files[0]){const bn=S.banners[+d.bnup];lerFoto(t.files[0],1600).then(u=>rodar(async()=>{const nome=await subirFoto(u,'banners','banner'),velha=bn.img;await upd('banners',{img:nome,so_imagem:true},bn.id);if(velha&&velha!==nome&&!S.banners.some(b=>b.id!==bn.id&&b.img===velha)){try{await apagaArq('banners',[velha])}catch(_){}}log('Foto de banner enviada',`${bn.tit} · ${nome} · só a imagem`)},'Foto enviada · marcado "Só a imagem" (desmarque se quiser o texto da loja por cima)'));return}
  if(d.despnome!==undefined){S.despesas[+d.despnome].nome=t.value;cfgSave('Despesa renomeada',t.value);return}
  if(d.despval!==undefined){S.despesas[+d.despval].valor=num(t.value);cfgSave('Valor de despesa alterado',`${S.despesas[+d.despval].nome}: R$ ${fmt(num(t.value))}`);render();return}
  if(d.sf!==undefined){const so=S.socios[+d.sf],v=Math.max(0,num(t.value));if(v>so.pct){toast(`O fundo não pode passar da participação de ${so.nome} (${pc(so.pct)})`);render();return}so.fundo=v;cfgSave('Fundo do sócio alterado',`${so.nome}: ${pc(v)} do lucro fica no fundo`);render();return}
@@ -2829,8 +2849,8 @@ document.addEventListener('submit',async e=>{
 /* reduz a foto no aparelho antes de enviar (JPG, lado maior = max px) */
 /* foto ambientada (frasco em cena): substitui o fundo colorido no cartão da loja · quadrada, 1200 px */
 function ambCorpo(f){const inp='<input id="fFotoAmb" type="file" accept="image/*" hidden>';
- return f?`<img class="ambth" src="${esc(fotoSrc(f))}" alt="Foto ambientada"><label class="btn sm">${inp}Trocar</label><button type="button" class="btn sm" data-ambrm>Remover</button><span class="note">aparece no cartão do perfume na loja</span>`
-  :`<label class="btn sm">${inp}📷 Enviar foto ambientada</label><span class="note">foto do frasco em cena, de preferência quadrada (1200 × 1200 px)</span>`}
+ return f?`<img class="ambth" src="${esc(fotoSrc(f))}" alt="Foto ambientada"><label class="btn sm">${inp}Trocar</label><button type="button" class="btn sm" data-ambrm title="Remover">✕</button>`
+  :`<label class="btn sm" title="Foto do frasco em cena, quadrada (1200 × 1200 px). Aparece no cartão do perfume na loja">${inp}📷 Enviar foto</label>`}
 function lerFoto(file,max,alfa){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=()=>{const img=new Image();img.onerror=rej;img.onload=()=>{
  const c=document.createElement('canvas');const k=Math.min(1,max/Math.max(img.width,img.height));c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
  const g=c.getContext('2d');const png=alfa&&file.type==='image/png';if(!png){g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height)}g.drawImage(img,0,0,c.width,c.height);res(png?c.toDataURL('image/png'):c.toDataURL('image/jpeg',.85))};img.src=r.result};r.readAsDataURL(file)})}
