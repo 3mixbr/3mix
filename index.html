@@ -845,6 +845,11 @@ h1{font-size:22px}
 /* janelas (modal) e avisos sempre por cima da barra de baixo do celular */
 .scrim{z-index:45}.toast{z-index:50}
 @container (max-width:720px){.stage .scrim{padding:0!important}.stage .sheet{max-height:94%!important}}
+/* banner "só a imagem": mostra a arte inteira, sem cortar (no celular e no computador) */
+.sl.so .sl-img{object-fit:contain;z-index:1}
+.sl-bg{position:absolute;inset:-30px;width:calc(100% + 60px);height:calc(100% + 60px);object-fit:cover;filter:blur(22px) brightness(.6);transform:none!important}
+.sh-car.soimg{height:auto!important;aspect-ratio:1600/600}
+.sh-car.soimg .sl{height:100%}
 </style>
 </head>
 <body class="carregando">
@@ -1703,7 +1708,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-37';
+const VERSAO='2026.11.02-38';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -1899,9 +1904,10 @@ function carrossel(v,disp){
  let B=S.banners.filter(b=>b.on&&(!b.pub||disp.some(p=>p.genero===b.pub)));
  if(!B.length)B=[{kick:'Coleção 3mix',tit:'Fragrâncias que ficam na memória',txt:'Escolha, pague como preferir e receba das mãos de {vendedor}.',pub:'',cta:'Comprar agora'}];
  const cur=(UI.slide||0)%B.length;UI.slide=cur;
- return `<section class="sh-car" data-car aria-roledescription="carrossel">
+ const soImg=B.every(b=>b.so&&b.img);
+ return `<section class="sh-car${soImg?' soimg':''}" data-car aria-roledescription="carrossel">
  ${B.map((b,i)=>{const ps=disp.filter(p=>!b.pub||p.genero===b.pub).slice(0,3);const so=b.so&&b.img;return `<div class="sl${i===cur?' on':''}${so?' so':''}" style="background:${SLBG[b.pub]||SLBG['']}" aria-hidden="${i!==cur}">
-  ${b.img?`<img class="sl-img" src="${esc(fotoSrc(b.img,'banners'))}" alt="" onload="this.parentNode.classList.add('ph')" onerror="${esc(fbk(b.img))}">`:''}
+  ${so?`<img class="sl-bg" src="${esc(fotoSrc(b.img,'banners'))}" alt="" aria-hidden="true">`:''}${b.img?`<img class="sl-img" src="${esc(fotoSrc(b.img,'banners'))}" alt="" onload="this.parentNode.classList.add('ph')" onerror="${esc(fbk(b.img))}">`:''}
   ${so?`<button class="sl-link" data-lg="${esc(b.pub||'')}" data-scroll aria-label="${tx(b.tit||b.cta||'Ver perfumes')}"></button>`:`<div class="sh-hero-t"><span class="sh-kick">${tx(b.kick)}</span><h1>${tx(b.tit)}</h1>${b.txt?`<p>${tx(b.txt)}</p>`:''}<button class="sh-btn" data-lg="${esc(b.pub||'')}" data-scroll>${tx(b.cta||'Conferir')}</button></div>
   <div class="sh-hero-art">${ps.map((p,k)=>`<div class="ha ha${k}">${foto(p)}</div>`).join('')}</div>`}</div>`}).join('')}
  ${B.length>1?`<button class="car-nav prev" data-slnav="-1" aria-label="Banner anterior">‹</button><button class="car-nav next" data-slnav="1" aria-label="Próximo banner">›</button>
