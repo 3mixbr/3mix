@@ -818,7 +818,7 @@ h1{font-size:22px}
 /* cadastro do produto em 3 colunas no computador: cabe sem rolar */
 @media (min-width:900px){.sheet.xl .pform{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr);gap:14px}
 .sheet.xl .pfoto{grid-template-columns:64px minmax(0,1fr);gap:10px}.sheet.xl .pfoto .card .ph{height:64px;min-height:0;aspect-ratio:auto}
-.sheet.xl .pfoto-c{flex-direction:row;gap:10px}.sheet.xl .pfoto-c .f{flex:1;min-width:0}
+.sheet.xl .pfoto-c{flex-direction:column;gap:6px}.sheet.xl .pfoto-l{display:flex;gap:10px}.sheet.xl .pfoto-l .f{flex:1;min-width:0}
 .sheet.xl .pform .f{white-space:nowrap}
 .sheet.xl .pform .fg.p3{gap:6px 10px}.sheet.xl .pform .f{gap:2px}.sheet.xl .pform .f input,.sheet.xl .pform .f select{padding-top:6px;padding-bottom:6px}
 .sheet.xl .pc-g{gap:6px 8px;grid-template-columns:max-content minmax(0,1fr) minmax(0,1fr)}.sheet.xl .pc-g .f input{padding-top:6px;padding-bottom:6px}
@@ -841,6 +841,7 @@ h1{font-size:22px}
 .sl.so.ph::before{display:none}.sl-link{position:absolute;inset:0;z-index:2;border:0;background:transparent;cursor:pointer;padding:0}.sl:not(.on) .sl-link{pointer-events:none}
 .ypbox{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}.ypbox .pc-h{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .yplink{display:flex;align-items:center;gap:6px;min-width:0}.yplink code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)}
+.pcena{display:flex;flex-direction:column;gap:4px}.pcena>span{font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;white-space:nowrap}.pcena .ambbox{min-height:0}
 </style>
 </head>
 <body class="carregando">
@@ -1699,7 +1700,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-33';
+const VERSAO='2026.11.02-36';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2237,21 +2238,20 @@ function mProduto(id){UI.msize='xl';UI.delArm=false;
  <div class="pform">
  <div class="pcol">
   <div class="pfoto"><div class="card"><div class="ph" id="fPrev">${foto(p)}</div></div>
-   <div class="pfoto-c"><label class="f">Enviar foto<input id="fFoto" type="file" accept="image/*"></label>
-   <label class="f">Arquivo da foto<input id="f-foto" data-f="foto" value="${esc(p.foto&&!p.foto.startsWith('data:')?p.foto:'')}" placeholder="nome do arquivo no Supabase"></label></div></div>
+   <div class="pfoto-c"><div class="pfoto-l"><label class="f" title="Foto do frasco sozinho, de preferência PNG sem fundo. Aparece em todo o sistema e na loja">Foto do frasco<input id="fFoto" type="file" accept="image/*"></label>
+   <label class="f">Arquivo da foto<input id="f-foto" data-f="foto" value="${esc(p.foto&&!p.foto.startsWith('data:')?p.foto:'')}" placeholder="nome do arquivo no Supabase"></label></div>
+   <div class="f pcena"><span title="Foto do frasco em cena (com fundo, ambiente), quadrada 1200 × 1200 px. Só a loja online usa, no lugar do fundo colorido">Foto de cena · loja (opcional)</span><div class="ambbox" id="ambBox">${ambCorpo(p.fotoAmb)}</div></div></div></div>
   <div class="fg p3">
    <label class="f">Código *<input id="f-code" data-f="code" value="${esc(p.code)}" style="text-transform:uppercase" required></label>
    <label class="f s2">Nome<input id="f-nome" data-f="nome" value="${esc(p.nome)}"></label>
    <label class="f">Gênero<select id="f-genero" data-f="genero">${['Fem','Masc','Unissex','Infantil'].map(g=>`<option ${g===p.genero?'selected':''}>${g}</option>`).join('')}</select></label>
    <label class="f">Família olfativa<select id="f-familia" data-f="familia">${Object.keys(FAM).map(g=>`<option ${g===p.familia?'selected':''}>${g}</option>`).join('')}</select></label>
    <label class="f">Volume (ml)<input id="f-ml" data-f="ml" type="number" value="${p.ml}"></label>
-   <label class="f s3">Descrição curta<input id="f-descricao" data-f="descricao" value="${esc(p.descricao)}" placeholder="aparece na loja do vendedor"></label>
+   <label class="f s2">Descrição curta<input id="f-descricao" data-f="descricao" value="${esc(p.descricao)}" placeholder="aparece na loja do vendedor"></label>
+   <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="não aparece na loja"></label>
    <label class="f">Estoque central (un)<input id="f-estoque" data-f="estoque" type="number" min="0" inputmode="numeric" value="${+p.estoque||0}" title="Ajuste manual: fica registrado como inventário"></label>
    <label class="f">Estoque mínimo (un)<input id="f-min" data-f="min" type="number" value="${p.min}"></label>
-   <label class="f">Referência interna<input id="f-ref" data-f="ref" value="${esc(p.ref)}" placeholder="não aparece na loja"></label>
-   <div class="f" style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Foto ambientada</span><div class="ambbox" id="ambBox">${ambCorpo(p.fotoAmb)}</div></div>
-   <label class="f">ID Yampi · revenda<input id="f-skuRev" data-f="skuRev" value="${esc(p.skuRev||'')}" placeholder="ex.: R9YKCBB93" title="ID do link de compra na Yampi para o revendedor"></label>
-   <label class="f">ID Yampi · cliente final<input id="f-sku" data-f="sku" value="${esc(p.sku||'')}" placeholder="opcional" title="ID do link de compra na Yampi para o cliente final"></label>
+   <label class="f">ID Yampi<input id="f-skuRev" data-f="skuRev" value="${esc(p.skuRev||'')}" placeholder="ex.: R9YKCBB93" title="ID do link de compra na Yampi para o revendedor"></label>
   </div>
  </div>
  <div class="pcol pcomp"><div class="pc-t" style="font-size:11px">Composição do preço</div>
