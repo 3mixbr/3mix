@@ -857,6 +857,7 @@ h1{font-size:22px}
 button.row.pcl{width:100%;border:0;background:transparent;text-align:left;font:inherit;cursor:pointer;display:flex;align-items:center;gap:10px}button.row.pcl:hover{background:var(--accent-soft)}
 .btn.ico svg{width:15px;height:15px;display:block}.btn.ico{padding:3px 5px}
 td.vacts{white-space:nowrap}@media (min-width:900px){td.vacts{display:table-cell}td.vacts .btn.ico{display:flex;margin:2px 0}}
+.pcrec{display:inline-flex;align-items:center;gap:4px}.pcrec input{width:84px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:5px 7px;text-align:right;font:inherit}
 </style>
 </head>
 <body class="carregando">
@@ -1507,7 +1508,7 @@ const cap1=t=>{t=String(t||'').trim().split(' ')[0].toLowerCase();return t.charA
 function parcInfo(v){const P=v.parc||[];if(!P.length)return null;const h=iso(today),ab=P.filter(p=>!p.pago);
  return {P,n:P.length,np:P.length-ab.length,rec:P.filter(p=>p.pago).reduce((a,p)=>a+ +p.valor,0),falta:ab.reduce((a,p)=>a+ +p.valor,0),prox:ab[0]||null,venc:ab.some(p=>p.venc<h),dif:Math.abs(P.reduce((a,p)=>a+ +p.valor,0)-vTot(v))>0.009}}
 const pcFalta=v=>{const pi=parcInfo(v);return Math.round((vTot(v)-(pi?pi.rec:0))*100)/100};
-function mParcelas(id,edit){const v=S.vendas.find(x=>x.id===id);if(!v)return;const pi=parcInfo(v);UI.msize='md';
+function mParcelas(id,edit){const v=S.vendas.find(x=>x.id===id);if(!v)return;const pi=parcInfo(v);UI.msize='lg';
  UI.pc={id,edit:!!edit||!pi,forma:v.pag==='dinheiro'?'dinheiro':'pix',tel:v.tel||'',n:pi?Math.max(1,pi.n-pi.np):2,d1:null,L:null};
  if(pi&&!pi.dif&&pi.n>pi.np){const ab=pi.P.filter(p=>!p.pago);UI.pc.L=ab.map(p=>({venc:String(p.venc).slice(0,10),valor:+p.valor}));UI.pc.d1=UI.pc.L[0].venc}else pcGera();
  if(!pi&&!edit)UI.pc.edit=false;drawParc()}
@@ -1538,9 +1539,10 @@ function drawParc(){const x=UI.pc,v=x&&S.vendas.find(y=>y.id===x.id);if(!v){UI.p
   ${tel}
   <div class="actions">${pi&&!pi.np?'<button class="btn" data-pcrm style="margin-right:auto;color:var(--bad)">Tirar parcelamento</button>':''}<button class="btn ghost" ${pi?'data-pcver':'data-close'}>Voltar</button><button class="btn pri" data-pcsalva ${ok?'':'disabled'}>Salvar parcelas</button></div>`;
   render();return}
- const rows=pi?pi.P.map(p=>{const vc=!p.pago&&p.venc<h;return `<tr><td><b>${p.n}/${pi.n}</b></td><td>${br(p.venc)}</td><td class="n">${R(+p.valor)}</td><td>${p.pago?`<span class="chip good st">Pago ${br(p.pago)} · ${PAY[p.forma]||''}</span>`:vc?'<span class="chip bad st">Vencida</span>':String(p.venc).slice(0,10)===h?'<span class="chip warn st">Vence hoje</span>':'<span class="chip st">Em aberto</span>'}</td><td class="n">${p.pago?`<button class="btn sm" data-pcdes="${p.id}">Desfazer</button>`:`<button class="btn pri sm" data-pcpag="${p.id}">Recebi</button>`}</td></tr>`}).join(''):'';
+ const rows=pi?pi.P.map(p=>{const vc=!p.pago&&p.venc<h;return `<tr><td><b>${p.n}/${pi.n}</b></td><td>${br(p.venc)}</td><td class="n">${R(+p.valor)}</td><td>${p.pago?`<span class="chip good st">Pago ${br(p.pago)} · ${PAY[p.forma]||''}</span>`:vc?'<span class="chip bad st">Vencida</span>':String(p.venc).slice(0,10)===h?'<span class="chip warn st">Vence hoje</span>':'<span class="chip st">Em aberto</span>'}</td><td class="n">${p.pago?`<button class="btn sm" data-pcdes="${p.id}">Desfazer</button>`:x.rec===p.id?`<span class="pcrec"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" id="pc-rv" data-pcrv value="${fmt(x.rv??+p.valor)}" aria-label="Valor recebido"><button class="btn pri sm" data-pcok="${p.id}">OK</button><button class="btn sm" data-pcx>×</button></span>`:`<button class="btn pri sm" data-pcpag="${p.id}">Recebi</button>`}</td></tr>`}).join(''):'';
  UI.modal=head+(pi?`${pi.dif?'<div class="alerta"><span>O valor da venda mudou depois do parcelamento (cancelamento de frasco). Clique em <b>Refazer em aberto</b> para acertar as parcelas.</span></div>':''}
   ${pi.falta>0.009?`<div class="pcforma"><span class="note">Recebendo em</span><div class="pay">${PAYV.map(k=>`<button data-pcforma="${k}" aria-pressed="${x.forma===k}">${PAY[k]}</button>`).join('')}</div></div>`:''}
+  ${x.rec?`<p class="note" style="margin:0">Digite quanto o cliente pagou. Se for diferente da parcela, o sistema recalcula as parcelas seguintes até fechar o total da compra (falta ${Ri(pi.falta)}).</p>`:''}
   <div class="tbl"><table class="cards pctab"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
   :`<p class="note" style="margin:0">Venda à vista · ${v.status==='pago'?'paga':'a receber'} no ${PAY[v.pag]||''}. Para vender parcelado, clique em <b>Parcelar</b>.</p>`)+`
   ${tel}
@@ -1778,7 +1780,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.04-01';
+const VERSAO='2026.11.04-02';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2750,8 +2752,13 @@ document.addEventListener('click',e=>{
  if('pcedit' in d){const x=UI.pc;x.edit=true;x.n=null;x.d1=null;const v=S.vendas.find(y=>y.id===x.id),pi=parcInfo(v);if(pi&&!pi.dif&&pi.n>pi.np){x.L=pi.P.filter(p=>!p.pago).map(p=>({venc:String(p.venc).slice(0,10),valor:+p.valor}));x.d1=x.L[0].venc}else{x.n=2;pcGera()}drawParc();return}
  if('pcver' in d){UI.pc.edit=false;drawParc();return}
  if(d.pcforma){UI.pc.forma=d.pcforma;drawParc();return}
- if(d.pcpag||d.pcdes){const pid=d.pcpag||d.pcdes,pg=!!d.pcpag;if(!pg&&UI.pcArm!==pid){UI.pcArm=pid;armar(b,'Desfazer?',true);return}UI.pcArm=null;
-  rodar(()=>rpc('pagar_parcela',{p_id:pid,p_pago:pg,p_forma:pg?UI.pc.forma:null}),pg?`Parcela recebida · ${PAY[UI.pc.forma]}`:'Recebimento desfeito').then(()=>{if(UI.pc)drawParc()});return}
+ if(d.pcpag){UI.pc.rec=d.pcpag;UI.pc.rv=null;drawParc();setTimeout(()=>{const e=$('#pc-rv');if(e){e.focus();e.select?.()}},30);return}
+ if('pcx' in d){UI.pc.rec=null;drawParc();return}
+ if(d.pcok){const x=UI.pc,val=num($('#pc-rv')?.value||'0');if(!(val>0)){toast('Informe o valor recebido');return}
+  const v=S.vendas.find(y=>y.id===x.id),p0=(v?.parc||[]).find(p=>p.id===d.pcok),dif=p0&&Math.abs(val-p0.valor)>0.009;
+  rodar(()=>rpc('pagar_parcela',{p_id:d.pcok,p_pago:true,p_forma:x.forma,p_valor:val}),`Recebido ${Ri(val).replace(/<[^>]+>/g,'')} · ${PAY[x.forma]}${dif?' · parcelas seguintes recalculadas':''}`).then(()=>{if(UI.pc){UI.pc.rec=null;drawParc()}});return}
+ if(d.pcdes){const pid=d.pcdes;if(UI.pcArm!==pid){UI.pcArm=pid;armar(b,'Desfazer?',true);return}UI.pcArm=null;
+  rodar(()=>rpc('pagar_parcela',{p_id:pid,p_pago:false}),'Recebimento desfeito · parcelas em aberto recalculadas').then(()=>{if(UI.pc)drawParc()});return}
  if('pcsalva' in d){const x=UI.pc;rodar(()=>rpc('definir_parcelas',{p_venda:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100})),p_tel:x.tel}),'Parcelas salvas').then(ok=>{if(ok&&UI.pc){UI.pc.edit=false;drawParc()}});return}
  if('pcrm' in d){if(!UI.pcRmArm){UI.pcRmArm=1;armar(b,'Confirmar?',true);return}UI.pcRmArm=0;rodar(()=>rpc('definir_parcelas',{p_venda:UI.pc.id,p_itens:[]}),'Parcelamento removido').then(()=>{UI.pc=null;closeModal()});return}
  if('pccopia' in d||'pczap' in d){const x=UI.pc,v=S.vendas.find(y=>y.id===x.id);if(!v)return;const t=msgVenda(v),tl=String(x.tel||'').replace(/\D/g,'');
@@ -2839,6 +2846,7 @@ document.addEventListener('input',e=>{
   if(d.mk==='precoRev')$('#f-mkv').value=fmt(mkp(+D.preco,v));pCalc();return}
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){const c=+(prod(t.value)?.custo)||0;$('#e-custo').value=fmt(c);UI.draft.custo=c}return}
  if('pctel' in d){if(UI.pc)UI.pc.tel=t.value;return}
+ if('pcrv' in d){if(UI.pc)UI.pc.rv=num(t.value);return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
  if(d.ck){UI.draft[d.ck]=t.value;return}
  if(d.av){UI.draft[d.av]=t.value;return}
@@ -2852,6 +2860,7 @@ document.addEventListener('input',e=>{
  if(d.tax!==undefined&&e.type==='input'){S.taxas[d.tax]=num(t.value);return}
  if(d.sn!==undefined){S.socios[+d.sn].nome=t.value;return}
 });
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='pc-rv'){e.preventDefault();document.querySelector('[data-pcok]')?.click()}});
 document.addEventListener('change',e=>{
  const t=e.target,d=t.dataset;
  if('pcn' in d){UI.pc.n=+t.value;pcGera();drawParc();return}
