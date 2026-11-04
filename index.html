@@ -1048,8 +1048,8 @@ const brt=d=>new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',y
 const UI={role:'socio',vid:'v0',view:'painel',per:30,pages:{},device:'site',tab:'catalogo',modal:null};
 
 /* venda do vendedor ao cliente: só Pix ou dinheiro (direto para o vendedor) */
-const PAYV=['pix','dinheiro'];
-const PAY={pix:'Pix',debito:'Débito',credito:'Crédito à vista',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link online'};
+const PAYV=['pix','dinheiro'],PAYS=['pix','dinheiro','crediario'];
+const PAY={crediario:'Crediário',pix:'Pix',debito:'Débito',credito:'Crédito à vista',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link online'};
 const prod=id=>S.prods.find(p=>p.id===id);
 const vend=id=>S.vend.find(v=>v.id===id);
 /* estoque individual de cada vendedor */
@@ -1264,7 +1264,7 @@ function vVendas(onlyVid,ro){
  return `<div class="head"><div><h1>${onlyVid?'Minhas vendas':'Vendas dos revendedores'}</h1><p class="sub">${perTxt}: ${L.length} venda${L.length===1?'':'s'} · ${U(t.un)}${onlyVid?'':' · dinheiro dos revendedores'}</p></div><div class="sp"></div>${perTabs()}${ro?'':'<button class="btn pri" data-nova>+ Nova venda</button>'}</div>
  ${ro||onlyVid?`<div class="filtros">${ro?`<select data-vf="vid" aria-label="Vendedor"><option value="">Todos os vendedores</option>${S.vend.map(v=>`<option value="${v.id}" ${F.vid===v.id?'selected':''}>${esc(v.nome)}</option>`).join('')}</select>`:''}
   <select data-vf="st" aria-label="Situação"><option value="">Todas as situações</option>${[['receber','A receber'],['pago','Pago'],['aentregar','A entregar'],['entregue','Entregue']].map(([k,l])=>`<option value="${k}" ${F.st===k?'selected':''}>${l}</option>`).join('')}</select>
-  <select data-vf="pag" aria-label="Forma de pagamento"><option value="">Todas as formas de pagamento</option>${Object.entries(PAY).map(([k,l])=>`<option value="${k}" ${F.pag===k?'selected':''}>${l}</option>`).join('')}</select>
+  <select data-vf="pag" aria-label="Forma de pagamento"><option value="">Todas as formas de pagamento</option>${PAYS.map(k=>[k,PAY[k]]).map(([k,l])=>`<option value="${k}" ${F.pag===k?'selected':''}>${l}</option>`).join('')}</select>
   <select data-vf="pid" aria-label="Perfume"><option value="">Todos os perfumes (SKU)</option>${S.prods.map(p=>`<option value="${p.id}" ${F.pid===p.id?'selected':''}>${p.code} · ${esc(p.nome)}</option>`).join('')}</select>
   <label>De<input type="date" data-vf="de" value="${F.de||''}"></label><label>Até<input type="date" data-vf="ate" value="${F.ate||''}"></label>
   ${F.vid||F.pag||F.pid||F.st||cust?'<button class="btn sm" data-vflimpa>Limpar filtros</button>':''}</div>`:''}
@@ -1272,9 +1272,9 @@ function vVendas(onlyVid,ro){
  ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}</span><div class="s note kvend">${onlyVid?'':esc((vend(v.vid)?.nome||'').split(' ')[0])}${v.origem?` <span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</div></td><td>${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button><div class="s note vcods">${v.itens.map(i=>`${prod(i.pid)?.code||'?'}${i.qtd>1?' ×'+i.qtd:''}`).join(' · ')}</div>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}${v.itens[0]?.qtd>1?' ×'+v.itens[0].qtd:''}</span>`}</td>
  <td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
  <td style="white-space:nowrap">${(()=>{const pi=parcInfo(v);if(!pi)return '';const cl=pi.np===pi.n?'good':pi.venc?'bad':'warn',tx=pi.np===pi.n?'Quitado':`${pi.np}/${pi.n} pagas`;
-   return `${ro?`<span class="chip ${cl} st">${tx}</span>`:`<button class="chip ${cl} st" style="border:0" data-parc="${v.id}" title="Ver parcelas">${tx}</button>`}<div class="s note vpag">${pi.np<pi.n?(pi.venc?`<b style="color:var(--bad)">vencida ${br(pi.prox.venc)}</b>`:`próx. ${br(pi.prox.venc)}`):`${pi.n}x`}</div>`})()||(`${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}${!ro&&PAYV.includes(v.pag)?` <button class="vpagalt" data-vpagalt="${v.id}" title="Trocar para ${PAY[v.pag==='pix'?'dinheiro':'pix']}">trocar</button>`:''}</div>`)}</td>
+   return `${ro?`<span class="chip ${cl} st">${tx}</span>`:`<button class="chip ${cl} st" style="border:0" data-parc="${v.id}" title="Ver parcelas">${tx}</button>`}<div class="s note vpag">${pi.np<pi.n?(pi.venc?`<b style="color:var(--bad)">vencida ${br(pi.prox.venc)}</b>`:`crediário · próx. ${br(pi.prox.venc)}`):`crediário ${pi.n}x`}</div>`})()||(`${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}${!ro&&v.pag==='crediario'?` <button class="vpagalt" data-parc="${v.id}">definir parcelas</button>`:''}${!ro&&PAYV.includes(v.pag)?` <button class="vpagalt" data-vpagalt="${v.id}" title="Trocar para ${PAY[v.pag==='pix'?'dinheiro':'pix']}">trocar</button>`:''}</div>`)}</td>
  <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
- ${ro?'':`<td class="vacts"><button class="btn sm ico" data-parc="${v.id}" title="Parcelas e resumo para o cliente (WhatsApp)" aria-label="Parcelas e resumo para o cliente">${ic('zap')}</button><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
+ ${ro?'':`<td class="vacts"><button class="btn sm ico" data-parc="${v.id}" title="Crediário e resumo para o cliente (WhatsApp)" aria-label="Crediário e resumo para o cliente">${ic('zap')}</button><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
  ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="2" class="vsub-c"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${8+(ro?0:1)}" class="empty">Nenhuma venda ${cust?'nesse período':'nos últimos '+UI.per+' dias'}${F.vid||F.pag||F.pid||F.st?' com esses filtros':''}.</td></tr>`}
  </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="2" class="vtot-l">Total · ${L.length} venda${L.length>1?'s':''} · ${perTxt}${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td></td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
  ${onlyVid?'':'<p class="note">Vendas dos revendedores aos clientes finais, só para acompanhar. O dinheiro é do revendedor e não entra no caixa da 3mix. Pagamento, entrega e cancelamento são feitos pelo próprio revendedor.</p>'}`;
@@ -1520,14 +1520,14 @@ function msgVenda(v){const pi=parcInfo(v),ve=vend(v.vid)||{},tot=vTot(v),h=iso(t
  let t=`*3mix Perfumaria*\nOlá, ${cap1(v.cliente)}! Obrigado pela sua compra. 💜\n\n*Pedido ${NUMF(v.num,'P')}* · ${br4(v.data)}\n`;
  v.itens.forEach(i=>{const p=prod(i.pid)||{};t+=`${i.qtd}x ${p.code||''} ${p.nome||''} — ${R2(i.qtd*i.preco)}\n`});
  t+=`*Total: ${R2(tot)}*\n`;
- if(pi){t+=`\n*Pagamento em ${pi.n}x*\n`;pi.P.forEach(p=>{const vc=!p.pago&&p.venc<h;t+=`${p.pago?'✅':vc?'⚠️':'⏳'} ${p.n}ª · ${br4(p.venc)} · ${R2(+p.valor)}${p.pago?' · pago':vc?' · vencida':''}\n`});
+ if(pi){t+=`\n*Crediário em ${pi.n}x*\n`;pi.P.forEach(p=>{const vc=!p.pago&&p.venc<h;t+=`${p.pago?'✅':vc?'⚠️':'⏳'} ${p.n}ª · ${br4(p.venc)} · ${R2(+p.valor)}${p.pago?' · pago':vc?' · vencida':''}\n`});
   t+=pi.falta<0.01?`\n✅ *Compra quitada!* Obrigado pela confiança.\n`:`\nPago: ${R2(pi.rec)} · Falta: ${R2(pi.falta)}\n${pi.prox.venc<h?`⚠️ Em atraso desde ${br4(pi.prox.venc)} · ${R2(+pi.prox.valor)}`:`Próximo pagamento: ${br4(pi.prox.venc)} · ${R2(+pi.prox.valor)}`}\n`}
  else t+=`\nPagamento: ${PAY[v.pag]||''} · ${v.status==='pago'?'pago ✅':'a pagar'}\n`;
  if(ve.pix&&(pi?pi.falta>0.01:v.status!=='pago'))t+=`\nPix para pagamento: ${ve.pix}\n`;
  t+=`\n${cap1(ve.nome)} · 3mix${ve.tel?' · '+ve.tel:''}`;return t}
 const zapLink=(tel,t)=>{let d=String(tel||'').replace(/\D/g,'');if(d&&!(d.startsWith('55')&&d.length>=12))d='55'+d;return `https://wa.me/${d}?text=${encodeURIComponent(t)}`};
 function drawParc(){const x=UI.pc,v=x&&S.vendas.find(y=>y.id===x.id);if(!v){UI.pc=null;closeModal();return}const pi=parcInfo(v),tot=vTot(v),h=iso(today);
- const head=`<h3>${x.edit?(pi?'Refazer parcelas em aberto':'Parcelar venda'):'Pagamento da venda'}${v.num?` <span class="pnum big">${NUMF(v.num,'P')}</span>`:''}</h3>
+ const head=`<h3>${x.edit?(pi?'Crediário · refazer parcelas em aberto':'Crediário · parcelas'):(pi?'Crediário':'Pagamento da venda')}${v.num?` <span class="pnum big">${NUMF(v.num,'P')}</span>`:''}</h3>
  <div class="cxres"><div><span>Cliente</span><b>${esc(v.cliente)}</b></div><div><span>Total</span><b>${Ri(tot)}</b></div><div><span>Recebido</span><b>${Ri(pi?pi.rec:(v.status==='pago'?tot:0))}</b></div><div><span>Falta</span><b>${Ri(pi?pi.falta:(v.status==='pago'?0:tot))}</b></div></div>`;
  const tel=`<label class="f">WhatsApp do cliente<input id="pc-tel" data-pctel inputmode="tel" value="${esc(x.tel)}" placeholder="(22) 99999-9999"></label>`;
  if(x.edit){const falta=pcFalta(v),soma=x.L.reduce((a,l)=>a+(+l.valor||0),0),ok=Math.abs(soma-falta)<0.009,np=pi?pi.np:0;
@@ -1544,9 +1544,9 @@ function drawParc(){const x=UI.pc,v=x&&S.vendas.find(y=>y.id===x.id);if(!v){UI.p
   ${pi.falta>0.009?`<div class="pcforma"><span class="note">Recebendo em</span><div class="pay">${PAYV.map(k=>`<button data-pcforma="${k}" aria-pressed="${x.forma===k}">${PAY[k]}</button>`).join('')}</div></div>`:''}
   ${x.rec?`<p class="note" style="margin:0">Digite quanto o cliente pagou. Se for diferente da parcela, o sistema recalcula as parcelas seguintes até fechar o total da compra (falta ${Ri(pi.falta)}).</p>`:''}
   <div class="tbl"><table class="cards pctab"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
-  :`<p class="note" style="margin:0">Venda à vista · ${v.status==='pago'?'paga':'a receber'} no ${PAY[v.pag]||''}. Para vender parcelado, clique em <b>Parcelar</b>.</p>`)+`
+  :`<p class="note" style="margin:0">Venda à vista · ${v.status==='pago'?'paga':'a receber'} no ${PAY[v.pag]||''}. Para vender no crediário, clique em <b>Crediário</b>.</p>`)+`
   ${tel}
-  <div class="actions"><button class="btn ghost" data-close style="margin-right:auto">Fechar</button>${!pi||pi.np<pi.n?`<button class="btn" data-pcedit>${pi?'Refazer em aberto':'Parcelar'}</button>`:''}<button class="btn" data-pccopia>Copiar texto</button><button class="btn pri" data-pczap>📲 Enviar no WhatsApp</button></div>`;
+  <div class="actions"><button class="btn ghost" data-close style="margin-right:auto">Fechar</button>${!pi||pi.np<pi.n?`<button class="btn" data-pcedit>${pi?'Refazer em aberto':'Crediário'}</button>`:''}<button class="btn" data-pccopia>Copiar texto</button><button class="btn pri" data-pczap>📲 Enviar no WhatsApp</button></div>`;
  render()}
 /* início do revendedor: parcelas vencidas e dos próximos 30 dias */
 function vParcV(vid){const h=iso(today),lim=addMeses(h,1);const L=[];
@@ -1780,7 +1780,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.04-02';
+const VERSAO='2026.11.04-03';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2016,7 +2016,7 @@ function drawQV(){const p=prod(UI.qv),v=vend(UI.vid),q=UI.cart[p.id]||0,max=eV(v
  <div class="actions"><button class="btn ghost" data-close>Continuar vendo</button>${Object.keys(UI.cart).length?'<button class="btn pri" data-checkout>Ver sacola</button>':''}</div>`;
  render();
 }
-const CKP=()=>UI.publico?{pix:'Pix para o vendedor',dinheiro:'Dinheiro na entrega'}:{pix:'Pix',dinheiro:'Dinheiro'};
+const CKP=()=>UI.publico?{pix:'Pix para o vendedor',dinheiro:'Dinheiro na entrega',crediario:'Crediário (parcelado)'}:{pix:'Pix',dinheiro:'Dinheiro',crediario:'Crediário'};
 function mCheckout(){UI.qv=null;UI.ck=true;UI.msize='md';UI.draft={cliente:'',tel:'',pag:'pix'};drawCheckout()}
 function drawCheckout(){
  const d=UI.draft,cp=CKP(),pg=x=>precoVend(prod(x),UI.vid),tot=Object.entries(UI.cart).reduce((a,[pid,q])=>a+pg(pid)*q,0);
@@ -2024,7 +2024,7 @@ function drawCheckout(){
  <div class="list">${Object.entries(UI.cart).map(([pid,q])=>{const p=prod(pid);return `<div class="row"><div class="grow"><div class="t">${esc(p.nome)}</div><div class="s">${Ri(pg(pid))} por un</div></div>${qtyCtl(pid,q,eV(UI.vid,pid))}<span style="min-width:110px">${R(pg(pid)*q)}</span></div>`}).join('')}
  <div class="row"><div class="grow"><div class="t">Total</div></div><span style="min-width:110px"><b>${R(tot)}</b></span></div></div>
  <div class="fg"><label class="f">${UI.publico?'Seu nome':'Nome do cliente'}<input id="ck-nome" data-ck="cliente" value="${esc(d.cliente)}"></label><label class="f">WhatsApp${UI.publico?'':' do cliente'}<input id="ck-tel" data-ck="tel" inputmode="tel" value="${esc(d.tel)}"></label></div>
- <div><div class="note" style="margin-bottom:6px;font-weight:700">${UI.publico?'Como quer pagar?':'Forma de pagamento'}</div><div class="pay">${Object.keys(cp).map(k=>`<button data-ckpay="${k}" aria-pressed="${d.pag===k}">${cp[k]}</button>`).join('')}</div></div>
+ <div><div class="note" style="margin-bottom:6px;font-weight:700">${UI.publico?'Como quer pagar?':'Forma de pagamento'}</div><div class="pay">${Object.keys(cp).map(k=>`<button data-ckpay="${k}" aria-pressed="${d.pag===k}">${cp[k]}</button>`).join('')}</div>${d.pag==='crediario'?`<p class="note" style="margin:6px 0 0">${UI.publico?`Você combina as parcelas e as datas com ${esc((vend(UI.vid)?.nome||'').split(' ')[0])}, que te envia o resumo do crediário pelo WhatsApp. Informe seu WhatsApp acima.`:'Depois de registrar, defina as parcelas e envie o resumo ao cliente.'}</p>`:''}</div>
  <div class="actions"><button class="btn ghost" data-close>Continuar vendo</button><button class="btn pri" data-confirmck>${UI.publico?'Confirmar pedido':'Registrar venda'}</button></div>`;
  render();
 }
@@ -2456,9 +2456,9 @@ function drawVenda(){
  ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — R$ ${fmt(precoVend(p,d.vid))} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
   <label class="f">Qtd (un) <span class="note" style="font-weight:400">máx. ${eV(d.vid,i.pid)}</span><input id="nv-q${k}" data-it="${k}" data-k="qtd" type="number" min="1" max="${eV(d.vid,i.pid)}" value="${i.qtd}"></label><button class="btn sm" aria-label="Remover item" data-rmit="${k}" ${d.itens.length<2?'disabled':''}>×</button></div>`).join('')}
  <button class="btn sm" data-addit style="align-self:flex-start">+ Adicionar perfume</button>
- <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYV.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
+ <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYS.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
  ${d.pag==='parcelado'?`<label class="f">Parcelas<select id="nv-parc" data-nv="parcelas">${[2,3,4,5,6].map(n=>`<option ${n==d.parcelas?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
- <label class="f">Status<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber (fiado)</option><option value="parcelado" ${d.status==='parcelado'?'selected':''}>Parcelado (escolho as parcelas)</option></select></label>
+ ${d.pag==='crediario'?'<p class="note" style="margin:0">Crediário: depois de registrar, você escolhe as parcelas e as datas e envia o resumo ao cliente.</p>':`<label class="f">Status<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber (fiado)</option></select></label>`}
  <p class="note">Sai do estoque em mãos de ${esc(vend(d.vid)?.nome.split(' ')[0])}.</p>
  <div class="calc"><div>Total<b>${Ri(c.rec)}</b></div><div>${UI.role==='vend'?'Meu lucro':'Ganho revendedor'}<b>${Ri(c.com)}</b></div><div>${UI.role==='vend'?'Itens':'Lucro'}<b>${UI.role==='vend'?c.un+' un':'R$ '+fmt(c.luc)}</b></div></div>
  
@@ -2700,10 +2700,10 @@ document.addEventListener('click',e=>{
   const resumo=its.map(i=>`• ${i.qtd}x ${prod(i.pid).nome}`).join('\n');
   let ped=null;
   rodar(async()=>{ped=await rpc('pedido_loja',{p_slug:UI.slug||v.slug,p_cliente:cli,p_tel:x.tel||'',p_pag:x.pag,p_itens:its});UI.cart={};UI.ck=false;UI.modal=null}).then(ok=>{if(!ok)return;
-   const total=+(ped&&ped.total)||tot,pix=x.pag==='pix';
+   const total=+(ped&&ped.total)||tot,pix=x.pag==='pix',cred=x.pag==='crediario';
    const pnum=ped&&ped.numero?NUMF(ped.numero,'P'):'';
    const cc=pix?pixPayload(v.pix,v.nome,v.cidade,total,pnum?pnum.replace('-',''):(ped&&ped.id)):'';
-   const msg=`Olá ${first}! Fiz um pedido na sua loja 3mix${pnum?' ('+pnum+')':''}:\n${resumo}\nTotal: R$ ${fmt(total)}\nPagamento: ${pix?'Pix (segue o comprovante)':'dinheiro na entrega'}\n— ${cli}`;
+   const msg=`Olá ${first}! Fiz um pedido na sua loja 3mix${pnum?' ('+pnum+')':''}:\n${resumo}\nTotal: R$ ${fmt(total)}\nPagamento: ${pix?'Pix (segue o comprovante)':cred?'crediário (vamos combinar as parcelas)':'dinheiro na entrega'}\n— ${cli}`;
    UI.msize='md';UI.modal=`<h3>Pedido feito ✓${pnum?` <span class="pnum big">${pnum}</span>`:''}</h3>
    <div class="cxres" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div><span>Vendedor</span><b>${esc(v.nome)}</b></div><div><span>Itens</span><b>${its.reduce((a,i)=>a+i.qtd,0)} un</b></div><div><span>Total</span><b>${Ri(total)}</b></div></div>
    ${pix?(cc?`<div style="margin-top:12px"><p style="margin:0 0 6px;font-weight:700">Pague com Pix</p>
@@ -2712,8 +2712,8 @@ document.addEventListener('click',e=>{
     <div class="receb"><span>Recebedor</span><b>${esc(v.nome)}</b><span>Chave ${esc(v.pix)}</span></div></div></div>
     <p class="note" style="margin:10px 0 0"><b>Depois de pagar</b>, mande o comprovante para ${esc(first)} pelo WhatsApp no botão abaixo.</p></div>`
     :`<p class="note" style="margin-top:10px">${esc(first)} vai te passar a chave Pix pelo WhatsApp.</p>`)
-    :`<p class="note" style="margin-top:10px">Pagamento em dinheiro na entrega. ${esc(first)} vai combinar com você.</p>`}
-   ${fone?`<a class="btn pri" style="margin-top:12px;display:inline-flex" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${pix?'Enviar comprovante para':'Avisar'} ${esc(first)} no WhatsApp</a>`:''}
+    :cred?`<p class="note" style="margin-top:10px">Crediário: ${esc(first)} vai combinar com você as parcelas e as datas e te enviar o resumo pelo WhatsApp.</p>`:`<p class="note" style="margin-top:10px">Pagamento em dinheiro na entrega. ${esc(first)} vai combinar com você.</p>`}
+   ${fone?`<a class="btn pri" style="margin-top:12px;display:inline-flex" href="https://wa.me/55${fone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">${pix?'Enviar comprovante para':cred?'Combinar as parcelas com':'Avisar'} ${esc(first)} no WhatsApp</a>`:''}
 
    <div class="actions"><button class="btn" data-close>Fechar</button></div>`;render()});return}
  if(d.delvend){const v=vend(d.delvend);if(!UI.dvArm){UI.dvArm=true;armar(b,'Excluir?',1);toast('O estoque em mãos e os kits não entregues voltam para a distribuidora; o login é apagado',4500);return}UI.dvArm=false;
@@ -2832,8 +2832,8 @@ document.addEventListener('click',e=>{
   const need={};x.itens.forEach(i=>need[i.pid]=(need[i.pid]||0)+(+i.qtd||0));
   for(const pid in need){if(need[pid]>eV(x.vid,pid)){toast(`${prod(pid).nome}: só ${eV(x.vid,pid)} un em mãos`);return}}
   const its=Object.entries(need).filter(([,q])=>q>0).map(([pid,qtd])=>({pid,qtd}));
-  let nid=null;const parc=x.status==='parcelado';
-  rodar(async()=>{nid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_parcelas:1,p_status:parc?'receber':x.status,p_origem:'painel',p_itens:its});UI.modal=null},parc?'Venda registrada · agora defina as parcelas':'Venda registrada').then(ok=>{if(ok&&parc&&nid)mParcelas(typeof nid==='string'?nid:nid?.id||nid,true)});return}
+  let nid=null;const parc=x.pag==='crediario';
+  rodar(async()=>{nid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_parcelas:1,p_status:parc?'receber':x.status,p_origem:'painel',p_itens:its});UI.modal=null},parc?'Venda registrada · agora defina as parcelas do crediário':'Venda registrada').then(ok=>{if(ok&&parc&&nid)mParcelas(typeof nid==='string'?nid:nid?.id||nid,true)});return}
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
