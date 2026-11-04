@@ -850,6 +850,7 @@ h1{font-size:22px}
 .sl-bg{position:absolute;inset:-30px;width:calc(100% + 60px);height:calc(100% + 60px);object-fit:cover;filter:blur(22px) brightness(.6);transform:none!important}
 .sh-car.soimg{height:auto!important;aspect-ratio:1600/600}
 .sh-car.soimg .sl{height:100%}
+.vpagalt{border:0;background:none;padding:0 2px;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;white-space:nowrap}.vpagalt.armed-ok{color:var(--ink);text-decoration:none}
 </style>
 </head>
 <body class="carregando">
@@ -1262,7 +1263,7 @@ function vVendas(onlyVid,ro){
  <section class="panel"><div class="tbl"><table class="cards"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
  ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}</span><div class="s note kvend">${onlyVid?'':esc((vend(v.vid)?.nome||'').split(' ')[0])}${v.origem?` <span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</div></td><td>${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button><div class="s note vcods">${v.itens.map(i=>`${prod(i.pid)?.code||'?'}${i.qtd>1?' ×'+i.qtd:''}`).join(' · ')}</div>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}${v.itens[0]?.qtd>1?' ×'+v.itens[0].qtd:''}</span>`}</td>
  <td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
- <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}</div></td>
+ <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}${!ro&&PAYV.includes(v.pag)?` <button class="vpagalt" data-vpagalt="${v.id}" title="Trocar para ${PAY[v.pag==='pix'?'dinheiro':'pix']}">trocar</button>`:''}</div></td>
  <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
  ${ro?'':`<td><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
  ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="2" class="vsub-c"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${8+(ro?0:1)}" class="empty">Nenhuma venda ${cust?'nesse período':'nos últimos '+UI.per+' dias'}${F.vid||F.pag||F.pid||F.st?' com esses filtros':''}.</td></tr>`}
@@ -1656,13 +1657,20 @@ const fundoSaldo=()=>(S.fundo||[]).reduce((a,m)=>a+ +m.valor,0);
 const fundoPct=()=>S.socios.reduce((a,s)=>a+(+s.fundo||0),0);
 const mesNome=m=>{const [y,mm]=m.split('-');return new Date(+y,+mm-1,15).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})};
 function lucroMes(m){const L=kPagos().filter(v=>v.data.slice(0,7)===m);const t=ksum(L);return {luc:t.luc-totalDesp(),rec:t.rec,un:t.un,n:L.length}}
+/* resultado de um período qualquer: kits pagos no período − despesas fixas proporcionais aos dias de cada mês */
+function lucroPer(de,ate){const L=kPagos().filter(k=>k.data>=de&&k.data<=ate);const t=ksum(L);let f=0;
+ for(let d=new Date(de+'T12:00:00');iso(d)<=ate;d.setDate(d.getDate()+1)){f+=1/new Date(d.getFullYear(),d.getMonth()+1,0).getDate()}
+ return {luc:t.luc-totalDesp()*f,rec:t.rec,un:t.un,n:L.length,desp:totalDesp()*f}}
+/* período é um mês inteiro já encerrado? devolve 'AAAA-MM' (pode fechar no fundo) */
+function mesInteiro(de,ate){if(!de||!ate||de.slice(0,7)!==ate.slice(0,7)||de.slice(8)!=='01')return null;const [y,m]=de.split('-').map(Number);const ult=new Date(y,m,0).getDate();
+ if(+ate.slice(8)!==ult)return null;return de.slice(0,7)<iso(today).slice(0,7)?de.slice(0,7):null}
 const mesFechado=m=>(S.fundo||[]).some(x=>x.tipo==='reinvestimento'&&x.mes===m&&!x.estornado);
 const FT={reinvestimento:'Reinvestimento',aporte:'Aporte',uso:'Uso / saída',estorno:'Estorno'};
 function vFundo(){
  const F=[...(S.fundo||[])].reverse();const {rows,ctl}=page('fundo',F,10);
- const meses=[];{const d=new Date(today.getFullYear(),today.getMonth(),1);for(let i=1;i<=12;i++){const x=new Date(d.getFullYear(),d.getMonth()-i,1);meses.push(x.toISOString().slice(0,7))}}
- const M=UI.fmes&&meses.includes(UI.fmes)?UI.fmes:meses[0];UI.fmes=M;
- const lm=lucroMes(M),fech=mesFechado(M),base=Math.max(0,lm.luc);
+ const hoje=iso(today),ini=hoje.slice(0,8)+'01';const P0=UI.fper||(UI.fper={de:ini,ate:hoje});
+ const M=mesInteiro(P0.de,P0.ate);UI.fmes=M;const lm=lucroPer(P0.de,P0.ate),fech=M?mesFechado(M):false,base=Math.max(0,lm.luc);
+ const mp=(()=>{const x=new Date(today.getFullYear(),today.getMonth(),0);const a=iso(new Date(x.getFullYear(),x.getMonth(),15)).slice(0,7);return {de:a+'-01',ate:a+'-'+String(x.getDate()).padStart(2,'0')}})();
  const ent=F.filter(m=>+m.valor>0&&m.tipo!=='estorno').reduce((a,m)=>a+ +m.valor,0),sai=F.filter(m=>+m.valor<0&&m.tipo!=='estorno').reduce((a,m)=>a- +m.valor,0);
  const porSocio=S.socios.map(s=>({s,v:F.filter(m=>m.socio===s.nome&&m.tipo!=='uso').reduce((a,m)=>a+ +m.valor,0)}));
  const atual=today.toISOString().slice(0,7),prev=Math.max(0,lucroMes(atual).luc)*fundoPct()/100;
@@ -1674,19 +1682,21 @@ function vFundo(){
   <div class="kpi"><span class="l">Previsão deste mês</span><span class="v">${R(prev)}</span><span class="d">se o mês fechasse hoje</span></div>
  </div>
  <div class="two">
- <section class="panel"><div class="panel-h"><h2>Fechamento do mês</h2><span class="sp"></span>${fech?'<span class="chip good">fechado</span>':'<span class="chip warn">aberto</span>'}</div>
-  <label class="f">Mês<select id="f-mes" data-fmes>${meses.map(m=>`<option value="${m}" ${m===M?'selected':''}>${mesNome(m)}${mesFechado(m)?' · fechado':''}</option>`).join('')}</select></label>
+ <section class="panel"><div class="panel-h"><h2>Resultado e fechamento</h2><span class="sp"></span>${M?(fech?'<span class="chip good">mês fechado</span>':'<span class="chip warn">mês aberto</span>'):'<span class="chip">consulta</span>'}</div>
+  <div class="filtros fper"><label>De<input type="date" data-fper="de" value="${P0.de}"></label><label>Até<input type="date" data-fper="ate" value="${P0.ate}"></label></div>
+  <div class="btnrow" style="margin-top:6px"><button class="btn sm" data-fperq="mes" aria-pressed="${P0.de===ini&&P0.ate===hoje}">Este mês</button><button class="btn sm" data-fperq="passado" aria-pressed="${P0.de===mp.de&&P0.ate===mp.ate}">Mês passado</button></div>
   <div class="calc"><div>Kits pagos<b>${Ri(lm.rec)}</b></div><div>Frascos<b>${lm.un} un</b></div><div>Lucro líquido<b>${Ri(lm.luc)}</b></div></div>
-  <table><thead><tr><th>Sócio</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
+  <p class="note" style="margin:0">${br(P0.de)} a ${br(P0.ate)} · despesas fixas do período ${Ri(lm.desp)}${M?'':' (proporcionais aos dias)'}</p>
+  <div class="tbl"><table class="cards"><thead><tr><th>Sócio</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th><th class="n">Fundo (R$)</th></tr></thead><tbody>
   ${S.socios.map(s=>`<tr><td>${esc(s.nome)}</td><td class="n">${pc(s.pct)}</td><td class="n">${pc(+s.fundo||0)}</td><td class="n">${R(base*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(base*(+s.fundo||0)/100)}</td></tr>`).join('')}
-  <tr><td><b>Total</b></td><td class="n">${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}</td><td class="n">${pc(fundoPct())}</td><td class="n">${R(base*(S.socios.reduce((a,s)=>a+ +s.pct,0)-fundoPct())/100)}</td><td class="n"><b>${R(base*fundoPct()/100)}</b></td></tr></tbody></table>
-  ${lm.luc<=0?'<p class="note">Mês sem lucro: nada vai para o fundo.</p>':''}
-  <div class="btnrow" style="justify-content:flex-end">${fech?'<span class="note">Para refazer, estorne os lançamentos deste mês no extrato.</span>':`<button class="btn pri" data-ffechar ${lm.luc<=0||!fundoPct()?'disabled':''}>Fechar ${mesNome(M)} e lançar no fundo</button>`}</div>
+  <tr><td><b>Total</b></td><td class="n">${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}</td><td class="n">${pc(fundoPct())}</td><td class="n">${R(base*(S.socios.reduce((a,s)=>a+ +s.pct,0)-fundoPct())/100)}</td><td class="n"><b>${R(base*fundoPct()/100)}</b></td></tr></tbody></table></div>
+  ${lm.luc<=0?'<p class="note">Período sem lucro: nada vai para o fundo.</p>':''}
+  <div class="btnrow" style="justify-content:flex-end">${!M?`<span class="note">${P0.de.slice(0,7)===hoje.slice(0,7)?'Mês em andamento: o fechamento fica liberado a partir do dia 1º do mês seguinte.':'Para lançar no fundo, escolha um mês inteiro já encerrado (do dia 1º ao último dia), por exemplo em "Mês passado".'}</span>`:fech?'<span class="note">Para refazer, estorne os lançamentos deste mês no extrato.</span>':`<button class="btn pri" data-ffechar ${lm.luc<=0||!fundoPct()?'disabled':''}>Fechar ${mesNome(M)} e lançar no fundo</button>`}</div>
   <p class="note">A % de cada sócio é ajustada em Administração → Simulador mensal → Fundo (%).</p>
  </section>
  <section class="panel"><div class="panel-h"><h2>Quanto cada sócio deixou</h2></div>
-  <table><thead><tr><th>Sócio</th><th class="n">No fundo (R$)</th><th class="n">Part. (%)</th></tr></thead><tbody>
-  ${porSocio.map(r=>`<tr><td>${esc(r.s.nome)}</td><td class="n">${R(r.v)}</td><td class="n">${P(ent?r.v/Math.max(.01,porSocio.reduce((a,x)=>a+x.v,0))*100:0)}</td></tr>`).join('')}</tbody></table>
+  <div class="tbl"><table class="cards"><thead><tr><th>Sócio</th><th class="n">No fundo (R$)</th><th class="n">Part. (%)</th></tr></thead><tbody>
+  ${porSocio.map(r=>`<tr><td>${esc(r.s.nome)}</td><td class="n">${R(r.v)}</td><td class="n">${P(ent?r.v/Math.max(.01,porSocio.reduce((a,x)=>a+x.v,0))*100:0)}</td></tr>`).join('')}</tbody></table></div>
   <p class="note">Soma reinvestimentos e aportes de cada sócio, já descontados os estornos.</p>
  </section></div>
  <section class="panel"><div class="panel-h"><h2>Extrato</h2></div>
@@ -1708,7 +1718,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.02-38';
+const VERSAO='2026.11.03-01';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2657,7 +2667,8 @@ document.addEventListener('click',e=>{
  if(d.fmov){mFundoMov(d.fmov);return}
  if('fmsave' in d){const x=UI.draft;const v=+String(x.valor).replace(',','.')||0;if(v<=0){toast('Informe o valor');return}if(!String(x.descricao).trim()){toast('Informe a descrição');return}
   rodar(async()=>{await rpc('movimentar_fundo',{p_tipo:x.tipo,p_socio:x.socio,p_valor:v,p_data:x.data||iso(today),p_descricao:x.descricao});UI.modal=null},x.tipo==='aporte'?'Aporte registrado':'Saída registrada');return}
- if('ffechar' in d){const M=UI.fmes,lm=lucroMes(M);if(!UI.ffArm){UI.ffArm=true;armar(b,`Confirmar fechamento de ${mesNome(M)}?`);return}UI.ffArm=false;
+ if(d.fperq){const h=iso(today);if(d.fperq==='mes')UI.fper={de:h.slice(0,8)+'01',ate:h};else{const x=new Date(today.getFullYear(),today.getMonth(),0);const a=iso(new Date(x.getFullYear(),x.getMonth(),15)).slice(0,7);UI.fper={de:a+'-01',ate:a+'-'+String(x.getDate()).padStart(2,'0')}}UI.ffArm=false;render();return}
+ if('ffechar' in d){const M=UI.fmes;if(!M)return;const lm=lucroMes(M);if(!UI.ffArm){UI.ffArm=true;armar(b,`Confirmar fechamento de ${mesNome(M)}?`);return}UI.ffArm=false;
   const its=S.socios.map(s=>({socio:s.nome,pct:+s.fundo||0,valor:Math.round(Math.max(0,lm.luc)*(+s.fundo||0))/100}));
   rodar(()=>rpc('fechar_mes',{p_mes:M,p_lucro:Math.round(lm.luc*100)/100,p_itens:its}),`${mesNome(M)} fechado · ${fmt(its.reduce((a,i)=>a+i.valor,0))} no fundo`);return}
  if(d.festorno){if(UI.feArm!==d.festorno){UI.feArm=d.festorno;armar(b,'Confirmar?');return}UI.feArm=null;rodar(()=>rpc('estornar_fundo',{p_id:d.festorno}),'Lançamento estornado');return}
@@ -2674,6 +2685,9 @@ document.addEventListener('click',e=>{
      <p style="margin:12px 0 6px">Quer avisar a 3mix agora para combinar a entrega?</p>
      <div class="actions"><button class="btn ghost" data-close>Agora não</button><a class="btn pri" href="https://wa.me/${zapN.length<=11?'55'+zapN:zapN}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" onclick="setTimeout(closeModal,400)">Avisar no WhatsApp</a></div>`}},'Combinado: pagamento em dinheiro na entrega');return}
  if(d.vflimpa!==undefined){UI[UI.vfAtivo||'vf']={};render();return}
+ if(d.vpagalt){const v=S.vendas.find(x=>x.id===d.vpagalt);if(!v)return;const nv=v.pag==='pix'?'dinheiro':'pix',key='pg'+v.id;
+  if(UI.stArm!==key){UI.stArm=key;armar(b,`Mudar p/ ${PAY[nv]}?`);setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
+  UI.stArm=null;rodar(()=>rpc('alterar_pagamento_venda',{p_id:v.id,p_pag:nv}),`Forma de pagamento: ${PAY[nv]}`);return}
  if(d.pagar||d.receber){const id=d.pagar||d.receber,st=d.pagar?'pago':'receber',key=st+id;
   if(UI.stArm!==key){UI.stArm=key;armar(b,st==='pago'?'Confirmar?':'Voltar?');setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('alterar_status_venda',{p_id:id,p_status:st}),st==='pago'?'Venda marcada como paga':'Venda voltou para A receber');return}
@@ -2797,7 +2811,7 @@ document.addEventListener('change',e=>{
   rodar(async()=>{await upd('config',{loja_dias:n},1);log('Prazo da loja alterado',`${n} dias sem compra`)},`Loja pausa após ${n} dias sem compra`);return}
  if(d.reserva!==undefined){const n=num(t.value);if(!(n>0&&n<=72)){toast('Informe de 0,5 a 72 horas');render();return}
   rodar(async()=>{await upd('config',{reserva_horas:n},1);log('Reserva do pedido alterada',fmtH(n))},`Reserva do pedido: ${fmtH(n)}`);return}
- if(d.fmes!==undefined){UI.fmes=t.value;UI.ffArm=false;render();return}
+ if(d.fper){const P=UI.fper||(UI.fper={});P[d.fper]=t.value;if(P.de&&P.ate&&P.de>P.ate){if(d.fper==='de')P.ate=P.de;else P.de=P.ate}UI.ffArm=false;render();return}
  if(d.bn!==undefined){const bn=S.banners[+d.bn],val=t.type==='checkbox'?t.checked:t.value;bn[d.k]=val;
   const col={on:'ativo',img:'img',kick:'chamada',tit:'titulo',txt:'texto',pub:'publico',cta:'botao',so:'so_imagem'}[d.k];
   upd('banners',{[col]:val},bn.id).then(()=>{log('Banner alterado',`${bn.tit} · ${d.k}`);if(d.k==='img'||d.k==='pub'||d.k==='so')render()},err=>toast(msgErro(err),4000));return}
