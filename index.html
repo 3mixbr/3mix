@@ -851,6 +851,12 @@ h1{font-size:22px}
 .sh-car.soimg{height:auto!important;aspect-ratio:1600/600}
 .sh-car.soimg .sl{height:100%}
 .vpagalt{border:0;background:none;padding:0 2px;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;white-space:nowrap}.vpagalt.armed-ok{color:var(--ink);text-decoration:none}
+.pclist{display:flex;flex-direction:column;gap:6px;max-height:min(40vh,320px);overflow-y:auto;scrollbar-width:thin}
+.pcrow{display:grid;grid-template-columns:34px minmax(0,1fr) auto 110px;gap:8px;align-items:center}.pcrow input{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:7px 9px;font:inherit;min-width:0}.pcrow input.dec{text-align:right}.pcrs{color:var(--muted);font-size:12px}
+.pcforma{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pcforma .pay{display:flex;gap:6px}
+button.row.pcl{width:100%;border:0;background:transparent;text-align:left;font:inherit;cursor:pointer;display:flex;align-items:center;gap:10px}button.row.pcl:hover{background:var(--accent-soft)}
+.btn.ico svg{width:15px;height:15px;display:block}.btn.ico{padding:3px 5px}
+td.vacts{white-space:nowrap}@media (min-width:900px){td.vacts{display:table-cell}td.vacts .btn.ico{display:flex;margin:2px 0}}
 </style>
 </head>
 <body class="carregando">
@@ -938,6 +944,7 @@ let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
 const ICON={
+ zap:'<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9.5 9.5c0 3 2 5 5 5l1.2-1.2-1.9-.9-.8.8a4 4 0 0 1-2.2-2.2l.8-.8-.9-1.9z"/>',
  vendasrev:'<path d="M3 7h18l-2 12H5z"/><path d="M8 7a4 4 0 0 1 8 0"/><path d="M9 13h6"/>',
  sobre:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".9" fill="currentColor"/>',
  candidatos:'<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M19 8v6M16 11h6"/>',
@@ -1263,9 +1270,10 @@ function vVendas(onlyVid,ro){
  <section class="panel"><div class="tbl"><table class="cards"><thead><tr><th>Data</th><th>Cliente</th><th>Itens</th><th class="n">Qtd (un)</th><th class="n">Valor (R$)</th><th class="n">${onlyVid?'Meu lucro (R$)':'Lucro (R$)'}</th><th>Pagamento</th><th>Entrega</th>${ro?'':'<th></th>'}</tr></thead><tbody>
  ${rows.map(v=>{const c=saleCalc(v);return `<tr><td>${br(v.data)}${numTag(v.num,'P')}</td><td><span class="cli">${esc(v.cliente)}</span><div class="s note kvend">${onlyVid?'':esc((vend(v.vid)?.nome||'').split(' ')[0])}${v.origem?` <span class="chip tag">${v.origem==='loja'?'online':'site'}</span>`:''}</div></td><td>${v.itens.length>1?`<button class="vexp" data-vexp="${v.id}" aria-expanded="${UI.vexp===v.id}">${v.itens.length} perfumes ${UI.vexp===v.id?'▾':'▸'}</button><div class="s note vcods">${v.itens.map(i=>`${prod(i.pid)?.code||'?'}${i.qtd>1?' ×'+i.qtd:''}`).join(' · ')}</div>`:`<span class="note">${prod(v.itens[0]?.pid)?.code||''} ${esc(prod(v.itens[0]?.pid)?.nome||'')}${v.itens[0]?.qtd>1?' ×'+v.itens[0].qtd:''}</span>`}</td>
  <td class="n">${U(c.un)}</td><td class="n">${R(c.rec)}</td><td class="n">${R(c.com)}</td>
- <td style="white-space:nowrap">${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}${!ro&&PAYV.includes(v.pag)?` <button class="vpagalt" data-vpagalt="${v.id}" title="Trocar para ${PAY[v.pag==='pix'?'dinheiro':'pix']}">trocar</button>`:''}</div></td>
+ <td style="white-space:nowrap">${(()=>{const pi=parcInfo(v);if(!pi)return '';const cl=pi.np===pi.n?'good':pi.venc?'bad':'warn',tx=pi.np===pi.n?'Quitado':`${pi.np}/${pi.n} pagas`;
+   return `${ro?`<span class="chip ${cl} st">${tx}</span>`:`<button class="chip ${cl} st" style="border:0" data-parc="${v.id}" title="Ver parcelas">${tx}</button>`}<div class="s note vpag">${pi.np<pi.n?(pi.venc?`<b style="color:var(--bad)">vencida ${br(pi.prox.venc)}</b>`:`próx. ${br(pi.prox.venc)}`):`${pi.n}x`}</div>`})()||(`${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}${!ro&&PAYV.includes(v.pag)?` <button class="vpagalt" data-vpagalt="${v.id}" title="Trocar para ${PAY[v.pag==='pix'?'dinheiro':'pix']}">trocar</button>`:''}</div>`)}</td>
  <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
- ${ro?'':`<td><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
+ ${ro?'':`<td class="vacts"><button class="btn sm ico" data-parc="${v.id}" title="Parcelas e resumo para o cliente (WhatsApp)" aria-label="Parcelas e resumo para o cliente">${ic('zap')}</button><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
  ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="2" class="vsub-c"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${8+(ro?0:1)}" class="empty">Nenhuma venda ${cust?'nesse período':'nos últimos '+UI.per+' dias'}${F.vid||F.pag||F.pid||F.st?' com esses filtros':''}.</td></tr>`}
  </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="2" class="vtot-l">Total · ${L.length} venda${L.length>1?'s':''} · ${perTxt}${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td></td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
  ${onlyVid?'':'<p class="note">Vendas dos revendedores aos clientes finais, só para acompanhar. O dinheiro é do revendedor e não entra no caixa da 3mix. Pagamento, entrega e cancelamento são feitos pelo próprio revendedor.</p>'}`;
@@ -1493,6 +1501,58 @@ function vInteresses(vid){
 /* ===== cancelamento de venda ===== */
 const DEVV=['Não houve pagamento','Pix para a cliente','Dinheiro'];
 const vTot=v=>v.itens.reduce((a,i)=>a+i.preco*i.qtd,0);
+/* ===== parcelas da venda (crediário do revendedor) ===== */
+const br4=d=>{if(!d)return '—';const [y,m,dd]=String(d).slice(0,10).split('-');return `${dd}/${m}/${y}`};
+const cap1=t=>{t=String(t||'').trim().split(' ')[0].toLowerCase();return t.charAt(0).toUpperCase()+t.slice(1)};
+function parcInfo(v){const P=v.parc||[];if(!P.length)return null;const h=iso(today),ab=P.filter(p=>!p.pago);
+ return {P,n:P.length,np:P.length-ab.length,rec:P.filter(p=>p.pago).reduce((a,p)=>a+ +p.valor,0),falta:ab.reduce((a,p)=>a+ +p.valor,0),prox:ab[0]||null,venc:ab.some(p=>p.venc<h),dif:Math.abs(P.reduce((a,p)=>a+ +p.valor,0)-vTot(v))>0.009}}
+const pcFalta=v=>{const pi=parcInfo(v);return Math.round((vTot(v)-(pi?pi.rec:0))*100)/100};
+function mParcelas(id,edit){const v=S.vendas.find(x=>x.id===id);if(!v)return;const pi=parcInfo(v);UI.msize='md';
+ UI.pc={id,edit:!!edit||!pi,forma:v.pag==='dinheiro'?'dinheiro':'pix',tel:v.tel||'',n:pi?Math.max(1,pi.n-pi.np):2,d1:null,L:null};
+ if(pi&&!pi.dif&&pi.n>pi.np){const ab=pi.P.filter(p=>!p.pago);UI.pc.L=ab.map(p=>({venc:String(p.venc).slice(0,10),valor:+p.valor}));UI.pc.d1=UI.pc.L[0].venc}else pcGera();
+ if(!pi&&!edit)UI.pc.edit=false;drawParc()}
+function pcGera(){const x=UI.pc,v=S.vendas.find(y=>y.id===x.id);const falta=pcFalta(v),n=Math.max(1,Math.min(12,+x.n||1));
+ if(!x.d1){const pi=parcInfo(v);x.d1=pi&&pi.prox?String(pi.prox.venc).slice(0,10):iso(today)}
+ const base=Math.floor(falta*100/n)/100,first=Math.round((falta-base*(n-1))*100)/100;
+ x.L=Array.from({length:n},(_,k)=>({venc:addMeses(x.d1,k),valor:k===0?first:base}))}
+function msgVenda(v){const pi=parcInfo(v),ve=vend(v.vid)||{},tot=vTot(v),h=iso(today),R2=n=>'R$ '+fmt(n);
+ let t=`*3mix Perfumaria*\nOlá, ${cap1(v.cliente)}! Obrigado pela sua compra. 💜\n\n*Pedido ${NUMF(v.num,'P')}* · ${br4(v.data)}\n`;
+ v.itens.forEach(i=>{const p=prod(i.pid)||{};t+=`${i.qtd}x ${p.code||''} ${p.nome||''} — ${R2(i.qtd*i.preco)}\n`});
+ t+=`*Total: ${R2(tot)}*\n`;
+ if(pi){t+=`\n*Pagamento em ${pi.n}x*\n`;pi.P.forEach(p=>{const vc=!p.pago&&p.venc<h;t+=`${p.pago?'✅':vc?'⚠️':'⏳'} ${p.n}ª · ${br4(p.venc)} · ${R2(+p.valor)}${p.pago?' · pago':vc?' · vencida':''}\n`});
+  t+=pi.falta<0.01?`\n✅ *Compra quitada!* Obrigado pela confiança.\n`:`\nPago: ${R2(pi.rec)} · Falta: ${R2(pi.falta)}\n${pi.prox.venc<h?`⚠️ Em atraso desde ${br4(pi.prox.venc)} · ${R2(+pi.prox.valor)}`:`Próximo pagamento: ${br4(pi.prox.venc)} · ${R2(+pi.prox.valor)}`}\n`}
+ else t+=`\nPagamento: ${PAY[v.pag]||''} · ${v.status==='pago'?'pago ✅':'a pagar'}\n`;
+ if(ve.pix&&(pi?pi.falta>0.01:v.status!=='pago'))t+=`\nPix para pagamento: ${ve.pix}\n`;
+ t+=`\n${cap1(ve.nome)} · 3mix${ve.tel?' · '+ve.tel:''}`;return t}
+const zapLink=(tel,t)=>{let d=String(tel||'').replace(/\D/g,'');if(d&&!(d.startsWith('55')&&d.length>=12))d='55'+d;return `https://wa.me/${d}?text=${encodeURIComponent(t)}`};
+function drawParc(){const x=UI.pc,v=x&&S.vendas.find(y=>y.id===x.id);if(!v){UI.pc=null;closeModal();return}const pi=parcInfo(v),tot=vTot(v),h=iso(today);
+ const head=`<h3>${x.edit?(pi?'Refazer parcelas em aberto':'Parcelar venda'):'Pagamento da venda'}${v.num?` <span class="pnum big">${NUMF(v.num,'P')}</span>`:''}</h3>
+ <div class="cxres"><div><span>Cliente</span><b>${esc(v.cliente)}</b></div><div><span>Total</span><b>${Ri(tot)}</b></div><div><span>Recebido</span><b>${Ri(pi?pi.rec:(v.status==='pago'?tot:0))}</b></div><div><span>Falta</span><b>${Ri(pi?pi.falta:(v.status==='pago'?0:tot))}</b></div></div>`;
+ const tel=`<label class="f">WhatsApp do cliente<input id="pc-tel" data-pctel inputmode="tel" value="${esc(x.tel)}" placeholder="(22) 99999-9999"></label>`;
+ if(x.edit){const falta=pcFalta(v),soma=x.L.reduce((a,l)=>a+(+l.valor||0),0),ok=Math.abs(soma-falta)<0.009,np=pi?pi.np:0;
+  UI.modal=head+`<div class="fg"><label class="f">Nº de parcelas${np?' em aberto':''}<select id="pc-n" data-pcn>${Array.from({length:12},(_,i)=>i+1).map(n=>`<option value="${n}" ${n==x.L.length?'selected':''}>${n}x</option>`).join('')}</select></label>
+  <label class="f">1º vencimento<input id="pc-d1" type="date" data-pcd1 value="${x.d1}"></label></div>
+  <div class="pclist">${x.L.map((l,k)=>`<div class="pcrow"><b>${np+k+1}ª</b><input type="date" data-pcv="${k}" value="${l.venc}" aria-label="Vencimento da parcela ${np+k+1}"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" data-pcval="${k}" value="${fmt(l.valor)}" aria-label="Valor da parcela ${np+k+1}"></div>`).join('')}</div>
+  <div class="cxtot"><span>Soma das parcelas${np?' em aberto':''}</span><b style="${ok?'':'color:var(--bad)'}">${Ri(soma)}${ok?'':` · tem que dar ${Ri(falta)}`}</b></div>
+  <p class="note" style="margin:0">Os vencimentos repetem todo mês no mesmo dia. Dá para mudar a data e o valor de cada parcela.${np?(np===1?' A parcela já paga não muda.':` As ${np} parcelas já pagas não mudam.`):''}</p>
+  ${tel}
+  <div class="actions">${pi&&!pi.np?'<button class="btn" data-pcrm style="margin-right:auto;color:var(--bad)">Tirar parcelamento</button>':''}<button class="btn ghost" ${pi?'data-pcver':'data-close'}>Voltar</button><button class="btn pri" data-pcsalva ${ok?'':'disabled'}>Salvar parcelas</button></div>`;
+  render();return}
+ const rows=pi?pi.P.map(p=>{const vc=!p.pago&&p.venc<h;return `<tr><td><b>${p.n}/${pi.n}</b></td><td>${br(p.venc)}</td><td class="n">${R(+p.valor)}</td><td>${p.pago?`<span class="chip good st">Pago ${br(p.pago)} · ${PAY[p.forma]||''}</span>`:vc?'<span class="chip bad st">Vencida</span>':String(p.venc).slice(0,10)===h?'<span class="chip warn st">Vence hoje</span>':'<span class="chip st">Em aberto</span>'}</td><td class="n">${p.pago?`<button class="btn sm" data-pcdes="${p.id}">Desfazer</button>`:`<button class="btn pri sm" data-pcpag="${p.id}">Recebi</button>`}</td></tr>`}).join(''):'';
+ UI.modal=head+(pi?`${pi.dif?'<div class="alerta"><span>O valor da venda mudou depois do parcelamento (cancelamento de frasco). Clique em <b>Refazer em aberto</b> para acertar as parcelas.</span></div>':''}
+  ${pi.falta>0.009?`<div class="pcforma"><span class="note">Recebendo em</span><div class="pay">${PAYV.map(k=>`<button data-pcforma="${k}" aria-pressed="${x.forma===k}">${PAY[k]}</button>`).join('')}</div></div>`:''}
+  <div class="tbl"><table class="cards pctab"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+  :`<p class="note" style="margin:0">Venda à vista · ${v.status==='pago'?'paga':'a receber'} no ${PAY[v.pag]||''}. Para vender parcelado, clique em <b>Parcelar</b>.</p>`)+`
+  ${tel}
+  <div class="actions"><button class="btn ghost" data-close style="margin-right:auto">Fechar</button>${!pi||pi.np<pi.n?`<button class="btn" data-pcedit>${pi?'Refazer em aberto':'Parcelar'}</button>`:''}<button class="btn" data-pccopia>Copiar texto</button><button class="btn pri" data-pczap>📲 Enviar no WhatsApp</button></div>`;
+ render()}
+/* início do revendedor: parcelas vencidas e dos próximos 30 dias */
+function vParcV(vid){const h=iso(today),lim=addMeses(h,1);const L=[];
+ S.vendas.filter(v=>v.vid===vid).forEach(v=>(v.parc||[]).filter(p=>!p.pago&&String(p.venc).slice(0,10)<=lim).forEach(p=>L.push({v,p,n:v.parc.length})));
+ if(!L.length)return '';L.sort((a,b)=>String(a.p.venc).localeCompare(String(b.p.venc)));const ven=L.filter(x=>x.p.venc<h),tv=ven.reduce((a,x)=>a+ +x.p.valor,0),tt=L.reduce((a,x)=>a+ +x.p.valor,0);
+ const {rows,ctl}=page('pcv'+vid,L,6);
+ return `<section class="panel"><div class="panel-h"><h2>Parcelas a receber</h2><span class="sp"></span><span class="note">${ven.length?`<b style="color:var(--bad)">${ven.length} vencida${ven.length>1?'s':''} · ${Ri(tv)}</b> · `:''}${L.length} até ${br(lim)} · ${Ri(tt)}</span></div>
+ <div class="list">${rows.map(({v,p,n})=>{const vc=p.venc<h,hj=String(p.venc).slice(0,10)===h;return `<button class="row pcl" data-parc="${v.id}"><div class="grow"><div class="t">${esc(v.cliente)} <span class="note">· ${NUMF(v.num,'P')} · parcela ${p.n}/${n}</span></div><div class="s">${vc?'venceu':'vence'} ${br(p.venc)}</div></div><b>${Ri(+p.valor)}</b><span class="chip ${vc?'bad':hj?'warn':''} st">${vc?'Vencida':hj?'Hoje':'Em aberto'}</span></button>`}).join('')}</div>${ctl}</section>`}
 function mCancelVenda(id){const v=S.vendas.find(x=>x.id===id);if(!v)return;
  const q={};v.itens.forEach(i=>q[i.pid]=i.qtd);UI.cv={id,motivo:'',obs:'',forma:v.status==='pago'?(v.pag==='dinheiro'?'Dinheiro':'Pix para a cliente'):'Não houve pagamento',valor:vTot(v),novo:false,q};drawCancelVenda()}
 const cvSel=(x,v)=>{let un=0,val=0;v.itens.forEach(i=>{const q=Math.min(i.qtd,+x.q?.[i.pid]||0);un+=q;val+=q*i.preco});return {un,val,tot:v.itens.reduce((a,i)=>a+i.qtd,0)}};
@@ -1585,7 +1645,7 @@ function vInicio(){
   <div class="btnrow"><button class="btn pri sm" data-copymsg>Copiar mensagem p/ grupos</button><button class="btn sm" data-copylink>Copiar só o link</button><button class="btn sm" data-verloja>Ver minha loja</button></div>
   <p class="note">A loja mostra só os perfumes que você tem em mãos (${U(maosV(v.id))}). O pedido do cliente baixa do seu estoque e aparece em Vendas como "A receber".</p>
  </section>
- ${vAviseV(v.id)}
+ ${vParcV(v.id)}${vAviseV(v.id)}
  <div class="grid-kpi" style="grid-template-columns:repeat(3,minmax(0,1fr))">
   <div class="kpi hl"><span class="l">Vendido em ${today.toLocaleDateString('pt-BR',{month:'long'})}</span><span class="v">${R(t.rec)}</span><span class="d">${U(t.un)} · ${M.length} vendas</span></div>
   <div class="kpi"><span class="l">Meu lucro</span><span class="v">${R(t.com)}</span><span class="d">${Ri(pend)} já recebido</span></div>
@@ -1718,7 +1778,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.03-01';
+const VERSAO='2026.11.04-01';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2389,13 +2449,14 @@ function drawVenda(){
  const c=saleCalc(v);
  UI.modal=`<h3>Nova venda</h3><div class="fg">
  ${UI.role==='vend'?'':`<label class="f">Vendedor<select id="nv-vid" data-nv="vid">${S.vend.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${x.id===d.vid?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label>`}
- <label class="f ${UI.role==='vend'?'full':''}">Cliente<input id="nv-cli" data-nv="cliente" value="${esc(d.cliente)}" placeholder="Nome da cliente"></label></div>
+ <label class="f">Cliente<input id="nv-cli" data-nv="cliente" value="${esc(d.cliente)}" placeholder="Nome da cliente"></label>
+  <label class="f">WhatsApp do cliente <span class="note" style="font-weight:400">opcional</span><input id="nv-tel" data-nv="tel" inputmode="tel" value="${esc(d.tel||'')}" placeholder="(22) 99999-9999"></label></div>
  ${d.itens.map((i,k)=>`<div class="itemrow"><label class="f">Perfume<select id="nv-p${k}" data-it="${k}" data-k="pid">${S.prods.map(p=>`<option value="${p.id}" ${p.id===i.pid?'selected':''} ${eV(d.vid,p.id)<=0?'disabled':''}>${p.code} · ${esc(p.nome)} — R$ ${fmt(precoVend(p,d.vid))} (${eV(d.vid,p.id)} un)</option>`).join('')}</select></label>
   <label class="f">Qtd (un) <span class="note" style="font-weight:400">máx. ${eV(d.vid,i.pid)}</span><input id="nv-q${k}" data-it="${k}" data-k="qtd" type="number" min="1" max="${eV(d.vid,i.pid)}" value="${i.qtd}"></label><button class="btn sm" aria-label="Remover item" data-rmit="${k}" ${d.itens.length<2?'disabled':''}>×</button></div>`).join('')}
  <button class="btn sm" data-addit style="align-self:flex-start">+ Adicionar perfume</button>
  <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYV.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
  ${d.pag==='parcelado'?`<label class="f">Parcelas<select id="nv-parc" data-nv="parcelas">${[2,3,4,5,6].map(n=>`<option ${n==d.parcelas?'selected':''}>${n}</option>`).join('')}</select></label>`:''}
- <label class="f">Status<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber (fiado)</option></select></label>
+ <label class="f">Status<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber (fiado)</option><option value="parcelado" ${d.status==='parcelado'?'selected':''}>Parcelado (escolho as parcelas)</option></select></label>
  <p class="note">Sai do estoque em mãos de ${esc(vend(d.vid)?.nome.split(' ')[0])}.</p>
  <div class="calc"><div>Total<b>${Ri(c.rec)}</b></div><div>${UI.role==='vend'?'Meu lucro':'Ganho revendedor'}<b>${Ri(c.com)}</b></div><div>${UI.role==='vend'?'Itens':'Lucro'}<b>${UI.role==='vend'?c.un+' un':'R$ '+fmt(c.luc)}</b></div></div>
  
@@ -2685,6 +2746,18 @@ document.addEventListener('click',e=>{
      <p style="margin:12px 0 6px">Quer avisar a 3mix agora para combinar a entrega?</p>
      <div class="actions"><button class="btn ghost" data-close>Agora não</button><a class="btn pri" href="https://wa.me/${zapN.length<=11?'55'+zapN:zapN}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" onclick="setTimeout(closeModal,400)">Avisar no WhatsApp</a></div>`}},'Combinado: pagamento em dinheiro na entrega');return}
  if(d.vflimpa!==undefined){UI[UI.vfAtivo||'vf']={};render();return}
+ if(d.parc){mParcelas(d.parc);return}
+ if('pcedit' in d){const x=UI.pc;x.edit=true;x.n=null;x.d1=null;const v=S.vendas.find(y=>y.id===x.id),pi=parcInfo(v);if(pi&&!pi.dif&&pi.n>pi.np){x.L=pi.P.filter(p=>!p.pago).map(p=>({venc:String(p.venc).slice(0,10),valor:+p.valor}));x.d1=x.L[0].venc}else{x.n=2;pcGera()}drawParc();return}
+ if('pcver' in d){UI.pc.edit=false;drawParc();return}
+ if(d.pcforma){UI.pc.forma=d.pcforma;drawParc();return}
+ if(d.pcpag||d.pcdes){const pid=d.pcpag||d.pcdes,pg=!!d.pcpag;if(!pg&&UI.pcArm!==pid){UI.pcArm=pid;armar(b,'Desfazer?',true);return}UI.pcArm=null;
+  rodar(()=>rpc('pagar_parcela',{p_id:pid,p_pago:pg,p_forma:pg?UI.pc.forma:null}),pg?`Parcela recebida · ${PAY[UI.pc.forma]}`:'Recebimento desfeito').then(()=>{if(UI.pc)drawParc()});return}
+ if('pcsalva' in d){const x=UI.pc;rodar(()=>rpc('definir_parcelas',{p_venda:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100})),p_tel:x.tel}),'Parcelas salvas').then(ok=>{if(ok&&UI.pc){UI.pc.edit=false;drawParc()}});return}
+ if('pcrm' in d){if(!UI.pcRmArm){UI.pcRmArm=1;armar(b,'Confirmar?',true);return}UI.pcRmArm=0;rodar(()=>rpc('definir_parcelas',{p_venda:UI.pc.id,p_itens:[]}),'Parcelamento removido').then(()=>{UI.pc=null;closeModal()});return}
+ if('pccopia' in d||'pczap' in d){const x=UI.pc,v=S.vendas.find(y=>y.id===x.id);if(!v)return;const t=msgVenda(v),tl=String(x.tel||'').replace(/\D/g,'');
+  if(tl!==String(v.tel||'').replace(/\D/g,'')){rpc('salvar_tel_venda',{p_id:v.id,p_tel:tl}).then(()=>{v.tel=tl}).catch(()=>{})}
+  if('pccopia' in d){copiar(t,'Texto copiado · cole no WhatsApp do cliente');return}
+  window.open(zapLink(tl,t),'_blank','noopener');return}
  if(d.vpagalt){const v=S.vendas.find(x=>x.id===d.vpagalt);if(!v)return;const nv=v.pag==='pix'?'dinheiro':'pix',key='pg'+v.id;
   if(UI.stArm!==key){UI.stArm=key;armar(b,`Mudar p/ ${PAY[nv]}?`);setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('alterar_pagamento_venda',{p_id:v.id,p_pag:nv}),`Forma de pagamento: ${PAY[nv]}`);return}
@@ -2752,7 +2825,8 @@ document.addEventListener('click',e=>{
   const need={};x.itens.forEach(i=>need[i.pid]=(need[i.pid]||0)+(+i.qtd||0));
   for(const pid in need){if(need[pid]>eV(x.vid,pid)){toast(`${prod(pid).nome}: só ${eV(x.vid,pid)} un em mãos`);return}}
   const its=Object.entries(need).filter(([,q])=>q>0).map(([pid,qtd])=>({pid,qtd}));
-  rodar(async()=>{await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:'',p_pag:x.pag,p_parcelas:x.pag==='parcelado'?+x.parcelas:1,p_status:x.status,p_origem:'painel',p_itens:its});UI.modal=null},'Venda registrada');return}
+  let nid=null;const parc=x.status==='parcelado';
+  rodar(async()=>{nid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_parcelas:1,p_status:parc?'receber':x.status,p_origem:'painel',p_itens:its});UI.modal=null},parc?'Venda registrada · agora defina as parcelas':'Venda registrada').then(ok=>{if(ok&&parc&&nid)mParcelas(typeof nid==='string'?nid:nid?.id||nid,true)});return}
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
@@ -2764,6 +2838,7 @@ document.addEventListener('input',e=>{
  if(d.mk){const D=UI.draft,base=d.mk==='preco'?+D.precoRev||0:custoFinal(D),v=Math.round(base*(1+num(t.value)/100)*100)/100;D[d.mk]=v;$('#f-'+d.mk).value=fmt(v);
   if(d.mk==='precoRev')$('#f-mkv').value=fmt(mkp(+D.preco,v));pCalc();return}
  if(d.e){UI.draft[d.e]=t.value;if(d.e==='pid'){const c=+(prod(t.value)?.custo)||0;$('#e-custo').value=fmt(c);UI.draft.custo=c}return}
+ if('pctel' in d){if(UI.pc)UI.pc.tel=t.value;return}
  if(d.nv){UI.draft[d.nv]=t.value;if(d.nv==='vid')drawVenda();return}
  if(d.ck){UI.draft[d.ck]=t.value;return}
  if(d.av){UI.draft[d.av]=t.value;return}
@@ -2779,6 +2854,10 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
  const t=e.target,d=t.dataset;
+ if('pcn' in d){UI.pc.n=+t.value;pcGera();drawParc();return}
+ if('pcd1' in d){UI.pc.d1=t.value||iso(today);const x=UI.pc;x.L=x.L.map((l,k)=>({...l,venc:addMeses(x.d1,k)}));drawParc();return}
+ if(d.pcv!==undefined){UI.pc.L[+d.pcv].venc=t.value;drawParc();return}
+ if(d.pcval!==undefined){UI.pc.L[+d.pcval].valor=num(t.value);drawParc();return}
  if(d.vf!==undefined){const k=UI.vfAtivo||'vf';(UI[k]||(UI[k]={}))[d.vf]=t.value;render();return}
  if(d.vprecosug){const pid=d.vprecosug,vid=UI.vid;if(!vid)return;
   rodar(async()=>{await sb.rpc('salvar_preco_vendedor',{p_vid:vid,p_pid:pid,p_preco:0});if(S.precosV[vid])delete S.precosV[vid][pid]},'Voltou ao preço sugerido');return}
