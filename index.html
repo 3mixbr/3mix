@@ -1866,7 +1866,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.06-07';
+const VERSAO='2026.11.06-08';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2669,7 +2669,7 @@ const navList0=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,[
 /* menu dos sócios em 3 grupos com cor própria */
 /* mesmas cores nos dois painéis: laranja = distribuidora · verde = revenda · roxo = administração/sistema */
 const GRUPOS_R={socio:[['dist','Distribuidora','#E07A00',['painel','produtos','vendas','credito','inventario','cancel']],['rev','Revendedores','#0E9479',['vendasrev','equipe','candidatos','interesses']],['adm','Administração','#6A55D0',['socios','fundo','acessos','log','sobre']]],
- vend:[['rev','Minha revenda','#0E9479',['inicio','vendas','receber','interesses','cancel']],['dist','Distribuidora','#E07A00',['comprar','estoque']],['adm','Sistema','#6A55D0',['sobre']]]};
+ vend:[['rev','Minha revenda','#0E9479',['inicio','vendas','estoque','receber','interesses','cancel']],['dist','Distribuidora','#E07A00',['comprar']],['adm','Sistema','#6A55D0',['sobre']]]};
 const NOME_G={socios:'Configurações',vendasrev:'Vendas'};
 const grupoDe=k=>(GRUPOS_R[UI.role]||[]).find(g=>g[3].includes(k));
 const navList=()=>{const L=navList0(),G=GRUPOS_R[UI.role];if(!G)return L;const o=[];G.forEach(g=>g[3].forEach(k=>{const it=L.find(x=>x[0]===k);if(it)o.push(UI.role==='socio'&&NOME_G[k]?[k,NOME_G[k]]:it)}));L.forEach(x=>{if(!o.some(y=>y[0]===x[0]))o.push(x)});return o};
