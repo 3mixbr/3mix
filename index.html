@@ -1037,7 +1037,7 @@ function aplicaDados(d){const carts=S.carts;S={...VAZIO(),...(d||{}),carts};
  for(const vid in S.carts)for(const pid in S.carts[vid])if(!S.prods.some(p=>p.id===pid))delete S.carts[vid][pid];
  for(const k in _nv)delete _nv[k];MIN=Math.max(1,+S.minKit||6);}
 const totalDesp=()=>S.despesas.reduce((a,d)=>a+(+d.valor||0),0);
-async function sync(){const [{data,error},f,av,cd]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em'),sb.from('avise_me').select('*').order('criado_em',{ascending:false}).limit(1000),sb.from('candidatos').select('*').order('criado_em',{ascending:false}).limit(500)]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[];S.avise=(av&&av.data)||[];S.cand=(cd&&cd.data)||[]}
+async function sync(){const [{data,error},f,av,cd,ar]=await Promise.all([sb.rpc('dados'),sb.from('fundo_mov').select('*').order('data').order('criado_em'),sb.from('avise_me').select('*').order('criado_em',{ascending:false}).limit(1000),sb.from('candidatos').select('*').order('criado_em',{ascending:false}).limit(500),sb.from('avise_rev').select('*').order('criado_em',{ascending:false}).limit(1000)]);if(error)throw error;aplicaDados(data);S.fundo=(f&&f.data)||[];S.avise=(av&&av.data)||[];S.cand=(cd&&cd.data)||[];S.aviseRev=(ar&&ar.data)||[]}
 async function syncLoja(){const {data,error}=await sb.rpc('loja_publica',{p_slug:UI.slug});if(error)throw error;if(data)aplicaDados(data)}
 const msgErro=e=>String((e&&(e.message||e.error_description||e.error))||e||'Erro').replace(/^.*?ERROR:\s*/,'');
 async function rpc(nome,args){const {data,error}=await sb.rpc(nome,args);if(error)throw error;return data}
@@ -1512,6 +1512,11 @@ function vInteresses(vid){
   <div class="kpi"><span class="l">Avisados</span><span class="v">${U(A.length-pend)}</span><span class="d">${A.length?pc((A.length-pend)/A.length*100):pc(0)} dos pedidos</span></div>
   <div class="kpi"><span class="l">Clientes</span><span class="v">${U(cli)}</span><span class="d">WhatsApps diferentes</span></div>
  </div>
+ ${vid?'':(()=>{const R=(S.aviseRev||[]).filter(a=>!a.atendido).sort((a,b)=>((prod(b.produto_id)?.estoque>0)-(prod(a.produto_id)?.estoque>0))||String(a.criado_em).localeCompare(String(b.criado_em)));if(!R.length)return '';const {rows:rr,ctl:rc}=page('intrev',R,6);
+  return `<section class="panel"><div class="panel-h"><h2>Revendedores esperando reposição</h2><span class="sp"></span><span class="note">pediram aviso de perfume esgotado na distribuidora · ${R.length} pedido${R.length>1?'s':''}</span></div>
+  <div class="tbl"><table class="cards"><thead><tr><th>Perfume</th><th>Revendedor</th><th>Pediu em</th><th class="n">Estoque central (un)</th><th></th></tr></thead><tbody>
+  ${rr.map(a=>{const pp=prod(a.produto_id)||{code:'?',nome:'(excluído)',estoque:0},v=vend(a.vendedor_id)||{};return `<tr><td><b>${esc(pp.code)}</b> ${esc(pp.nome)}</td><td>${esc(v.nome||'')}</td><td>${br(String(a.criado_em).slice(0,10))}</td><td class="n">${pp.estoque>0?`<span class="chip good st">${U(pp.estoque)}</span>`:'<span class="chip bad st">Esgotado</span>'}</td>
+   <td class="n">${pp.estoque>0?`<button class="btn pri sm" data-avrevok="${a.id}">${ic('zap')} Avisar</button>`:`<button class="btn sm" data-avrevok="${a.id}" title="Marcar como resolvido sem avisar">Encerrar</button>`}</td></tr>`}).join('')}</tbody></table></div>${rc}</section>`})()}
  <section class="panel"><div class="panel-h"><h2>Perfumes mais procurados</h2><span class="sp"></span><span class="note">o que os clientes querem e não tinha</span></div>
  ${top.length?`<div class="tbl"><table><thead><tr><th>Perfume</th><th class="n">Pedidos (un)</th><th class="n">Aguardando (un)</th><th class="n">Clientes (un)</th><th class="n">Distribuidora (un)</th>${vid?'<th class="n">Comigo (un)</th><th></th>':''}</tr></thead><tbody>
  ${tr.map(r=>`<tr><td><b>${r.p.code}</b> ${esc(r.p.nome)}</td><td class="n">${U(r.n)}</td><td class="n">${U(r.ag)}</td><td class="n">${U(r.cli.size)}</td><td class="n"><span class="chip ${r.p.estoque>0?'good':'bad'}">${r.p.estoque} un</span></td>${vid?`<td class="n">${U(eV(vid,r.p.id))}</td><td class="n">${r.p.estoque>0&&r.p.id?`<button class="btn sm" data-kit6="${r.p.id}">Pedir</button>`:''}</td>`:''}</tr>`).join('')}
@@ -1857,7 +1862,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.06-02';
+const VERSAO='2026.11.06-03';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2147,8 +2152,8 @@ const cartM=()=>{const c=cartV(),m=UI.mcart||(UI.mcart={});Object.keys(m).forEac
 const MOSTRA_TXT=()=>`Mostruário: comprando 1 frasco de um perfume no preço normal, você leva mais 1 dele com preço especial de mostruário (1 vez a cada ${MM_()===12?'ano':MM_()+' meses'} por perfume). Marque no carrinho.`;
 function vComprar(){
  const c=cartV(),t=cartTot(c),nM=Object.keys(cartM()).length,f=falta(t.un),ch=champRank();const rk={};abc(S.vendas.filter(v=>daysAgo(v.data)<30)).forEach((r,i)=>rk[r.p.id]=i);
- const disp=S.prods.filter(p=>p.estoque>0),g=UI.cg||'';
- const its=disp.filter(p=>!g||p.genero===g).sort((a,b)=>rk[a.id]-rk[b.id]);
+ const disp=S.prods,g=UI.cg||'',ord=p=>rk[p.id]??9999;
+ const its=disp.filter(p=>!g||p.genero===g).sort((a,b)=>((b.estoque>0)-(a.estoque>0))||(ord(a)-ord(b)));
  const {rows,ctl}=page('cmpV'+g,its,8);
  const gens=Object.keys(GEN).filter(k=>disp.some(p=>p.genero===k));
  return `<div class="head"><div><h1>Comprar estoque</h1><p class="sub">Pedido mínimo de ${MIN} un, pode variar os perfumes. Preço já com seu desconto de revendedor.</p><p class="note" style="margin:4px 0 0">🎁 ${MOSTRA_TXT()}</p></div><div class="sp"></div><button class="btn" data-top6>+ ${MIN} mais vendidos${g?' · '+GEN[g]:''}</button></div>
@@ -2156,11 +2161,12 @@ function vComprar(){
  <div class="cat">${rows.map(p=>buyCard(p,c[p.id]||0,ch[p.id])).join('')}</div>${ctl}
  ${t.un?`<div class="cartbar">${ic('comprar').replace('<svg','<svg width="20" height="20"')}<b>${t.un} un${nM?` + ${nM} mostruário`:''}</b><span>${Ri(t.tot+cartMval(cartM()))}</span><span class="chip ${f?'warn':'good'}">${metaTxt(t.un)}</span><span class="sp"></span><button class="btn pri" data-carrinho>Ver carrinho</button></div>`:''}`;
 }
+const avRev=pid=>(S.aviseRev||[]).some(a=>a.produto_id===pid&&a.vendedor_id===UI.vid&&!a.atendido);
 function buyCard(p,q,r){
  const ph=foto(p),pr=precoRev(p,UI.vid);
  return `<article class="card"><div class="ph">${ph}${trophy(r)}</div><div class="bd"><span class="code">${p.code} · ${p.genero.toUpperCase()} · ${p.ml} ML</span><span class="nm">${esc(p.nome)}</span>
- <div class="pr"><b>${Ri(pr)}</b><span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span></div><span class="note">você paga · disponível na distribuidora</span><span class="note">Vende a ${Ri(precoVend(p,UI.vid))} · lucro ${Ri(precoVend(p,UI.vid)-pr)}</span></div>
- <div class="ft">${q?`<div class="qty" style="margin:0 auto"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div>`:`<button class="btn pri sm" data-bc="${p.id}" data-d="1">Adicionar<span class="hide-sm">&nbsp;ao carrinho</span></button>`}</div></article>`;
+ <div class="pr"><b>${Ri(pr)}</b>${p.estoque>0?`<span class="chip ${p.estoque<=p.min?'warn':'good'}">${p.estoque} un</span>`:'<span class="chip bad">Esgotado</span>'}</div><span class="note">${p.estoque>0?'você paga · disponível na distribuidora':'você paga · sem estoque na distribuidora agora'}</span><span class="note">Vende a ${Ri(precoVend(p,UI.vid))} · lucro ${Ri(precoVend(p,UI.vid)-pr)}</span></div>
+ <div class="ft">${p.estoque<=0&&!q?(avRev(p.id)?`<button class="btn sm" data-avrevx="${p.id}" title="Clique para desistir do aviso">✓ Você será avisado</button>`:`<button class="btn sm" data-avrev="${p.id}">Avise-me quando chegar</button>`):q?`<div class="qty" style="margin:0 auto"><button data-bc="${p.id}" data-d="-1" aria-label="Tirar um">−</button><span>${q}</span><button data-bc="${p.id}" data-d="1" aria-label="Mais um" ${q>=p.estoque?'disabled':''}>+</button></div>`:`<button class="btn pri sm" data-bc="${p.id}" data-d="1">Adicionar<span class="hide-sm">&nbsp;ao carrinho</span></button>`}</div></article>`;
 }
 /* QR Code (SVG) de um texto — usado no Pix */
 function qrSvg(t){try{const q=qrcode(0,'M');q.addData(t);q.make();return q.createSvgTag({cellSize:4,margin:2,scalable:true})}catch(e){return ''}}
@@ -2727,6 +2733,11 @@ document.addEventListener('click',e=>{
   if(UI.cartOpen)drawCarrinho();else render();return}
  if(d.bc){const p=prod(d.bc),c=cartV(),m=cartM();c[d.bc]=Math.max(0,Math.min(p.estoque-(m[d.bc]?1:0),(c[d.bc]||0)+ +d.d));if(!c[d.bc]){delete c[d.bc];delete m[d.bc]}save();
   if(UI.cartOpen)drawCarrinho();else render();return}
+ if(d.avrev){rodar(()=>rpc('avise_rev',{p_pid:d.avrev,p_quer:true}),'Pronto! A 3mix vai te avisar quando chegar');return}
+ if(d.avrevx){rodar(()=>rpc('avise_rev',{p_pid:d.avrevx,p_quer:false}),'Aviso cancelado');return}
+ if(d.avrevok){const a=(S.aviseRev||[]).find(x=>x.id===d.avrevok),v=a&&vend(a.vendedor_id),pp=a&&prod(a.produto_id);
+  if(v&&pp&&pp.estoque>0&&String(v.tel||'').replace(/\D/g,'').length>=10)window.open(zapLink(v.tel,`Olá ${String(v.nome||'').split(' ')[0]}! O perfume ${pp.code} ${pp.nome} que você pediu chegou na 3mix (${pp.estoque} un). Já pode pedir no app.`),'_blank','noopener');
+  rodar(()=>rpc('avise_rev_atendido',{p_id:d.avrevok}),'Revendedor avisado');return}
  if('top6' in d){const c=cartV(),g=UI.cg||'';
   /* mais vendidos dos últimos 30 dias, respeitando a aba aberta (Feminino/Masculino); completa com os demais disponíveis */
   const rank=abc(S.vendas.filter(v=>daysAgo(v.data)<30)).map(r=>r.p),resto=S.prods.filter(p=>!rank.includes(p)).sort((a,b)=>b.estoque-a.estoque);
