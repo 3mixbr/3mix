@@ -853,6 +853,8 @@ h1{font-size:22px}
 .vpagalt{border:0;background:none;padding:0 2px;color:var(--accent);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;white-space:nowrap}.vpagalt.armed-ok{color:var(--ink);text-decoration:none}
 .pclist{display:flex;flex-direction:column;gap:6px;max-height:min(40vh,320px);overflow-y:auto;scrollbar-width:thin}
 .pcrow{display:grid;grid-template-columns:34px minmax(0,1fr) auto 110px;gap:8px;align-items:center}.pcrow input{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:7px 9px;font:inherit;min-width:0}.pcrow input.dec{text-align:right}.pcrs{color:var(--muted);font-size:12px}
+.pcrow.pg{grid-template-columns:34px minmax(0,1fr) auto 110px 104px}.pcrow .pcpg{justify-content:center;width:100%}.pcrow .pcro{padding:7px 9px;color:var(--muted)}.pcrow .pcro.n{text-align:right}
+.crtab{display:grid;grid-template-columns:minmax(0,180px) 110px auto;gap:8px 10px;align-items:center;max-width:420px}.crtab input,.crtab select{border:1px solid var(--line);background:var(--bg);border-radius:9px;padding:7px 9px;font:inherit;min-width:0}.crtab input{text-align:right}
 .pcforma{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pcforma .pay{display:flex;gap:6px}
 button.row.pcl{width:100%;border:0;background:transparent;text-align:left;font:inherit;cursor:pointer;display:flex;align-items:center;gap:10px}button.row.pcl:hover{background:var(--accent-soft)}
 .btn.ico svg{width:15px;height:15px;display:block}.btn.ico{padding:3px 5px}
@@ -958,6 +960,7 @@ let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const ini=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
 
 const ICON={
+ credito:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
  receber:'<rect x="3" y="5" width="18" height="15" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M12 13v4M10.5 14.2c0-.7.7-1.2 1.5-1.2s1.5.4 1.5 1"/>',
  zap:'<path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9.5 9.5c0 3 2 5 5 5l1.2-1.2-1.9-.9-.8.8a4 4 0 0 1-2.2-2.2l.8-.8-.9-1.9z"/>',
  vendasrev:'<path d="M3 7h18l-2 12H5z"/><path d="M8 7a4 4 0 0 1 8 0"/><path d="M9 13h6"/>',
@@ -1124,7 +1127,7 @@ const inPer=v=>daysAgo(v.data)<UI.per;
 /* caixa da 3mix = só os kits pagos pelos vendedores (a venda ao cliente é dinheiro do vendedor) */
 const TXALL=()=>(+S.taxas.taxagw||0)+(+S.taxas.outros||0);
 function kitCalc(k){let rec=0,cus=0,un=0;k.itens.forEach(i=>{const p=prod(i.pid);rec+=i.preco*i.qtd;cus+=(p?custoFinal(p):0)*i.qtd;un+=i.qtd});const tax=rec*TXALL()/100;return {rec,cus,com:0,tax,un,luc:rec-cus-tax}}
-const kPagos=()=>S.kits.filter(k=>KPAGO.includes(k.status));
+const kPagos=()=>S.kits.filter(k=>KPAGO.includes(k.status)&&(!k.cred||k.cred.quit)).map(k=>k.cred?{...k,data:String(k.cred.quit).slice(0,10)}:k);
 function ksum(list){return list.reduce((a,k)=>{const c=kitCalc(k);for(const x in c)a[x]+=c[x];return a},{rec:0,cus:0,com:0,tax:0,un:0,luc:0})}
 function sum(list){return list.reduce((a,v)=>{const c=saleCalc(v);for(const k in c)a[k]+=c[k];return a},{rec:0,cus:0,com:0,tax:0,un:0,luc:0})}
 function abc(list){
@@ -1218,6 +1221,7 @@ function vPainel(){
    <tr><td class="note" colspan="2" style="white-space:nowrap">Despesas fixas (${UI.per} dias)</td><td class="n">${R(-totalDesp()*UI.per/30)}</td><td></td></tr></tbody></table>
    <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
    <div class="row"><div class="grow"><div class="t">Kits aguardando pagamento</div><div class="s">${abertos.length} kits · ainda não entram no caixa</div></div><b>${R(abertos.reduce((a,k)=>a+kitVal(k),0))}</b></div>
+   ${(()=>{const A=S.kits.filter(kCredAb);return A.length?`<button class="row" data-view="credito"><div class="grow"><div class="t">Kits a prazo · administradores devem à 3mix</div><div class="s">${A.length} kit${A.length>1?'s':''} · entram no caixa quando quitados</div></div><b>${R(A.reduce((a,k)=>a+ +k.total,0))}</b></button>`:''})()}
   </section>
  </div>
  <div class="two">
@@ -1387,6 +1391,12 @@ function vSocios(){
   <label class="f">Mostruário: recompra a cada<select id="cfg-mm" data-mostrameses>${[6,12].map(m=>`<option value="${m}" ${MM_()===m?'selected':''}>${m===12?'1 ano':'6 meses'}</option>`).join('')}</select></label>
   <div class="note" style="align-self:end">Pedido mínimo: frascos por kit. Mostruário: o revendedor leva 1 frasco extra de um perfume pelo preço de mostruário do cadastro do produto quando compra pelo menos 1 dele no preço normal (1+1), uma vez por perfume no período. Não conta para o nível e não entra no estoque de venda. Reserva: tempo que o vendedor tem para pagar; depois disso o kit é cancelado sozinho e os frascos voltam para a distribuidora. Kit com comprovante enviado não expira.</div></div>
  </section>
+ <section class="panel"><div class="panel-h"><h2>Crediário do revendedor ao cliente</h2><span class="sp"></span><span class="note">o revendedor escolhe o nº de parcelas até o limite desta tabela</span></div>
+  ${(()=>{const c=CRED(),ult=c.faixas.length?c.faixas[c.faixas.length-1].ate:0;return `<div class="crtab"><span class="note"><b>Valor da venda até (R$)</b></span><span class="note"><b>Máximo</b></span><span></span>
+   ${c.faixas.map((f,i)=>`<input class="dec" inputmode="decimal" data-crate="${i}" value="${fmt(f.ate)}" aria-label="Valor até"><select data-crn="${i}">${Array.from({length:c.max},(_,j)=>j+1).map(n=>`<option value="${n}" ${n===Math.min(f.n,c.max)?'selected':''}>${n}x</option>`).join('')}</select><button class="btn sm" data-crdel="${i}" title="Excluir faixa">✕</button>`).join('')}
+   <span class="note" style="text-align:right">${c.faixas.length?'acima de R$ '+fmt(ult):'qualquer valor'}</span><select data-crmax>${Array.from({length:12},(_,j)=>j+1).map(n=>`<option value="${n}" ${n===c.max?'selected':''}>${n}x</option>`).join('')}</select><button class="btn sm" data-cradd>+ Faixa</button></div>
+   <p class="note">Sem juros. A última linha é o limite geral: vale acima da maior faixa e nenhuma faixa passa dele.</p>`})()}
+ </section>
  <section class="panel"><div class="panel-h"><h2>Banners da loja</h2><span class="sp"></span><span class="note">giram sozinhos · foto horizontal 1600 × 600 px · arte com texto: "Só a imagem"</span><button class="btn sm" data-bnadd>+ Banner</button></div>
   ${S.banners.map((b,i)=>`<div class="bnrow"><div class="bnprev" style="background:${SLBG[b.pub]||SLBG['']}">${b.img?`<img src="${esc(fotoSrc(b.img,'banners'))}" alt="" onerror="${esc(fbk(b.img))}">`:''}<span>${i+1}</span></div>
   <div class="fg bnfg">
@@ -1521,12 +1531,15 @@ const br4=d=>{if(!d)return '—';const [y,m,dd]=String(d).slice(0,10).split('-')
 const cap1=t=>{t=String(t||'').trim().split(' ')[0].toLowerCase();return t.charAt(0).toUpperCase()+t.slice(1)};
 function parcInfo(v){const P=v.parc||[];if(!P.length)return null;const h=iso(today),ab=P.filter(p=>!p.pago);
  return {P,n:P.length,np:P.length-ab.length,rec:P.filter(p=>p.pago).reduce((a,p)=>a+ +p.valor,0),falta:ab.reduce((a,p)=>a+ +p.valor,0),prox:ab[0]||null,venc:ab.some(p=>p.venc<h),dif:Math.abs(P.reduce((a,p)=>a+ +p.valor,0)-vTot(v))>0.009}}
+/* tabela de crediário da 3mix: nº máximo de parcelas pelo valor da venda (editável em Configurações) */
+const CRED=()=>{const c=S.crediario||{};return {max:Math.max(1,Math.min(12,+c.max||6)),faixas:(Array.isArray(c.faixas)?c.faixas:[]).map(f=>({ate:+f.ate||0,n:+f.n||1})).sort((a,b)=>a.ate-b.ate)}};
+const credMax=t=>{const c=CRED(),f=c.faixas.find(f=>t<=f.ate+0.009);return Math.max(1,Math.min(c.max,f?f.n:c.max))};
 const pcFalta=v=>{const pi=parcInfo(v);return Math.round((vTot(v)-(pi?pi.rec:0))*100)/100};
 function mParcelas(id,edit){const v=S.vendas.find(x=>x.id===id);if(!v)return;const pi=parcInfo(v);UI.msize='lg';
  UI.pc={id,edit:!!edit||!pi,forma:v.pag==='dinheiro'?'dinheiro':'pix',tel:v.tel||'',n:pi?Math.max(1,pi.n-pi.np):2,d1:null,L:null};
  if(pi&&!pi.dif&&pi.n>pi.np){const ab=pi.P.filter(p=>!p.pago);UI.pc.L=ab.map(p=>({venc:String(p.venc).slice(0,10),valor:+p.valor}));UI.pc.d1=UI.pc.L[0].venc}else pcGera();
  if(!pi&&!edit)UI.pc.edit=false;drawParc()}
-function pcGera(){const x=UI.pc,v=S.vendas.find(y=>y.id===x.id);const falta=pcFalta(v),n=Math.max(1,Math.min(12,+x.n||1));
+function pcGera(){const x=UI.pc,v=S.vendas.find(y=>y.id===x.id);const falta=pcFalta(v),pi0=parcInfo(v),n=Math.max(1,Math.min(Math.max(1,credMax(vTot(v))-(pi0?pi0.np:0)),+x.n||1));
  if(!x.d1){const pi=parcInfo(v);x.d1=pi&&pi.prox?String(pi.prox.venc).slice(0,10):iso(today)}
  const base=Math.floor(falta*100/n)/100,first=Math.round((falta-base*(n-1))*100)/100;
  x.L=Array.from({length:n},(_,k)=>({venc:addMeses(x.d1,k),valor:k===0?first:base}))}
@@ -1561,12 +1574,15 @@ function drawParc(){const x=UI.pc,v=x&&S.vendas.find(y=>y.id===x.id);if(!v){UI.p
  const head=`<h3>${x.edit?(v.pag==='crediario'?(pi?'Crediário · refazer parcelas em aberto':'Crediário · parcelas'):'Vencimento e parcelas'):(v.pag==='crediario'?'Crediário':'Pagamento da venda')}${v.num?` <span class="pnum big">${NUMF(v.num,'P')}</span>`:''}</h3>
  <div class="cxres"><div><span>Cliente</span><b>${esc(v.cliente)}</b></div><div><span>Total</span><b>${Ri(tot)}</b></div><div><span>Recebido</span><b>${Ri(pi?pi.rec:(v.status==='pago'?tot:0))}</b></div><div><span>Falta</span><b>${Ri(pi?pi.falta:(v.status==='pago'?0:tot))}</b></div></div>`;
  const tel=`<label class="f">WhatsApp do cliente<input id="pc-tel" data-pctel inputmode="tel" value="${esc(x.tel)}" placeholder="(22) 99999-9999"></label>`;
- if(x.edit){const falta=pcFalta(v),soma=x.L.reduce((a,l)=>a+(+l.valor||0),0),ok=Math.abs(soma-falta)<0.009,np=pi?pi.np:0;
-  UI.modal=head+`<div class="fg"><label class="f">Nº de parcelas${np?' em aberto':''}<select id="pc-n" data-pcn>${Array.from({length:12},(_,i)=>i+1).map(n=>`<option value="${n}" ${n==x.L.length?'selected':''}>${n}x</option>`).join('')}</select></label>
+ if(x.edit){const falta=pcFalta(v),soma=x.L.reduce((a,l)=>a+(+l.valor||0),0),ok=Math.abs(soma-falta)<0.009,np=pi?pi.np:0,mx=Math.max(1,credMax(tot)-np),algPg=x.L.some(l=>l.pago);
+  const pagas=pi?pi.P.filter(p=>p.pago):[];
+  UI.modal=head+`<div class="fg"><label class="f">Nº de parcelas${np?' em aberto':''}<select id="pc-n" data-pcn>${Array.from({length:mx},(_,i)=>i+1).map(n=>`<option value="${n}" ${n==x.L.length?'selected':''}>${n}x</option>`).join('')}</select></label>
   <label class="f">1º vencimento<input id="pc-d1" type="date" data-pcd1 value="${x.d1}"></label></div>
-  <div class="pclist">${x.L.map((l,k)=>`<div class="pcrow"><b>${np+k+1}ª</b><input type="date" data-pcv="${k}" value="${l.venc}" aria-label="Vencimento da parcela ${np+k+1}"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" data-pcval="${k}" value="${fmt(l.valor)}" aria-label="Valor da parcela ${np+k+1}"></div>`).join('')}</div>
+  <div class="pclist">${pagas.map(p=>`<div class="pcrow pg"><b>${p.n}ª</b><span class="pcro">${br4(p.venc)}</span><span class="pcrs">R$</span><span class="pcro n">${fmt(+p.valor)}</span><span class="chip good st pcpg">Pago ${br(p.pago)}</span></div>`).join('')}
+   ${x.L.map((l,k)=>`<div class="pcrow pg"><b>${np+k+1}ª</b><input type="date" data-pcv="${k}" value="${l.venc}" aria-label="Vencimento da parcela ${np+k+1}"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" data-pcval="${k}" value="${fmt(l.valor)}" aria-label="Valor da parcela ${np+k+1}"><button class="chip ${l.pago?'good':''} st pcpg" style="border:0" data-pcpg="${k}" aria-pressed="${!!l.pago}" title="Clique para marcar se o cliente já pagou esta parcela">${l.pago?'✓ Pago':'A vencer'}</button></div>`).join('')}</div>
+  ${algPg?`<div class="pcforma"><span class="note">Pago em</span><div class="pay">${PAYV.map(f=>`<button data-pcforma="${f}" aria-pressed="${x.forma===f}">${PAY[f]}</button>`).join('')}</div></div>`:''}
   <div class="cxtot"><span>Soma das parcelas${np?' em aberto':''}</span><b style="${ok?'':'color:var(--bad)'}">${Ri(soma)}${ok?'':` · tem que dar ${Ri(falta)}`}</b></div>
-  <p class="note" style="margin:0">Os vencimentos repetem todo mês no mesmo dia. Dá para mudar a data e o valor de cada parcela.${np?(np===1?' A parcela já paga não muda.':` As ${np} parcelas já pagas não mudam.`):''}</p>
+  <p class="note" style="margin:0">Para ${Ri(tot)} o máximo é <b>${credMax(tot)}x</b> (tabela de crediário da 3mix). Os vencimentos repetem todo mês no mesmo dia; dá para mudar a data e o valor de cada parcela. Se o cliente já pagou uma parcela no ato, clique em <b>A vencer</b> para marcar como <b>Pago</b>.${np?(np===1?' A parcela já paga não muda.':` As ${np} parcelas já pagas não mudam.`):''}</p>
   ${tel}
   <div class="actions">${pi&&!pi.np?'<button class="btn" data-pcrm style="margin-right:auto;color:var(--bad)">Tirar parcelamento</button>':''}<button class="btn ghost" ${pi?'data-pcver':'data-close'}>Voltar</button><button class="btn pri" data-pcsalva ${ok?'':'disabled'}>Salvar parcelas</button></div>`;
   render();return}
@@ -1708,7 +1724,7 @@ function vInicio(){
   <div class="btnrow"><button class="btn pri sm" data-copymsg>Copiar mensagem p/ grupos</button><button class="btn sm" data-copylink>Copiar só o link</button><button class="btn sm" data-verloja>Ver minha loja</button></div>
   <p class="note">A loja mostra só os perfumes que você tem em mãos (${U(maosV(v.id))}). O pedido do cliente baixa do seu estoque e aparece em Vendas como "A receber".</p>
  </section>
- ${vParcV(v.id)}${vAviseV(v.id)}
+ ${vCredV(v.id)}${vParcV(v.id)}${vAviseV(v.id)}
  <div class="grid-kpi" style="grid-template-columns:repeat(3,minmax(0,1fr))">
   <div class="kpi hl"><span class="l">Vendido em ${today.toLocaleDateString('pt-BR',{month:'long'})}</span><span class="v">${R(t.rec)}</span><span class="d">${U(t.un)} · ${M.length} vendas</span></div>
   <div class="kpi"><span class="l">Meu lucro</span><span class="v">${R(t.com)}</span><span class="d">${Ri(pend)} já recebido</span></div>
@@ -1841,7 +1857,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.05-02';
+const VERSAO='2026.11.06-02';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2180,6 +2196,9 @@ const fmtH=h=>{h=+h;const H=Math.floor(h),M=Math.round((h-H)*60);return (H?H+(H>
 /* situação do kit: chip + relógio da reserva + motivo do cancelamento + devolução */
 function kitSit(k){const adm=curUser()?.perfil==='adm',c=k.cancel||{};let s=(KST[k.status]||'')+(k.mostra?' <span class="chip st">+ mostruário</span>':'');
  if(k.pag==='dinheiro'&&k.status!=='cancelado')s+=` <span class="chip st">Dinheiro</span>`;
+ if(k.cred&&k.status!=='cancelado'){const c=k.cred,h=iso(today),px=(c.parc||[]).find(p=>!p.pago);
+  s+=`<div class="ksit"><span class="chip A st">A prazo · ${esc(c.nome||'')}</span> `+(adm?(c.quit?`<span class="chip good st">Quitado com a 3mix ${br(c.quit)}</span>`:`<span class="chip ${c.venc<h?'bad':'warn'} st">${c.venc<h?'3mix: venceu':'Pagar à 3mix até'} ${br(c.venc)}</span>`):'')
+   +(px?` <span class="note">${adm?'revendedor deve':'você paga a '+esc(c.nome)} ${Ri(kcFalta(k))} · próx. ${br(px.venc)}</span>`:' <span class="note">revendedor quitou</span>')+'</div>'}
  if(k.status==='aguardando')s+='<br>'+relogio(kitExp(k));
  if(k.exc&&k.exc.dev)s+=`<div class="ksit">${k.exc.dev==='pendente'?(adm?`<span class="chip warn">Pago a mais ${Ri(+k.exc.valor)} · devolver</span> <button class="btn sm" data-excreg="${k.id}">Registrar devolução</button>`:`<span class="chip warn">Pago a mais · a receber ${Ri(+k.exc.valor)}</span> <span class="note">a 3mix vai te devolver</span>`):`<span class="chip good">${adm?'Excedente devolvido':'Excedente recebido'} · ${esc(k.exc.forma||'')}</span>`}</div>`;
  (S.kitParciais||[]).filter(p=>p.kid===k.id).forEach(p=>{s+=`<div class="ksit"><span class="chip">−${p.un} un · parcial</span> ${esc(p.cancel.motivo||'')}${p.cancel.dev?' · '+devSit(p.cancel,p.valor,'data-pdevreg','data-pverdev',p.id,adm,!adm):''}</div>`});
@@ -2311,6 +2330,7 @@ function etqKit(k){const ven=vend(k.vid)||{};
 function kitActs(k){const vazio='<span></span>';let c1=vazio,c2=vazio,c3=vazio;
  if(['aguardando','informado'].includes(k.status)){
   if(k.comprovante)c1=`<button class="btn sm" data-vercomp="${k.id}" title="Ver comprovante de pagamento">📎 Comprovante</button>`;
+  else if(curUser()?.perfil==='adm')c1=`<button class="btn sm" data-kcpraz="${k.id}" title="Liberar o kit a prazo: você fica responsável por pagar a 3mix em 14 dias">A prazo</button>`;
   c2=`<button class="btn pri sm" data-confkit="${k.id}" title="Confirmar pagamento">Confirmar</button>`;
   c3=`<button class="btn sm" data-cancelkit="${k.id}">Cancelar</button>`}
  else if(k.status==='pago'){
@@ -2321,6 +2341,70 @@ function kitActs(k){const vazio='<span></span>';let c1=vazio,c2=vazio,c3=vazio;
   c1=`<button class="btn sm" data-etqk="${k.id}" title="Imprimir etiqueta 10×15">🖨 Etiqueta</button>`;
   c3=`<button class="btn sm" data-cancelkit="${k.id}" title="Cancelar frascos que o revendedor ainda tem em mãos">Cancelar</button>`}
  return `<div class="kact">${c1}${c2}${c3}</div>`}
+/* ===== kit a prazo =====
+   Um administrador libera o kit sem pagamento e fica responsável: paga a 3mix em até 14 dias.
+   O revendedor paga a esse administrador (nunca direto à 3mix), nas parcelas que ele definiu. */
+const kCredAb=k=>k.cred&&k.status!=='cancelado'&&!k.cred.quit;
+const kcFalta=k=>Math.round((+k.total-(k.cred?.parc||[]).filter(p=>p.pago).reduce((a,p)=>a+ +p.valor,0))*100)/100;
+const addDias=(s,n)=>iso(new Date(new Date(s+'T12:00:00').getTime()+n*864e5));
+function crSalva(c){c.faixas=c.faixas.filter(f=>f.ate>0).sort((a,b)=>a.ate-b.ate).map(f=>({ate:Math.round(f.ate*100)/100,n:Math.min(c.max,Math.max(1,f.n))}));
+ const txt=c.faixas.map(f=>`até R$ ${fmt(f.ate)}: ${f.n}x`).concat(`acima: ${c.max}x`).join(' · ');
+ rodar(async()=>{await upd('config',{crediario:c},1);S.crediario=c;log('Tabela de crediário alterada',txt)},'Tabela de crediário salva')}
+function mCredKit(id){const k=S.kits.find(x=>x.id===id);if(!k)return;UI.msize='lg';UI.kc={id,n:3,d1:addMeses(iso(today),1),L:[]};kcGera();drawCredKit()}
+function kcGera(){const x=UI.kc,k=S.kits.find(y=>y.id===x.id),t=+k.total,n=Math.max(1,Math.min(12,+x.n||1));
+ const base=Math.floor(t*100/n)/100,first=Math.round((t-base*(n-1))*100)/100;x.L=Array.from({length:n},(_,i)=>({venc:addMeses(x.d1,i),valor:i?base:first}))}
+function drawCredKit(){const x=UI.kc,k=x&&S.kits.find(y=>y.id===x.id);if(!k){UI.kc=null;closeModal();return}
+ const t=+k.total,soma=x.L.reduce((a,l)=>a+(+l.valor||0),0),ok=Math.abs(soma-t)<0.009,eu=curUser()?.nome||'Você';
+ UI.modal=`<h3>Liberar kit a prazo${k.num?` <span class="pnum big">${NUMF(k.num,'K')}</span>`:''}</h3>
+ <div class="cxres"><div><span>Revendedor</span><b>${esc(vend(k.vid)?.nome||'')}</b></div><div><span>Valor do kit</span><b>${Ri(t)}</b></div><div><span>Você paga à 3mix até</span><b>${br(addDias(iso(today),14))}</b></div></div>
+ <div class="alerta"><span><b>${esc(eu)}</b> fica responsável por este crédito: paga ${Ri(t)} à 3mix em até 14 dias, mesmo que o revendedor ainda não tenha pago. O revendedor paga a você, nas parcelas abaixo, e não à 3mix.</span></div>
+ <div class="fg"><label class="f">Parcelas do revendedor<select data-kcn>${Array.from({length:12},(_,i)=>i+1).map(n=>`<option value="${n}" ${n==x.L.length?'selected':''}>${n}x</option>`).join('')}</select></label>
+ <label class="f">1º vencimento<input type="date" data-kcd1 value="${x.d1}"></label></div>
+ <div class="pclist">${x.L.map((l,i)=>`<div class="pcrow"><b>${i+1}ª</b><input type="date" data-kcv="${i}" value="${l.venc}" aria-label="Vencimento da parcela ${i+1}"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" data-kcval="${i}" value="${fmt(l.valor)}" aria-label="Valor da parcela ${i+1}"></div>`).join('')}</div>
+ <div class="cxtot"><span>Soma das parcelas</span><b style="${ok?'':'color:var(--bad)'}">${Ri(soma)}${ok?'':` · tem que dar ${Ri(t)}`}</b></div>
+ <p class="note" style="margin:0">O kit vai para "A entregar" e o estoque é liberado na entrega. Fica registrado no log que o crédito foi liberado por ${esc(eu)}.</p>
+ <div class="actions"><button class="btn ghost" data-close style="margin-right:auto">Voltar</button><button class="btn pri" data-kcsalva ${ok?'':'disabled'}>Liberar a prazo</button></div>`;
+ render()}
+function vCredito(){const h=iso(today),me=UI.user,adm=curUser()?.perfil==='adm',ab=UI.kcab||'abertos',fo=UI.kcForma||'pix';
+ const C=S.kits.filter(k=>k.cred&&k.status!=='cancelado'),A=C.filter(k=>!k.cred.quit),Q=C.filter(k=>k.cred.quit).sort((a,b)=>String(b.cred.quit).localeCompare(String(a.cred.quit)));
+ const P=[];C.forEach(k=>(k.cred.parc||[]).forEach(p=>P.push({k,p,n:k.cred.parc.length})));
+ P.sort((a,b)=>(!!a.p.pago-!!b.p.pago)||(a.p.pago?String(b.p.pago).localeCompare(String(a.p.pago)):String(a.p.venc).localeCompare(String(b.p.venc))));
+ const sm=a=>a.reduce((s,k)=>s+ +k.total,0),atr=A.filter(k=>k.cred.venc<h),Pab=P.filter(x=>!x.p.pago),meus=Pab.filter(x=>x.k.cred.por===me);
+ const rev=k=>`<span class="cli">${esc(vend(k.vid)?.nome||'')}</span><div class="s note">${NUMF(k.num,'K')} · ${U(k.itens.reduce((a,i)=>a+i.qtd,0))}</div>`;
+ const forma=`<div class="pcforma"><span class="note">${ab==='parcelas'?'Recebendo do revendedor em':'Pago à 3mix em'}</span><div class="pay">${PAYV.map(f=>`<button data-kcforma="${f}" aria-pressed="${fo===f}">${PAY[f]}</button>`).join('')}</div></div>`;
+ let tab='';
+ if(ab==='abertos'){const {rows,ctl}=page('kca',A,8);
+  tab=A.length?`${adm?forma:''}<div class="tbl"><table class="cards"><thead><tr><th>Revendedor</th><th>Liberado por</th><th>Liberado em</th><th>Pagar à 3mix até</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>
+   ${rows.map(k=>{const c=k.cred,d=diasAte(c.venc);return `<tr><td>${rev(k)}</td><td><b>${esc(c.nome||'')}</b></td><td>${br(String(c.em).slice(0,10))}</td><td>${br(c.venc)}</td><td class="n">${R(+k.total)}</td>
+   <td>${d<0?`<span class="chip bad st">Atrasado · ${-d} dia${d<-1?'s':''}</span>`:d===0?'<span class="chip warn st">Vence hoje</span>':`<span class="chip st">${d} dia${d>1?'s':''}</span>`}</td>
+   <td class="n">${adm?`<button class="btn pri sm" data-kcquit="${k.id}" title="${esc(c.nome||'')} pagou a 3mix">Quitado</button>`:''}</td></tr>`}).join('')}</tbody>
+   <tfoot><tr class="vtot"><td colspan="4" class="vtot-l">Total · ${A.length} kit${A.length>1?'s':''}</td><td class="n">${R(sm(A))}</td><td colspan="2"></td></tr></tfoot></table></div>${ctl}`:'<p class="empty">Nenhum crédito em aberto com a 3mix.</p>'}
+ else if(ab==='quitados'){const {rows,ctl}=page('kcq',Q,8);
+  tab=Q.length?`<div class="tbl"><table class="cards"><thead><tr><th>Revendedor</th><th>Liberado por</th><th>Prazo</th><th>Quitado em</th><th class="n">Valor (R$)</th><th>Registrado por</th><th></th></tr></thead><tbody>
+   ${rows.map(k=>{const c=k.cred,q=String(c.quit).slice(0,10);return `<tr><td>${rev(k)}</td><td><b>${esc(c.nome||'')}</b></td><td>${br(c.venc)}</td><td>${br(q)} · ${PAY[c.quitForma]||''}${q>c.venc?' <span class="chip bad st">com atraso</span>':''}</td><td class="n">${R(+k.total)}</td><td>${esc(c.quitPor||'')}</td>
+   <td class="n">${adm?`<button class="btn sm" data-kcdes="${k.id}">Desfazer</button>`:''}</td></tr>`}).join('')}</tbody></table></div>${ctl}`:'<p class="empty">Nenhum crédito quitado ainda.</p>'}
+ else{const {rows,ctl}=page('kcp',P,10);
+  tab=P.length?`${meus.length?forma:''}<div class="tbl"><table class="cards"><thead><tr><th>Vencimento</th><th>Revendedor</th><th>Parcela</th><th class="n">Valor (R$)</th><th>Paga a</th><th>Situação</th><th></th></tr></thead><tbody>
+   ${rows.map(({k,p,n})=>{const v=String(p.venc).slice(0,10),meu=k.cred.por===me;return `<tr><td>${br(v)}</td><td>${rev(k)}</td><td>${n>1?p.n+'/'+n:'Única'}</td><td class="n">${R(+p.valor)}</td><td>${esc(k.cred.nome||'')}</td>
+   <td>${p.pago?`<span class="chip good st">Pago ${br(p.pago)} · ${PAY[p.forma]||''}</span>`:v<h?'<span class="chip bad st">Atrasado</span>':v===h?'<span class="chip warn st">Vence hoje</span>':'<span class="chip st">Em aberto</span>'}</td>
+   <td class="n" style="white-space:nowrap">${!meu?'':p.pago?`<button class="btn sm" data-kcpdes="${p.id}">Desfazer</button>`:UI.kcRec===p.id?`<span class="pcrec"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" id="kc-rv" value="${fmt(+p.valor)}" aria-label="Valor recebido"><button class="btn pri sm" data-kcok="${p.id}">OK</button><button class="btn sm" data-kcx>×</button></span>`:`<button class="btn pri sm" data-kcpag="${p.id}">Recebi</button>`}</td></tr>`}).join('')}</tbody>
+   <tfoot><tr class="vtot"><td colspan="3" class="vtot-l">Em aberto · ${Pab.length} parcela${Pab.length===1?'':'s'}</td><td class="n">${R(Pab.reduce((a,x)=>a+ +x.p.valor,0))}</td><td colspan="3"></td></tr></tfoot></table></div>
+   <p class="note">Só quem liberou o crédito registra o pagamento do revendedor. Valor diferente da parcela recalcula as seguintes.</p>${ctl}`:'<p class="empty">Nenhuma parcela de kit a prazo.</p>'}
+ return `<div class="head"><div><h1>Crédito a prazo</h1><p class="sub">Kits liberados sem pagamento · quem liberou paga a 3mix em até 14 dias e recebe do revendedor</p></div></div>
+ <div class="grid-kpi" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+  <div class="kpi hl"><span class="l">Administradores devem à 3mix</span><span class="v">${R(sm(A))}</span><span class="d">${A.length} kit${A.length===1?'':'s'} em aberto</span></div>
+  <div class="kpi"><span class="l">Atrasado com a 3mix</span><span class="v" style="${atr.length?'color:var(--bad)':''}">${R(sm(atr))}</span><span class="d">${atr.length} kit${atr.length===1?'':'s'} · prazo de 14 dias</span></div>
+  <div class="kpi"><span class="l">Revendedores devem</span><span class="v">${R(Pab.reduce((a,x)=>a+ +x.p.valor,0))}</span><span class="d">${Pab.length} parcela${Pab.length===1?'':'s'} em aberto</span></div>
+  <div class="kpi"><span class="l">A receber por mim</span><span class="v">${R(meus.reduce((a,x)=>a+ +x.p.valor,0))}</span><span class="d">${meus.length} parcela${meus.length===1?'':'s'} dos meus créditos</span></div>
+ </div>
+ <div class="tabs ktabs" role="group">${[['abertos','Devem à 3mix',A.length],['quitados','Quitados',Q.length],['parcelas','Parcelas dos revendedores',Pab.length]].map(([k,l,n])=>`<button data-kcab="${k}" aria-pressed="${ab===k}">${l} <span class="gn">${n}</span></button>`).join('')}</div>
+ <section class="panel">${tab}</section>`}
+/* início do revendedor: o que ele deve de kits a prazo e a quem paga */
+function vCredV(vid){const h=iso(today),L=[];S.kits.filter(k=>k.vid===vid&&k.cred&&k.status!=='cancelado').forEach(k=>(k.cred.parc||[]).filter(p=>!p.pago).forEach(p=>L.push({k,p,n:k.cred.parc.length})));
+ if(!L.length)return '';L.sort((a,b)=>String(a.p.venc).localeCompare(String(b.p.venc)));const {rows,ctl}=page('kcv'+vid,L,5),tt=L.reduce((a,x)=>a+ +x.p.valor,0);
+ return `<section class="panel"><div class="panel-h"><h2>Kits a prazo · a pagar</h2><span class="sp"></span><span class="note">${Ri(tt)} em aberto</span></div>
+ <div class="list">${rows.map(({k,p,n})=>{const v=String(p.venc).slice(0,10),vc=v<h;return `<div class="row"><div class="grow"><div class="t">Pagar a ${esc(k.cred.nome||'')} <span class="note">· ${NUMF(k.num,'K')}${n>1?` · parcela ${p.n}/${n}`:''}</span></div><div class="s">${vc?'venceu':'vence'} ${br(v)}</div></div><b>${Ri(+p.valor)}</b><span class="chip ${vc?'bad':v===h?'warn':''} st">${vc?'Atrasado':v===h?'Hoje':'A vencer'}</span></div>`}).join('')}</div>
+ <p class="note">Pague direto a ${[...new Set(L.map(x=>esc(x.k.cred.nome||'')))].join(', ')}, que liberou o crédito. Não pague à 3mix.</p>${ctl}</section>`}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
 /* mais recente em cima: data e hora do pedido, depois o número */
@@ -2538,7 +2622,7 @@ function armar(b,txt,ruim){b.textContent=txt;b.classList.add(ruim?'armed-bad':'a
 function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;$('#shell').appendChild(el);setTimeout(()=>el.remove(),1800)}
 
 /* ===== render ===== */
-const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['vendasrev','Vendas revendedores'],['equipe','Vendedores'],['candidatos','Candidatos'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
+const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['credito','Crédito a prazo'],['vendasrev','Vendas revendedores'],['equipe','Vendedores'],['candidatos','Candidatos'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
             vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas'],['receber','A receber'],['interesses','Interesses'],['cancel','Cancelamentos'],['sobre','Sobre']],loja:[],revenda:[]};
 function curUser(){return S.users.find(u=>u.id===UI.user&&u.status==='ativo')||null}
 function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
@@ -2548,7 +2632,7 @@ function authMsg(id,t){const e=$(id);e.textContent=t;e.hidden=false}
 const navList0=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log'],['sobre','Sobre']]:NAVS[UI.role];
 /* menu dos sócios em 3 grupos com cor própria */
 /* mesmas cores nos dois painéis: laranja = distribuidora · verde = revenda · roxo = administração/sistema */
-const GRUPOS_R={socio:[['dist','Distribuidora','#E07A00',['painel','produtos','vendas','inventario','cancel']],['rev','Revendedores','#0E9479',['vendasrev','equipe','candidatos','interesses']],['adm','Administração','#6A55D0',['socios','fundo','acessos','log','sobre']]],
+const GRUPOS_R={socio:[['dist','Distribuidora','#E07A00',['painel','produtos','vendas','credito','inventario','cancel']],['rev','Revendedores','#0E9479',['vendasrev','equipe','candidatos','interesses']],['adm','Administração','#6A55D0',['socios','fundo','acessos','log','sobre']]],
  vend:[['rev','Minha revenda','#0E9479',['inicio','vendas','receber','interesses','cancel']],['dist','Distribuidora','#E07A00',['comprar','estoque']],['adm','Sistema','#6A55D0',['sobre']]]};
 const NOME_G={socios:'Configurações',vendasrev:'Vendas'};
 const grupoDe=k=>(GRUPOS_R[UI.role]||[]).find(g=>g[3].includes(k));
@@ -2575,7 +2659,7 @@ function render(){
   +`<div class="navver">versão ${VERSAO}</div>`+(xtra?`<button class="mais" data-navmais aria-expanded="${!!UI.navOpen}">${ic('menu')}<span>Menu</span></button>`:'');
  {let g=document.getElementById('gavRoot');if(!g){g=document.createElement('div');g.id='gavRoot';document.body.appendChild(g)}g.innerHTML=gaveta;}
  let h='';
- if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:vVendasKits,vendasrev:()=>vVendas(null,true),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo,sobre:vSobre}[UI.view]();
+ if(UI.role==='socio')h={painel:vPainel,produtos:vProdutos,vendas:vVendasKits,credito:vCredito,vendasrev:()=>vVendas(null,true),equipe:vEquipe,socios:vSocios,interesses:()=>vInteresses(),candidatos:vCandidatos,cancel:()=>vCancel(),acessos:vAcessos,inventario:vInventario,log:vLog,fundo:vFundo,sobre:vSobre}[UI.view]();
  else if(UI.role==='loja')h=vLoja();
  else if(UI.role==='revenda')h=vRevenda();
  else h={inicio:vInicio,comprar:vComprar,estoque:vEstoqueV,catalogo:vEstoqueV,interesses:()=>vInteresses(UI.vid),cancel:()=>vCancel(UI.vid),vendas:()=>vVendas(UI.vid),receber:()=>vReceber(UI.vid),vender:vInicio,sobre:vSobre}[UI.view]();
@@ -2818,10 +2902,27 @@ document.addEventListener('click',e=>{
      <p style="margin:12px 0 6px">Quer avisar a 3mix agora para combinar a entrega?</p>
      <div class="actions"><button class="btn ghost" data-close>Agora não</button><a class="btn pri" href="https://wa.me/${zapN.length<=11?'55'+zapN:zapN}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" onclick="setTimeout(closeModal,400)">Avisar no WhatsApp</a></div>`}},'Combinado: pagamento em dinheiro na entrega');return}
  if(d.vflimpa!==undefined){UI[UI.vfAtivo||'vf']={};render();return}
+ if('cradd' in d){const c=CRED(),u=c.faixas.length?c.faixas[c.faixas.length-1].ate:0;c.faixas.push({ate:u+100,n:Math.min(c.max,(c.faixas.length?c.faixas[c.faixas.length-1].n:1)+1)});crSalva(c);return}
+ if(d.crdel!==undefined){const c=CRED();c.faixas.splice(+d.crdel,1);crSalva(c);return}
+ if(d.kcpraz){mCredKit(d.kcpraz);return}
+ if('kcsalva' in d){const x=UI.kc;rodar(()=>rpc('liberar_credito_kit',{p_id:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100}))}),'Kit liberado a prazo · a entregar').then(ok=>{if(ok){UI.kc=null;closeModal()}});return}
+ if(d.kcab){UI.kcab=d.kcab;UI.kcRec=null;render();return}
+ if(d.kcforma){UI.kcForma=d.kcforma;render();return}
+ if(d.kcquit){if(UI.kcArm!==d.kcquit){UI.kcArm=d.kcquit;armar(b,`Confirmar ${PAY[UI.kcForma||'pix']}?`);return}UI.kcArm=null;
+  rodar(()=>rpc('quitar_credito_kit',{p_id:d.kcquit,p_forma:UI.kcForma||'pix'}),'Crédito quitado · entrou no caixa da 3mix');return}
+ if(d.kcdes){if(UI.kcArm!==d.kcdes){UI.kcArm=d.kcdes;armar(b,'Confirmar?',true);return}UI.kcArm=null;
+  rodar(()=>rpc('quitar_credito_kit',{p_id:d.kcdes,p_forma:null,p_desfazer:true}),'Quitação desfeita');return}
+ if(d.kcpag){UI.kcRec=d.kcpag;render();setTimeout(()=>{const i=$('#kc-rv');if(i){i.focus();i.select()}},30);return}
+ if('kcx' in d){UI.kcRec=null;render();return}
+ if(d.kcok){const val=num($('#kc-rv')?.value);if(!(val>0)){toast('Informe o valor recebido');return}
+  rodar(()=>rpc('pagar_parcela_kit',{p_id:d.kcok,p_pago:true,p_forma:UI.kcForma||'pix',p_valor:val}),'Parcela recebida').then(ok=>{if(ok)UI.kcRec=null});return}
+ if(d.kcpdes){if(UI.kcArm!==d.kcpdes){UI.kcArm=d.kcpdes;armar(b,'Confirmar?',true);return}UI.kcArm=null;
+  rodar(()=>rpc('pagar_parcela_kit',{p_id:d.kcpdes,p_pago:false}),'Recebimento desfeito · parcelas recalculadas');return}
  if(d.parc){mParcelas(d.parc);return}
  if('pcedit' in d){const x=UI.pc;x.edit=true;x.n=null;x.d1=null;const v=S.vendas.find(y=>y.id===x.id),pi=parcInfo(v);if(pi&&!pi.dif&&pi.n>pi.np){x.L=pi.P.filter(p=>!p.pago).map(p=>({venc:String(p.venc).slice(0,10),valor:+p.valor}));x.d1=x.L[0].venc}else{x.n=2;pcGera()}drawParc();return}
  if('pcver' in d){UI.pc.edit=false;drawParc();return}
  if(d.pcforma){UI.pc.forma=d.pcforma;drawParc();return}
+ if(d.pcpg!==undefined){const l=UI.pc.L[+d.pcpg];l.pago=!l.pago;drawParc();return}
  if(d.pcpag){UI.pc.rec=d.pcpag;UI.pc.rv=null;drawParc();setTimeout(()=>{const e=$('#pc-rv');if(e){e.focus();e.select?.()}},30);return}
  if('pcx' in d){UI.pc.rec=null;drawParc();return}
  if(d.pcok){const x=UI.pc,val=num($('#pc-rv')?.value||'0');if(!(val>0)){toast('Informe o valor recebido');return}
@@ -2829,7 +2930,7 @@ document.addEventListener('click',e=>{
   rodar(()=>rpc('pagar_parcela',{p_id:d.pcok,p_pago:true,p_forma:x.forma,p_valor:val}),`Recebido ${Ri(val).replace(/<[^>]+>/g,'')} · ${PAY[x.forma]}${dif?' · parcelas seguintes recalculadas':''}`).then(()=>{if(UI.pc){UI.pc.rec=null;drawParc()}});return}
  if(d.pcdes){const pid=d.pcdes;if(UI.pcArm!==pid){UI.pcArm=pid;armar(b,'Desfazer?',true);return}UI.pcArm=null;
   rodar(()=>rpc('pagar_parcela',{p_id:pid,p_pago:false}),'Recebimento desfeito · parcelas em aberto recalculadas').then(()=>{if(UI.pc)drawParc()});return}
- if('pcsalva' in d){const x=UI.pc;rodar(()=>rpc('definir_parcelas',{p_venda:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100})),p_tel:x.tel}),'Parcelas salvas').then(ok=>{if(ok&&UI.pc){UI.pc.edit=false;drawParc()}});return}
+ if('pcsalva' in d){const x=UI.pc;rodar(()=>rpc('definir_parcelas',{p_venda:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100,pago:!!l.pago,forma:l.pago?x.forma:null})),p_tel:x.tel}),'Parcelas salvas').then(ok=>{if(ok&&UI.pc){UI.pc.edit=false;drawParc()}});return}
  if('pcrm' in d){if(!UI.pcRmArm){UI.pcRmArm=1;armar(b,'Confirmar?',true);return}UI.pcRmArm=0;rodar(()=>rpc('definir_parcelas',{p_venda:UI.pc.id,p_itens:[]}),'Parcelamento removido').then(()=>{UI.pc=null;closeModal()});return}
  if(d.zapv){zapVenda(d.zapv);return}
  if(d.cobrar){zapVenda(d.cobrar,'cobrar');return}
@@ -2944,6 +3045,10 @@ document.addEventListener('input',e=>{
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='nv-busca'){e.preventDefault();document.querySelector('#nvres .nvit:not([disabled])')?.click();return}if(e.key==='Enter'&&e.target&&e.target.id==='pc-rv'){e.preventDefault();document.querySelector('[data-pcok]')?.click()}});
 document.addEventListener('change',e=>{
  const t=e.target,d=t.dataset;
+ if('kcn' in d){UI.kc.n=+t.value;kcGera();drawCredKit();return}
+ if('kcd1' in d){const x=UI.kc;x.d1=t.value||iso(today);x.L=x.L.map((l,i)=>({...l,venc:addMeses(x.d1,i)}));drawCredKit();return}
+ if(d.kcv!==undefined){UI.kc.L[+d.kcv].venc=t.value;drawCredKit();return}
+ if(d.kcval!==undefined){UI.kc.L[+d.kcval].valor=num(t.value);drawCredKit();return}
  if('pcn' in d){UI.pc.n=+t.value;pcGera();drawParc();return}
  if('pcd1' in d){UI.pc.d1=t.value||iso(today);const x=UI.pc;x.L=x.L.map((l,k)=>({...l,venc:addMeses(x.d1,k)}));drawParc();return}
  if(d.pcv!==undefined){UI.pc.L[+d.pcv].venc=t.value;drawParc();return}
@@ -2970,6 +3075,9 @@ document.addEventListener('change',e=>{
  if(d.tax!==undefined){S.taxas[d.tax]=num(t.value);cfgSave('Taxa de pagamento alterada',`${PAY[d.tax]}: ${pc(num(t.value))}`);render();return}
  if(d.invloc!==undefined){UI.inv={local:t.value,cont:{}};UI.invArm=false;render();return}
  if(d.lgf){UI.lgf[d.lgf]=t.value;render();return}
+ if(d.crmax!==undefined||d.crate!==undefined||d.crn!==undefined){const c=CRED();
+  if(d.crmax!==undefined)c.max=+t.value;if(d.crate!==undefined){const v=num(t.value);if(!(v>0)){toast('Informe um valor maior que zero');render();return}c.faixas[+d.crate].ate=v}if(d.crn!==undefined)c.faixas[+d.crn].n=+t.value;
+  crSalva(c);return}
  if(d.minkit!==undefined){const n=Math.round(+t.value);if(!(n>=1&&n<=100)){toast('Informe de 1 a 100 frascos');render();return}
   rodar(async()=>{await upd('config',{min_kit:n},1);log('Pedido mínimo alterado',`${n} frascos`)},`Pedido mínimo: ${n} frascos`);return}
  if('infrasalva' in d){const o={obs:($('#inf-obs')?.value||'').trim()};INFRA.forEach(([k])=>{o[k]={conta:($('#inf-'+k+'-conta')?.value||'').trim(),link:($('#inf-'+k+'-link')?.value||'').trim()}});
