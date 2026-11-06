@@ -1292,7 +1292,7 @@ function vVendas(onlyVid,ro){
  <td style="white-space:nowrap">${(()=>{const pi=parcInfo(v);if(!pi)return '';const cr=v.pag==='crediario'||pi.n>1,cl=pi.np===pi.n?'good':pi.venc?'bad':'warn',tx=pi.np===pi.n?(cr?'Quitado':'Pago'):cr?`${pi.np}/${pi.n} pagas`:(pi.venc?'Atrasado':'A receber');
    return `${ro?`<span class="chip ${cl} st">${tx}</span>`:`<button class="chip ${cl} st" style="border:0" data-parc="${v.id}" title="Ver parcelas">${tx}</button>`}<div class="s note vpag">${pi.np<pi.n?(pi.venc?`<b style="color:var(--bad)">atrasado desde ${br(pi.prox.venc)}</b>`:`${cr?'crediário · próx.':'vence'} ${br(pi.prox.venc)}`):(cr?`crediário ${pi.n}x`:(PAY[pi.P[0].forma]||''))}</div>`})()||(`${ro?`<span class="chip ${v.status==='pago'?'good':'warn'} st">${v.status==='pago'?'Pago':'A receber'}</span>`:v.status==='pago'?`<button class="chip good st" style="border:0" data-receber="${v.id}" title="Voltar para A receber">Pago</button>`:`<button class="chip warn st" style="border:0" data-pagar="${v.id}" title="Marcar como pago">A receber</button>`}<div class="s note vpag">${PAY[v.pag]||''}${v.parcelas>1?` ${v.parcelas}x`:''}${!ro&&v.pag==='crediario'?` <button class="vpagalt" data-parc="${v.id}">definir parcelas</button>`:''}${!ro&&PAYV.includes(v.pag)?` <button class="vpagalt" data-vpagalt="${v.id}" title="Trocar para ${PAY[v.pag==='pix'?'dinheiro':'pix']}">trocar</button>`:''}</div>`)}</td>
  <td style="white-space:nowrap">${v.entregue?(ro?`<span class="chip good st">Entregue</span>`:`<button class="chip good st" style="border:0" data-desentv="${v.id}" title="Desfazer a entrega">Entregue</button>`):(ro?`<span class="chip st">A entregar</span>`:`<button class="btn sm" data-entv="${v.id}" title="Marcar como entregue ao cliente">Entregar</button>`)}</td>
- ${ro?'':`<td class="vacts"><button class="btn sm ico zapb" data-zapv="${v.id}" title="Enviar comprovante da venda no WhatsApp" aria-label="Enviar comprovante da venda no WhatsApp">${ic('zap')}</button><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
+ ${ro?'':`<td class="vacts"><button class="btn sm ico zapb" data-zapv="${v.id}" title="Enviar comprovante da venda no WhatsApp" aria-label="Enviar comprovante da venda no WhatsApp">${ic('zap')}</button><button class="btn sm ico" data-editv="${v.id}" title="Alterar perfumes da venda" aria-label="Alterar venda">✎</button><button class="btn sm ico" data-cancv="${v.id}" title="Cancelar venda" aria-label="Cancelar venda">×</button></td>`}</tr>
  ${UI.vexp===v.id&&v.itens.length>1?v.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''},ci=saleCalc({...v,itens:[i]});return `<tr class="vsub"><td></td><td colspan="2" class="vsub-c"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} <span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${U(i.qtd)}</td><td class="n">${R(ci.rec)}</td><td class="n">${R(ci.com)}</td><td></td><td></td>${ro?'':'<td></td>'}</tr>`}).join(''):''}`}).join('')||`<tr><td colspan="${8+(ro?0:1)}" class="empty">Nenhuma venda ${cust?'nesse período':'nos últimos '+UI.per+' dias'}${F.vid||F.pag||F.pid||F.st?' com esses filtros':''}.</td></tr>`}
  </tbody>${L.length?`<tfoot><tr class="vtot"><td colspan="2" class="vtot-l">Total · ${L.length} venda${L.length>1?'s':''} · ${perTxt}${L.filter(v=>v.status!=='pago').length?` <span class="note">(${Ri(sum(L.filter(v=>v.status!=='pago')).rec)} a receber)</span>`:''}</td><td></td><td class="n">${U(t.un)}</td><td class="n">${R(t.rec)}</td><td class="n">${R(t.com)}</td><td colspan="${2+(ro?0:1)}"></td></tr></tfoot>`:''}</table></div>${ctl}</section>
  ${onlyVid?'':'<p class="note">Vendas dos revendedores aos clientes finais, só para acompanhar. O dinheiro é do revendedor e não entra no caixa da 3mix. Pagamento, entrega e cancelamento são feitos pelo próprio revendedor.</p>'}`;
@@ -1539,6 +1539,10 @@ function parcInfo(v){const P=v.parc||[];if(!P.length)return null;const h=iso(tod
 /* tabela de crediário da 3mix: nº máximo de parcelas pelo valor da venda (editável em Configurações) */
 const CRED=()=>{const c=S.crediario||{};return {max:Math.max(1,Math.min(12,+c.max||6)),faixas:(Array.isArray(c.faixas)?c.faixas:[]).map(f=>({ate:+f.ate||0,n:+f.n||1})).sort((a,b)=>a.ate-b.ate)}};
 const credMax=t=>{const c=CRED(),f=c.faixas.find(f=>t<=f.ate+0.009);return Math.max(1,Math.min(c.max,f?f.n:c.max))};
+/* ao mudar o valor de uma parcela, as seguintes (não pagas) dividem o que falta */
+function redistrib(L,k,total){const seg=L.map((l,i)=>i).filter(i=>i>k&&!L[i].fixo);if(!seg.length)return;
+ const ate=L.slice(0,k+1).reduce((a,l)=>a+(+l.valor||0),0)+L.filter((l,i)=>i>k&&l.fixo).reduce((a,l)=>a+(+l.valor||0),0),rest=Math.round((total-ate)*100)/100;if(rest<=0)return;
+ const base=Math.floor(rest*100/seg.length)/100,first=Math.round((rest-base*(seg.length-1))*100)/100;seg.forEach((i,j)=>L[i].valor=j?base:first)}
 const pcFalta=v=>{const pi=parcInfo(v);return Math.round((vTot(v)-(pi?pi.rec:0))*100)/100};
 function mParcelas(id,edit){const v=S.vendas.find(x=>x.id===id);if(!v)return;const pi=parcInfo(v);UI.msize='lg';
  UI.pc={id,edit:!!edit||!pi,forma:v.pag==='dinheiro'?'dinheiro':'pix',tel:v.tel||'',n:pi?Math.max(1,pi.n-pi.np):2,d1:null,L:null};
@@ -1587,7 +1591,7 @@ function drawParc(){const x=UI.pc,v=x&&S.vendas.find(y=>y.id===x.id);if(!v){UI.p
    ${x.L.map((l,k)=>`<div class="pcrow pg"><b>${np+k+1}ª</b><input type="date" data-pcv="${k}" value="${l.venc}" aria-label="Vencimento da parcela ${np+k+1}"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" data-pcval="${k}" value="${fmt(l.valor)}" aria-label="Valor da parcela ${np+k+1}"><button class="chip ${l.pago?'good':''} st pcpg" style="border:0" data-pcpg="${k}" aria-pressed="${!!l.pago}" title="Clique para marcar se o cliente já pagou esta parcela">${l.pago?'✓ Pago':'A vencer'}</button></div>`).join('')}</div>
   ${algPg?`<div class="pcforma"><span class="note">Pago em</span><div class="pay">${PAYV.map(f=>`<button data-pcforma="${f}" aria-pressed="${x.forma===f}">${PAY[f]}</button>`).join('')}</div></div>`:''}
   <div class="cxtot"><span>Soma das parcelas${np?' em aberto':''}</span><b style="${ok?'':'color:var(--bad)'}">${Ri(soma)}${ok?'':` · tem que dar ${Ri(falta)}`}</b></div>
-  <p class="note" style="margin:0">Para ${Ri(tot)} o máximo é <b>${credMax(tot)}x</b> (tabela de crediário da 3mix). Os vencimentos repetem todo mês no mesmo dia; dá para mudar a data e o valor de cada parcela. Se o cliente já pagou uma parcela no ato, clique em <b>A vencer</b> para marcar como <b>Pago</b>.${np?(np===1?' A parcela já paga não muda.':` As ${np} parcelas já pagas não mudam.`):''}</p>
+  <p class="note" style="margin:0">Para ${Ri(tot)} o máximo é <b>${credMax(tot)}x</b> (tabela de crediário da 3mix). Os vencimentos repetem todo mês no mesmo dia; dá para mudar a data e o valor de cada parcela (as seguintes se ajustam sozinhas para fechar o total). Se o cliente já pagou uma parcela no ato, clique em <b>A vencer</b> para marcar como <b>Pago</b>.${np?(np===1?' A parcela já paga não muda.':` As ${np} parcelas já pagas não mudam.`):''}</p>
   ${tel}
   <div class="actions">${pi&&!pi.np?'<button class="btn" data-pcrm style="margin-right:auto;color:var(--bad)">Tirar parcelamento</button>':''}<button class="btn ghost" ${pi?'data-pcver':'data-close'}>Voltar</button><button class="btn pri" data-pcsalva ${ok?'':'disabled'}>Salvar parcelas</button></div>`;
   render();return}
@@ -1862,7 +1866,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.06-03';
+const VERSAO='2026.11.06-04';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2194,7 +2198,7 @@ async function mKitOk(r){if(!r)return;UI.kitPg=r.id;UI.msize='md';
   if(st===null)return `<div class="mpbox"><p class="note" style="margin:0">Preparando o pagamento pelo Mercado Pago...</p></div>`;
   if(st.erro)return `<div class="mpbox"><p style="margin:0 0 4px;font-weight:700">2. Mercado Pago</p><p class="note" style="margin:0">Não foi possível abrir o Mercado Pago agora (${esc(st.erro)}). Pague pelo Pix acima.</p></div>`;
   return `<div class="mpbox"><p style="margin:0 0 6px;font-weight:700">2. Ou pague pelo Mercado Pago</p><a class="btn sm" href="${esc(st.url)}" target="_blank" rel="noopener">Ir para o Mercado Pago · cartão, Pix e outros</a><p class="note" style="margin:6px 0 0">Aprovado o pagamento, o kit é confirmado sozinho. Não precisa enviar comprovante.</p></div>`};
- const din=`<div class="mpbox"><p style="margin:0 0 4px;font-weight:700">Ou pague em dinheiro</p><p class="note" style="margin:0 0 6px">Pague em dinheiro quando receber ou retirar o kit. A reserva não expira e a 3mix confirma quando receber.</p><button class="btn sm" data-kitdin="${r.id}">Vou pagar em dinheiro</button></div>`;
+ const din=`<div class="mpbox"><p style="margin:0 0 4px;font-weight:700">Ou pague na entrega/retirada</p><p class="note" style="margin:0 0 6px">Cartão de crédito (na maquininha) ou dinheiro, quando receber ou retirar o kit. A reserva não expira e a 3mix confirma quando receber.</p><div class="btnrow"><button class="btn sm" data-kitdin="${r.id}" data-forma="credito">Vou pagar no cartão de crédito</button><button class="btn sm" data-kitdin="${r.id}" data-forma="dinheiro">Vou pagar em dinheiro</button></div></div>`;
  modal(base+pixHtml+mp(null)+din+rodape);
  let st;try{st={url:await mpLink(r.id)}}catch(e){const m=String(e.message||'');st=/não configurado|ainda não/i.test(m)?'off':{erro:m||'erro desconhecido'}}
  if(UI.kitPg===r.id&&UI.modal)modal(base+pixHtml+mp(st)+din+rodape)}
@@ -2202,6 +2206,7 @@ const fmtH=h=>{h=+h;const H=Math.floor(h),M=Math.round((h-H)*60);return (H?H+(H>
 /* situação do kit: chip + relógio da reserva + motivo do cancelamento + devolução */
 function kitSit(k){const adm=curUser()?.perfil==='adm',c=k.cancel||{};let s=(KST[k.status]||'')+(k.mostra?' <span class="chip st">+ mostruário</span>':'');
  if(k.pag==='dinheiro'&&k.status!=='cancelado')s+=` <span class="chip st">Dinheiro</span>`;
+ if(k.pag==='credito'&&k.status!=='cancelado')s+=` <span class="chip st">Cartão de crédito</span>`;
  if(k.cred&&k.status!=='cancelado'){const c=k.cred,h=iso(today),px=(c.parc||[]).find(p=>!p.pago);
   s+=`<div class="ksit"><span class="chip A st">A prazo · ${esc(c.nome||'')}</span> `+(adm?(c.quit?`<span class="chip good st">Quitado com a 3mix ${br(c.quit)}</span>`:`<span class="chip ${c.venc<h?'bad':'warn'} st">${c.venc<h?'3mix: venceu':'Pagar à 3mix até'} ${br(c.venc)}</span>`):'')
    +(px?` <span class="note">${adm?'revendedor deve':'você paga a '+esc(c.nome)} ${Ri(kcFalta(k))} · próx. ${br(px.venc)}</span>`:' <span class="note">revendedor quitou</span>')+'</div>'}
@@ -2366,7 +2371,8 @@ function drawCredKit(){const x=UI.kc,k=x&&S.kits.find(y=>y.id===x.id);if(!k){UI.
  <div class="alerta"><span><b>${esc(eu)}</b> fica responsável por este crédito: paga ${Ri(t)} à 3mix em até 14 dias, mesmo que o revendedor ainda não tenha pago. O revendedor paga a você, nas parcelas abaixo, e não à 3mix.</span></div>
  <div class="fg"><label class="f">Parcelas do revendedor<select data-kcn>${Array.from({length:12},(_,i)=>i+1).map(n=>`<option value="${n}" ${n==x.L.length?'selected':''}>${n}x</option>`).join('')}</select></label>
  <label class="f">1º vencimento<input type="date" data-kcd1 value="${x.d1}"></label></div>
- <div class="pclist">${x.L.map((l,i)=>`<div class="pcrow"><b>${i+1}ª</b><input type="date" data-kcv="${i}" value="${l.venc}" aria-label="Vencimento da parcela ${i+1}"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" data-kcval="${i}" value="${fmt(l.valor)}" aria-label="Valor da parcela ${i+1}"></div>`).join('')}</div>
+ <div class="pclist">${x.L.map((l,i)=>`<div class="pcrow pg"><b>${i+1}ª</b><input type="date" data-kcv="${i}" value="${l.venc}" aria-label="Vencimento da parcela ${i+1}"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" data-kcval="${i}" value="${fmt(l.valor)}" aria-label="Valor da parcela ${i+1}"><button class="chip ${l.pago?'good':''} st pcpg" style="border:0" data-kcpg="${i}" aria-pressed="${!!l.pago}" title="Clique para marcar se o revendedor já pagou esta parcela">${l.pago?'✓ Pago':'A vencer'}</button></div>`).join('')}</div>
+ ${x.L.some(l=>l.pago)?`<div class="pcforma"><span class="note">Pago em</span><div class="pay">${PAYV.map(f=>`<button data-kcfo="${f}" aria-pressed="${(x.forma||'pix')===f}">${PAY[f]}</button>`).join('')}</div></div>`:''}
  <div class="cxtot"><span>Soma das parcelas</span><b style="${ok?'':'color:var(--bad)'}">${Ri(soma)}${ok?'':` · tem que dar ${Ri(t)}`}</b></div>
  <p class="note" style="margin:0">O kit vai para "A entregar" e o estoque é liberado na entrega. Fica registrado no log que o crédito foi liberado por ${esc(eu)}.</p>
  <div class="actions"><button class="btn ghost" data-close style="margin-right:auto">Voltar</button><button class="btn pri" data-kcsalva ${ok?'':'disabled'}>Liberar a prazo</button></div>`;
@@ -2590,6 +2596,8 @@ function mVend(id,pre){UI.msize='lg';if(!pre)UI.candAprovar=null;
  <p class="note" style="margin:0">Com e-mail preenchido, o vendedor ganha login com a senha inicial 123456 e só vê o próprio painel.</p>
  <div class="actions">${v.id?`<button class="btn" data-delvend="${v.id}" style="color:var(--bad);margin-right:auto">Excluir vendedor</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevend="${v.id}">Salvar</button></div>`);UI.dvArm=false;
 }
+function mEditVenda(id){const v=S.vendas.find(x=>x.id===id);if(!v)return;UI.msize='lg';const orig={},prc={};v.itens.forEach(i=>{orig[i.pid]=(orig[i.pid]||0)+i.qtd;prc[i.pid]=+i.preco});
+ UI.draft={edit:id,num:v.num,vid:v.vid,cliente:v.cliente||'',tel:v.tel||'',itens:Object.keys(orig).map(pid=>({pid,qtd:orig[pid]})),busca:'',pag:v.pag,status:v.status,orig,prc};drawVenda()}
 function mVenda(){UI.msize='lg';
  const vid=UI.role==='vend'?UI.vid:S.vend.find(x=>x.ativo)?.id;
  if(!vid){toast('Cadastre um vendedor primeiro');return}
@@ -2597,31 +2605,34 @@ function mVenda(){UI.msize='lg';
  drawVenda();
 }
 /* busca de perfumes na nova venda: código ou nome, sem acento */
+/* estoque disponível na venda em edição: o que está em mãos + o que já está nesta venda */
+const eVd=(vid,pid)=>eV(vid,pid)+(UI.draft&&UI.draft.orig?(UI.draft.orig[pid]||0):0);
 const semAc=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function nvRes(){const d=UI.draft;if(!d)return '';const q=semAc(d.busca).trim();const usados=pid=>d.itens.filter(i=>i.pid===pid).reduce((a,i)=>a+i.qtd,0);
- const L=S.prods.filter(p=>!q||semAc(p.code+' '+p.nome).includes(q)).sort((a,b)=>(eV(d.vid,b.id)>0)-(eV(d.vid,a.id)>0)||String(a.code).localeCompare(String(b.code))).slice(0,q?8:6);
+ const L=S.prods.filter(p=>!q||semAc(p.code+' '+p.nome).includes(q)).sort((a,b)=>(eVd(d.vid,b.id)>0)-(eVd(d.vid,a.id)>0)||String(a.code).localeCompare(String(b.code))).slice(0,q?8:6);
  if(!L.length)return '<p class="note" style="margin:6px 2px">Nenhum perfume encontrado.</p>';
- return `<div class="nvlist">${L.map(p=>{const em=eV(d.vid,p.id),liv=em-usados(p.id);return `<button class="nvit" data-nvadd="${p.id}" ${liv<=0?'disabled':''}><span class="d"><b>${esc(p.code)}</b> ${esc(p.nome)}</span><span class="pr">${Ri(precoVend(p,d.vid))}</span><span class="em ${em?'':'zero'}">${em} un</span><span class="ad">${liv>0?'+ Adicionar':em?'no máximo':'sem estoque'}</span></button>`}).join('')}</div>`}
+ return `<div class="nvlist">${L.map(p=>{const em=eVd(d.vid,p.id),liv=em-usados(p.id);return `<button class="nvit" data-nvadd="${p.id}" ${liv<=0?'disabled':''}><span class="d"><b>${esc(p.code)}</b> ${esc(p.nome)}</span><span class="pr">${Ri(precoVend(p,d.vid))}</span><span class="em ${em?'':'zero'}">${em} un</span><span class="ad">${liv>0?'+ Adicionar':em?'no máximo':'sem estoque'}</span></button>`}).join('')}</div>`}
 function drawVenda(){
  const d=UI.draft;
- const v={...d,data:iso(today),itens:d.itens.map(i=>{const p=prod(i.pid);return {pid:i.pid,qtd:+i.qtd||0,preco:precoVend(p,d.vid),custo:custoFinal(p),com:p.comissao}})};
+ const pv=(p,pid)=>d.prc&&d.prc[pid]!=null?d.prc[pid]:precoVend(p,d.vid);
+ const v={...d,data:iso(today),itens:d.itens.map(i=>{const p=prod(i.pid);return {pid:i.pid,qtd:+i.qtd||0,preco:pv(p,i.pid),custo:custoFinal(p),com:p.comissao}})};
  const c=saleCalc(v);
- UI.modal=`<h3>Nova venda</h3><div class="fg">
+ UI.modal=`<h3>${d.edit?`Alterar venda <span class="pnum big">${NUMF(d.num,'P')}</span>`:'Nova venda'}</h3><div class="fg">
  ${UI.role==='vend'?'':`<label class="f">Vendedor<select id="nv-vid" data-nv="vid">${S.vend.filter(x=>x.ativo).map(x=>`<option value="${x.id}" ${x.id===d.vid?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></label>`}
  <label class="f">Cliente *<input id="nv-cli" data-nv="cliente" value="${esc(d.cliente)}" placeholder="Nome do cliente" autocomplete="off"></label>
   <label class="f">WhatsApp do cliente *<input id="nv-tel" data-nv="tel" inputmode="tel" value="${esc(d.tel||'')}" placeholder="(22) 99999-9999"></label></div>
  <div class="nvbusca"><label class="f">Buscar perfume<input id="nv-busca" data-nvbusca value="${esc(d.busca||'')}" placeholder="Digite o código ou o nome (ex.: N02, Phantom)" autocomplete="off"></label><div class="nvres" id="nvres">${nvRes()}</div></div>
  ${d.itens.length?`<div class="tbl nvcart"><table class="cards"><thead><tr><th>Descrição</th><th class="n">Preço (R$/un)</th><th class="n">Em mãos (un)</th><th class="n">Qtd (un)</th><th class="n">Total (R$)</th><th></th></tr></thead><tbody>
- ${d.itens.map((i,k)=>{const p=prod(i.pid)||{},pr=precoVend(p,d.vid),em=eV(d.vid,i.pid);return `<tr><td><b>${esc(p.code||'')}</b> ${esc(p.nome||'')}</td><td class="n">${R(pr)}</td><td class="n">${U(em)}</td>
+ ${d.itens.map((i,k)=>{const p=prod(i.pid)||{},pr=pv(p,i.pid),em=eVd(d.vid,i.pid);return `<tr><td><b>${esc(p.code||'')}</b> ${esc(p.nome||'')}</td><td class="n">${R(pr)}</td><td class="n">${U(em)}</td>
   <td class="n"><div class="qty nvqty"><button data-nvq="${k}" data-d="-1" aria-label="Menos" ${i.qtd<=1?'disabled':''}>−</button><span>${i.qtd}</span><button data-nvq="${k}" data-d="1" aria-label="Mais" ${i.qtd>=em?'disabled':''}>+</button></div></td>
   <td class="n">${R(pr*i.qtd)}</td><td class="n"><button class="btn sm ico" data-rmit="${k}" aria-label="Tirar ${esc(p.nome||'')}" title="Tirar da venda">×</button></td></tr>`}).join('')}
  </tbody></table></div>`:'<p class="note nvvazio">Nenhum perfume na venda. Busque acima e toque para adicionar.</p>'}
- <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYS.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
- ${d.pag==='crediario'?'<p class="note" style="margin:0">Crediário: depois de registrar, você escolhe as parcelas e as datas e envia o resumo ao cliente.</p>':`<div class="fg"><label class="f">Situação do pagamento<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber</option></select></label>${d.status==='receber'?`<label class="f">Vencimento<input id="nv-venc" type="date" data-nv="venc" value="${d.venc||addMeses(iso(today),1)}"></label>`:''}</div>`}
+ ${d.edit?`<p class="note" style="margin:0">Pagamento: <b>${PAY[d.pag]||d.pag}</b> (não muda). Os perfumes tirados voltam para o seu estoque em mãos.${d.pag==='crediario'?' As parcelas em aberto se ajustam ao novo total; as já pagas não mudam.':''}</p>`:`<div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYS.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>`}
+ ${d.edit?'':d.pag==='crediario'?'<p class="note" style="margin:0">Crediário: depois de registrar, você escolhe as parcelas e as datas e envia o resumo ao cliente.</p>':`<div class="fg"><label class="f">Situação do pagamento<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber</option></select></label>${d.status==='receber'?`<label class="f">Vencimento<input id="nv-venc" type="date" data-nv="venc" value="${d.venc||addMeses(iso(today),1)}"></label>`:''}</div>`}
  <p class="note">Sai do estoque em mãos de ${esc(vend(d.vid)?.nome.split(' ')[0])}.</p>
  <div class="calc"><div>Total<b>${Ri(c.rec)}</b></div><div>${UI.role==='vend'?'Meu lucro':'Ganho revendedor'}<b>${Ri(c.com)}</b></div><div>${UI.role==='vend'?'Itens':'Lucro'}<b>${UI.role==='vend'?c.un+' un':'R$ '+fmt(c.luc)}</b></div></div>
  
- <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevenda>Registrar venda</button></div>`;
+ <div class="actions"><button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevenda>${d.edit?'Salvar alteração':'Registrar venda'}</button></div>`;
  render();
 }
 function armar(b,txt,ruim){b.textContent=txt;b.classList.add(ruim?'armed-bad':'armed-ok')}
@@ -2828,6 +2839,7 @@ document.addEventListener('click',e=>{
  if(d.pagkit){const k=S.kits.find(x=>x.id===d.pagkit);mKitOk({id:k.id,numero:k.num,total:k.total,un:k.itens.filter(i=>!i.m).reduce((a,i)=>a+i.qtd,0),mostra:k.itens.filter(i=>i.m).length,itens:k.itens,criado:k.criado,reabrir:true});return}
  if(d.jakit){rodar(async()=>{await rpc('informar_pagamento_kit',{p_id:d.jakit});UI.modal=null},'Pagamento informado · a 3mix vai conferir e entregar');return}
  if(d.entkit){if(UI.etArm!==d.entkit){UI.etArm=d.entkit;armar(b,'Confirmar?');return}UI.etArm=null;rodar(()=>rpc('entregar_kit',{p_id:d.entkit}),S.kits.find(k=>k.id===d.entkit)?.mostra?'Kit entregue · frascos no estoque do vendedor (mostruário fora do estoque de venda)':'Kit entregue · frascos entraram no estoque do vendedor');return}
+ if(d.editv){mEditVenda(d.editv);return}
  if(d.cancv){mCancelVenda(d.cancv);return}
  if(d.cvforma){cvLer();UI.cv.forma=d.cvforma;drawCancelVenda();return}
  if('cvnovo' in d){cvLer();UI.cv.novo=!UI.cv.novo;drawCancelVenda();setTimeout(()=>$('#cv-novo')?.focus(),30);return}
@@ -2903,20 +2915,22 @@ document.addEventListener('click',e=>{
  if(d.entv||d.desentv){const id=d.entv||d.desentv,ent=!!d.entv,key='e'+ent+id;
   if(UI.stArm!==key){UI.stArm=key;armar(b,ent?'Confirmar?':'Desfazer?',!ent);setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;render()}},4000);return}
   UI.stArm=null;rodar(()=>rpc('marcar_entrega_venda',{p_id:id,p_entregue:ent}),ent?'Venda entregue ao cliente':'Entrega desfeita');return}
- if(d.kitdin){const key='din'+d.kitdin;if(UI.stArm!==key){UI.stArm=key;armar(b,'Confirmar dinheiro?');setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;b.textContent='Vou pagar em dinheiro';b.classList.remove('armed-ok')}},4000);return}
-  UI.stArm=null;const kid=d.kitdin;rodar(async()=>{await rpc('kit_pagar_dinheiro',{p_id:kid});UI.modal=null;
+ if(d.kitdin){const fo=d.forma==='credito'?'credito':'dinheiro',fn=fo==='credito'?'cartão de crédito':'dinheiro',key=fo+d.kitdin,t0=b.textContent;if(UI.stArm!==key){UI.stArm=key;armar(b,`Confirmar ${fn}?`);setTimeout(()=>{if(UI.stArm===key){UI.stArm=null;b.textContent=t0;b.classList.remove('armed-ok')}},4000);return}
+  UI.stArm=null;const kid=d.kitdin;rodar(async()=>{await rpc('kit_pagar_entrega',{p_id:kid,p_forma:fo});UI.modal=null;
    /* oferece avisar a 3mix pelo WhatsApp (opcional) */
    const k=S.kits.find(x=>x.id===kid),v=vend(UI.vid)||{},zapN=String(S.whats3mix||'').replace(/\D/g,'');
    if(k&&zapN){const its=k.itens.map(i=>`${prod(i.pid)?.code||''} ${prod(i.pid)?.nome||''} ×${i.qtd}`).join('\n');
-    const msg=`Olá, 3mix! Aqui é ${v.nome||''}.\nFiz o pedido ${k.num?NUMF(k.num,'K'):''} de ${k.itens.reduce((a,i)=>a+i.qtd,0)} frascos (R$ ${fmt(kitVal(k))}) e vou pagar em *dinheiro* na entrega/retirada.\n\n${its}\n\nQuando posso receber ou retirar?`;
-    UI.msize='sm';UI.modal=`<h3>Pagamento em dinheiro combinado ✓</h3><p class="note" style="margin:0">O pedido ${k.num?`<b>${NUMF(k.num,'K')}</b> `:''}ficou reservado, sem prazo para vencer. A 3mix confirma quando receber o dinheiro.</p>
+    const msg=`Olá, 3mix! Aqui é ${v.nome||''}.\nFiz o pedido ${k.num?NUMF(k.num,'K'):''} de ${k.itens.reduce((a,i)=>a+i.qtd,0)} frascos (R$ ${fmt(kitVal(k))}) e vou pagar ${fo==='credito'?'no *cartão de crédito*':'em *dinheiro*'} na entrega/retirada.\n\n${its}\n\nQuando posso receber ou retirar?`;
+    UI.msize='sm';UI.modal=`<h3>Pagamento ${fo==='credito'?'no cartão':'em dinheiro'} combinado ✓</h3><p class="note" style="margin:0">O pedido ${k.num?`<b>${NUMF(k.num,'K')}</b> `:''}ficou reservado, sem prazo para vencer. A 3mix confirma quando receber o pagamento.</p>
      <p style="margin:12px 0 6px">Quer avisar a 3mix agora para combinar a entrega?</p>
-     <div class="actions"><button class="btn ghost" data-close>Agora não</button><a class="btn pri" href="https://wa.me/${zapN.length<=11?'55'+zapN:zapN}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" onclick="setTimeout(closeModal,400)">Avisar no WhatsApp</a></div>`}},'Combinado: pagamento em dinheiro na entrega');return}
+     <div class="actions"><button class="btn ghost" data-close>Agora não</button><a class="btn pri" href="https://wa.me/${zapN.length<=11?'55'+zapN:zapN}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" onclick="setTimeout(closeModal,400)">Avisar no WhatsApp</a></div>`}},`Combinado: pagamento ${fo==='credito'?'no cartão de crédito':'em dinheiro'} na entrega`);return}
  if(d.vflimpa!==undefined){UI[UI.vfAtivo||'vf']={};render();return}
  if('cradd' in d){const c=CRED(),u=c.faixas.length?c.faixas[c.faixas.length-1].ate:0;c.faixas.push({ate:u+100,n:Math.min(c.max,(c.faixas.length?c.faixas[c.faixas.length-1].n:1)+1)});crSalva(c);return}
  if(d.crdel!==undefined){const c=CRED();c.faixas.splice(+d.crdel,1);crSalva(c);return}
  if(d.kcpraz){mCredKit(d.kcpraz);return}
- if('kcsalva' in d){const x=UI.kc;rodar(()=>rpc('liberar_credito_kit',{p_id:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100}))}),'Kit liberado a prazo · a entregar').then(ok=>{if(ok){UI.kc=null;closeModal()}});return}
+ if('kcsalva' in d){const x=UI.kc;rodar(()=>rpc('liberar_credito_kit',{p_id:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100,pago:!!l.pago,forma:l.pago?(x.forma||'pix'):null}))}),'Kit liberado a prazo · a entregar').then(ok=>{if(ok){UI.kc=null;closeModal()}});return}
+ if(d.kcpg!==undefined){const l=UI.kc.L[+d.kcpg];l.pago=!l.pago;drawCredKit();return}
+ if(d.kcfo){UI.kc.forma=d.kcfo;drawCredKit();return}
  if(d.kcab){UI.kcab=d.kcab;UI.kcRec=null;render();return}
  if(d.kcforma){UI.kcForma=d.kcforma;render();return}
  if(d.kcquit){if(UI.kcArm!==d.kcquit){UI.kcArm=d.kcquit;armar(b,`Confirmar ${PAY[UI.kcForma||'pix']}?`);return}UI.kcArm=null;
@@ -2980,8 +2994,8 @@ document.addEventListener('click',e=>{
  if(d.vexp){UI.vexp=UI.vexp===d.vexp?null:d.vexp;render();return}
  if(d.share){const p=prod(d.share);const pv=UI.vid?precoVend(p,UI.vid):+p.preco;const t=`✨ ${p.nome} (${p.ml} ml)\n${p.descricao}\nFamília: ${p.familia}\nPor R$ ${fmt(pv)} — pronta entrega!\n3mix Perfumes${UI.role==='vend'?`\nPeça aqui: ${lojaLink(UI.vid)}`:''}`;
   navigator.clipboard?.writeText(t).then(()=>toast('Texto copiado'),()=>toast('Não foi possível copiar'));return}
- if(d.nvadd){const x=UI.draft,it=x.itens.find(i=>i.pid===d.nvadd);if(it){if(it.qtd<eV(x.vid,d.nvadd))it.qtd++}else x.itens.push({pid:d.nvadd,qtd:1});x.busca='';drawVenda();setTimeout(()=>$('#nv-busca')?.focus(),20);return}
- if(d.nvq!==undefined){const x=UI.draft,it=x.itens[+d.nvq];if(!it)return;it.qtd=Math.max(1,Math.min(eV(x.vid,it.pid),it.qtd+ +d.d));drawVenda();return}
+ if(d.nvadd){const x=UI.draft,it=x.itens.find(i=>i.pid===d.nvadd);if(it){if(it.qtd<eVd(x.vid,d.nvadd))it.qtd++}else x.itens.push({pid:d.nvadd,qtd:1});x.busca='';drawVenda();setTimeout(()=>$('#nv-busca')?.focus(),20);return}
+ if(d.nvq!==undefined){const x=UI.draft,it=x.itens[+d.nvq];if(!it)return;it.qtd=Math.max(1,Math.min(eVd(x.vid,it.pid),it.qtd+ +d.d));drawVenda();return}
  if(d.rmit){UI.draft.itens.splice(+d.rmit,1);drawVenda();return}
  if(d.pay){UI.draft.pag=d.pay;drawVenda();return}
  if('saveprod' in d){const x=UI.draft;['custo','frete','ipi','preco','precoRev','precoMostra'].forEach(k=>x[k]=+x[k]||0);
@@ -3022,8 +3036,9 @@ document.addEventListener('click',e=>{
   if(String(x.tel||'').replace(/\D/g,'').length<10){toast('Informe o WhatsApp do cliente com DDD');$('#nv-tel')?.focus();return}
   if(!x.itens.length){toast('Adicione pelo menos um perfume');$('#nv-busca')?.focus();return}
   const need={};x.itens.forEach(i=>need[i.pid]=(need[i.pid]||0)+(+i.qtd||0));
-  for(const pid in need){if(need[pid]>eV(x.vid,pid)){toast(`${prod(pid).nome}: só ${eV(x.vid,pid)} un em mãos`);return}}
+  for(const pid in need){if(need[pid]>eVd(x.vid,pid)){toast(`${prod(pid).nome}: só ${eVd(x.vid,pid)} un em mãos`);return}}
   const its=Object.entries(need).filter(([,q])=>q>0).map(([pid,qtd])=>({pid,qtd}));
+  if(x.edit){rodar(async()=>{await rpc('editar_venda',{p_id:x.edit,p_itens:its,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,'')});UI.modal=null;UI.draft=null},'Venda alterada');return}
   let nid=null;const parc=x.pag==='crediario',venc=!parc&&x.status==='receber'?(x.venc||addMeses(iso(today),1)):null;
   rodar(async()=>{nid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_parcelas:1,p_status:parc?'receber':x.status,p_origem:'painel',p_itens:its});if(venc&&nid)await rpc('definir_vencimento',{p_venda:typeof nid==='string'?nid:nid.id,p_venc:venc});UI.modal=null},parc?'Venda registrada · agora defina as parcelas do crediário':'Venda registrada').then(ok=>{if(ok&&parc&&nid)mParcelas(typeof nid==='string'?nid:nid?.id||nid,true)});return}
 });
@@ -3059,11 +3074,11 @@ document.addEventListener('change',e=>{
  if('kcn' in d){UI.kc.n=+t.value;kcGera();drawCredKit();return}
  if('kcd1' in d){const x=UI.kc;x.d1=t.value||iso(today);x.L=x.L.map((l,i)=>({...l,venc:addMeses(x.d1,i)}));drawCredKit();return}
  if(d.kcv!==undefined){UI.kc.L[+d.kcv].venc=t.value;drawCredKit();return}
- if(d.kcval!==undefined){UI.kc.L[+d.kcval].valor=num(t.value);drawCredKit();return}
+ if(d.kcval!==undefined){const x=UI.kc,k=S.kits.find(y=>y.id===x.id);x.L[+d.kcval].valor=num(t.value);redistrib(x.L,+d.kcval,+k.total);drawCredKit();return}
  if('pcn' in d){UI.pc.n=+t.value;pcGera();drawParc();return}
  if('pcd1' in d){UI.pc.d1=t.value||iso(today);const x=UI.pc;x.L=x.L.map((l,k)=>({...l,venc:addMeses(x.d1,k)}));drawParc();return}
  if(d.pcv!==undefined){UI.pc.L[+d.pcv].venc=t.value;drawParc();return}
- if(d.pcval!==undefined){UI.pc.L[+d.pcval].valor=num(t.value);drawParc();return}
+ if(d.pcval!==undefined){const x=UI.pc,v=S.vendas.find(y=>y.id===x.id);x.L[+d.pcval].valor=num(t.value);redistrib(x.L,+d.pcval,pcFalta(v));drawParc();return}
  if(d.vf!==undefined){const k=UI.vfAtivo||'vf';(UI[k]||(UI[k]={}))[d.vf]=t.value;render();return}
  if(d.vprecosug){const pid=d.vprecosug,vid=UI.vid;if(!vid)return;
   rodar(async()=>{await sb.rpc('salvar_preco_vendedor',{p_vid:vid,p_pid:pid,p_preco:0});if(S.precosV[vid])delete S.precosV[vid][pid]},'Voltou ao preço sugerido');return}
@@ -3078,7 +3093,7 @@ document.addEventListener('change',e=>{
  if(t.id==='whoSel'){if(t.value==='socio'){UI.role='socio';UI.view='painel'}else if(t.value.startsWith('loja:')){UI.role='loja';UI.vid=t.value.slice(5);UI.cart={}}else{UI.role='vend';UI.vid=t.value;UI.view='inicio'}UI.modal=null;render();return}
  if(d.it!==undefined){const it=UI.draft.itens[+d.it];it[d.k]=t.value;
   /* não deixa passar do estoque em mãos (somando o mesmo perfume em outras linhas) */
-  const lim=pid=>{const outros=UI.draft.itens.reduce((a,x,ix)=>a+(ix!==+d.it&&x.pid===pid?(+x.qtd||0):0),0);return Math.max(0,eV(UI.draft.vid,pid)-outros)};
+  const lim=pid=>{const outros=UI.draft.itens.reduce((a,x,ix)=>a+(ix!==+d.it&&x.pid===pid?(+x.qtd||0):0),0);return Math.max(0,eVd(UI.draft.vid,pid)-outros)};
   const mx=lim(it.pid);if(d.k==='pid'&&(+it.qtd||0)>mx)it.qtd=Math.max(1,mx);
   if(d.k==='qtd'&&(+it.qtd||0)>mx){it.qtd=mx;toast(`${prod(it.pid)?.nome}: só ${mx} un em mãos`)}
   drawVenda();return}
