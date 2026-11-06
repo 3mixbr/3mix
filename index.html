@@ -1065,8 +1065,8 @@ const brt=d=>new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',y
 const UI={role:'socio',vid:'v0',view:'painel',per:30,pages:{},device:'site',tab:'catalogo',modal:null};
 
 /* venda do vendedor ao cliente: só Pix ou dinheiro (direto para o vendedor) */
-const PAYV=['pix','dinheiro'],PAYS=['pix','dinheiro','crediario'];
-const PAY={crediario:'Crediário',pix:'Pix',debito:'Débito',credito:'Crédito à vista',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link online'};
+const PAYV=['pix','dinheiro'],PAYS=['pix','dinheiro','credito','crediario'];
+const PAY={crediario:'Crediário',pix:'Pix',debito:'Débito',credito:'Cartão de crédito',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link online'};
 const prod=id=>S.prods.find(p=>p.id===id);
 const vend=id=>S.vend.find(v=>v.id===id);
 /* estoque individual de cada vendedor */
@@ -1866,7 +1866,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.06-04';
+const VERSAO='2026.11.06-05';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2597,7 +2597,7 @@ function mVend(id,pre){UI.msize='lg';if(!pre)UI.candAprovar=null;
  <div class="actions">${v.id?`<button class="btn" data-delvend="${v.id}" style="color:var(--bad);margin-right:auto">Excluir vendedor</button>`:''}<button class="btn ghost" data-close>Cancelar</button><button class="btn pri" data-savevend="${v.id}">Salvar</button></div>`);UI.dvArm=false;
 }
 function mEditVenda(id){const v=S.vendas.find(x=>x.id===id);if(!v)return;UI.msize='lg';const orig={},prc={};v.itens.forEach(i=>{orig[i.pid]=(orig[i.pid]||0)+i.qtd;prc[i.pid]=+i.preco});
- UI.draft={edit:id,num:v.num,vid:v.vid,cliente:v.cliente||'',tel:v.tel||'',itens:Object.keys(orig).map(pid=>({pid,qtd:orig[pid]})),busca:'',pag:v.pag,status:v.status,orig,prc};drawVenda()}
+ UI.draft={edit:id,num:v.num,vid:v.vid,cliente:v.cliente||'',tel:v.tel||'',itens:Object.keys(orig).map(pid=>({pid,qtd:orig[pid]})),busca:'',pag:v.pag,pag0:v.pag,status:v.status==='pago'?'pago':'receber',orig,prc};drawVenda()}
 function mVenda(){UI.msize='lg';
  const vid=UI.role==='vend'?UI.vid:S.vend.find(x=>x.ativo)?.id;
  if(!vid){toast('Cadastre um vendedor primeiro');return}
@@ -2627,8 +2627,9 @@ function drawVenda(){
   <td class="n"><div class="qty nvqty"><button data-nvq="${k}" data-d="-1" aria-label="Menos" ${i.qtd<=1?'disabled':''}>−</button><span>${i.qtd}</span><button data-nvq="${k}" data-d="1" aria-label="Mais" ${i.qtd>=em?'disabled':''}>+</button></div></td>
   <td class="n">${R(pr*i.qtd)}</td><td class="n"><button class="btn sm ico" data-rmit="${k}" aria-label="Tirar ${esc(p.nome||'')}" title="Tirar da venda">×</button></td></tr>`}).join('')}
  </tbody></table></div>`:'<p class="note nvvazio">Nenhum perfume na venda. Busque acima e toque para adicionar.</p>'}
- ${d.edit?`<p class="note" style="margin:0">Pagamento: <b>${PAY[d.pag]||d.pag}</b> (não muda). Os perfumes tirados voltam para o seu estoque em mãos.${d.pag==='crediario'?' As parcelas em aberto se ajustam ao novo total; as já pagas não mudam.':''}</p>`:`<div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay">${PAYS.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>`}
- ${d.edit?'':d.pag==='crediario'?'<p class="note" style="margin:0">Crediário: depois de registrar, você escolhe as parcelas e as datas e envia o resumo ao cliente.</p>':`<div class="fg"><label class="f">Situação do pagamento<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber</option></select></label>${d.status==='receber'?`<label class="f">Vencimento<input id="nv-venc" type="date" data-nv="venc" value="${d.venc||addMeses(iso(today),1)}"></label>`:''}</div>`}
+ <div><div class="note" style="margin-bottom:6px;font-weight:700">Forma de pagamento</div><div class="pay" style="grid-template-columns:repeat(4,minmax(0,1fr))">${PAYS.map(k=>`<button data-pay="${k}" aria-pressed="${d.pag===k}">${PAY[k]}</button>`).join('')}</div></div>
+ ${d.edit?`<p class="note" style="margin:0">Os perfumes tirados voltam para o seu estoque em mãos.${d.pag==='crediario'&&d.pag0==='crediario'?' As parcelas em aberto se ajustam ao novo total; as já pagas não mudam.':d.pag==='crediario'?' Depois de salvar, você define as parcelas.':d.pag0==='crediario'?' As parcelas do crediário serão apagadas.':''}</p>`:''}
+ ${d.edit&&d.pag==='crediario'?'':d.pag==='crediario'?'<p class="note" style="margin:0">Crediário: depois de registrar, você escolhe as parcelas e as datas e envia o resumo ao cliente.</p>':`<div class="fg"><label class="f">Situação do pagamento<select id="nv-st" data-nv="status"><option value="pago" ${d.status==='pago'?'selected':''}>Pago</option><option value="receber" ${d.status==='receber'?'selected':''}>A receber</option></select></label>${d.status==='receber'?`<label class="f">Vencimento<input id="nv-venc" type="date" data-nv="venc" value="${d.venc||addMeses(iso(today),1)}"></label>`:''}</div>`}
  <p class="note">Sai do estoque em mãos de ${esc(vend(d.vid)?.nome.split(' ')[0])}.</p>
  <div class="calc"><div>Total<b>${Ri(c.rec)}</b></div><div>${UI.role==='vend'?'Meu lucro':'Ganho revendedor'}<b>${Ri(c.com)}</b></div><div>${UI.role==='vend'?'Itens':'Lucro'}<b>${UI.role==='vend'?c.un+' un':'R$ '+fmt(c.luc)}</b></div></div>
  
@@ -3038,7 +3039,8 @@ document.addEventListener('click',e=>{
   const need={};x.itens.forEach(i=>need[i.pid]=(need[i.pid]||0)+(+i.qtd||0));
   for(const pid in need){if(need[pid]>eVd(x.vid,pid)){toast(`${prod(pid).nome}: só ${eVd(x.vid,pid)} un em mãos`);return}}
   const its=Object.entries(need).filter(([,q])=>q>0).map(([pid,qtd])=>({pid,qtd}));
-  if(x.edit){rodar(async()=>{await rpc('editar_venda',{p_id:x.edit,p_itens:its,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,'')});UI.modal=null;UI.draft=null},'Venda alterada');return}
+  if(x.edit){const id=x.edit,vaiCred=x.pag==='crediario'&&x.pag0!=='crediario',venc=x.pag!=='crediario'&&x.status==='receber'&&x.pag0==='crediario'?(x.venc||addMeses(iso(today),1)):null;
+   rodar(async()=>{await rpc('editar_venda',{p_id:id,p_itens:its,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_status:x.pag==='crediario'?null:x.status});if(venc)await rpc('definir_vencimento',{p_venda:id,p_venc:venc});UI.modal=null;UI.draft=null},vaiCred?'Venda alterada · agora defina as parcelas do crediário':'Venda alterada').then(ok=>{if(ok&&vaiCred)mParcelas(id,true)});return}
   let nid=null;const parc=x.pag==='crediario',venc=!parc&&x.status==='receber'?(x.venc||addMeses(iso(today),1)):null;
   rodar(async()=>{nid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_parcelas:1,p_status:parc?'receber':x.status,p_origem:'painel',p_itens:its});if(venc&&nid)await rpc('definir_vencimento',{p_venda:typeof nid==='string'?nid:nid.id,p_venc:venc});UI.modal=null},parc?'Venda registrada · agora defina as parcelas do crediário':'Venda registrada').then(ok=>{if(ok&&parc&&nid)mParcelas(typeof nid==='string'?nid:nid?.id||nid,true)});return}
 });
