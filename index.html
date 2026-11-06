@@ -1065,7 +1065,7 @@ const brt=d=>new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',y
 const UI={role:'socio',vid:'v0',view:'painel',per:30,pages:{},device:'site',tab:'catalogo',modal:null};
 
 /* venda do vendedor ao cliente: só Pix ou dinheiro (direto para o vendedor) */
-const PAYV=['pix','dinheiro'],PAYS=['pix','dinheiro','credito','crediario'];
+const PAYV=['pix','dinheiro','credito'],PAYS=['pix','dinheiro','credito','crediario'];
 const PAY={crediario:'Crediário',pix:'Pix',debito:'Débito',credito:'Cartão de crédito',parcelado:'Crédito parcelado',dinheiro:'Dinheiro',link:'Link online'};
 const prod=id=>S.prods.find(p=>p.id===id);
 const vend=id=>S.vend.find(v=>v.id===id);
@@ -1545,7 +1545,7 @@ function redistrib(L,k,total){const seg=L.map((l,i)=>i).filter(i=>i>k&&!L[i].fix
  const base=Math.floor(rest*100/seg.length)/100,first=Math.round((rest-base*(seg.length-1))*100)/100;seg.forEach((i,j)=>L[i].valor=j?base:first)}
 const pcFalta=v=>{const pi=parcInfo(v);return Math.round((vTot(v)-(pi?pi.rec:0))*100)/100};
 function mParcelas(id,edit){const v=S.vendas.find(x=>x.id===id);if(!v)return;const pi=parcInfo(v);UI.msize='lg';
- UI.pc={id,edit:!!edit||!pi,forma:v.pag==='dinheiro'?'dinheiro':'pix',tel:v.tel||'',n:pi?Math.max(1,pi.n-pi.np):2,d1:null,L:null};
+ UI.pc={id,edit:!!edit||!pi,forma:PAYV.includes(v.pag)?v.pag:'pix',tel:v.tel||'',n:pi?Math.max(1,pi.n-pi.np):2,d1:null,L:null};
  if(pi&&!pi.dif&&pi.n>pi.np){const ab=pi.P.filter(p=>!p.pago);UI.pc.L=ab.map(p=>({venc:String(p.venc).slice(0,10),valor:+p.valor}));UI.pc.d1=UI.pc.L[0].venc}else pcGera();
  if(!pi&&!edit)UI.pc.edit=false;drawParc()}
 function pcGera(){const x=UI.pc,v=S.vendas.find(y=>y.id===x.id);const falta=pcFalta(v),pi0=parcInfo(v),n=Math.max(1,Math.min(Math.max(1,credMax(vTot(v))-(pi0?pi0.np:0)),+x.n||1));
@@ -1866,7 +1866,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.06-05';
+const VERSAO='2026.11.06-06';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
