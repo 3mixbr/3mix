@@ -1866,7 +1866,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.06-06';
+const VERSAO='2026.11.06-07';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2209,7 +2209,7 @@ function kitSit(k){const adm=curUser()?.perfil==='adm',c=k.cancel||{};let s=(KST
  if(k.pag==='credito'&&k.status!=='cancelado')s+=` <span class="chip st">Cartão de crédito</span>`;
  if(k.cred&&k.status!=='cancelado'){const c=k.cred,h=iso(today),px=(c.parc||[]).find(p=>!p.pago);
   s+=`<div class="ksit"><span class="chip A st">A prazo · ${esc(c.nome||'')}</span> `+(adm?(c.quit?`<span class="chip good st">Quitado com a 3mix ${br(c.quit)}</span>`:`<span class="chip ${c.venc<h?'bad':'warn'} st">${c.venc<h?'3mix: venceu':'Pagar à 3mix até'} ${br(c.venc)}</span>`):'')
-   +(px?` <span class="note">${adm?'revendedor deve':'você paga a '+esc(c.nome)} ${Ri(kcFalta(k))} · próx. ${br(px.venc)}</span>`:' <span class="note">revendedor quitou</span>')+'</div>'}
+   +(px?` <span class="note">${adm?'revendedor deve':'você paga a '+esc(c.nome)} ${Ri(kcFalta(k))} · próx. ${br(px.venc)}</span>`:' <span class="note">revendedor quitou</span>')+(adm?` <button class="btn sm" data-kcm="${k.id}">Registrar pagamento</button>`:'')+'</div>'}
  if(k.status==='aguardando')s+='<br>'+relogio(kitExp(k));
  if(k.exc&&k.exc.dev)s+=`<div class="ksit">${k.exc.dev==='pendente'?(adm?`<span class="chip warn">Pago a mais ${Ri(+k.exc.valor)} · devolver</span> <button class="btn sm" data-excreg="${k.id}">Registrar devolução</button>`:`<span class="chip warn">Pago a mais · a receber ${Ri(+k.exc.valor)}</span> <span class="note">a 3mix vai te devolver</span>`):`<span class="chip good">${adm?'Excedente devolvido':'Excedente recebido'} · ${esc(k.exc.forma||'')}</span>`}</div>`;
  (S.kitParciais||[]).filter(p=>p.kid===k.id).forEach(p=>{s+=`<div class="ksit"><span class="chip">−${p.un} un · parcial</span> ${esc(p.cancel.motivo||'')}${p.cancel.dev?' · '+devSit(p.cancel,p.valor,'data-pdevreg','data-pverdev',p.id,adm,!adm):''}</div>`});
@@ -2376,6 +2376,24 @@ function drawCredKit(){const x=UI.kc,k=x&&S.kits.find(y=>y.id===x.id);if(!k){UI.
  <div class="cxtot"><span>Soma das parcelas</span><b style="${ok?'':'color:var(--bad)'}">${Ri(soma)}${ok?'':` · tem que dar ${Ri(t)}`}</b></div>
  <p class="note" style="margin:0">O kit vai para "A entregar" e o estoque é liberado na entrega. Fica registrado no log que o crédito foi liberado por ${esc(eu)}.</p>
  <div class="actions"><button class="btn ghost" data-close style="margin-right:auto">Voltar</button><button class="btn pri" data-kcsalva ${ok?'':'disabled'}>Liberar a prazo</button></div>`;
+ render()}
+/* pagamentos de um kit a prazo: revendedor → quem liberou, e quem liberou → 3mix */
+function drawKcPag(){const k=S.kits.find(x=>x.id===UI.kcm);if(!k||!k.cred){UI.kcm=null;closeModal();return}
+ const c=k.cred,h=iso(today),me=UI.user,meu=c.por===me,P=c.parc||[],fo=UI.kcForma||'pix',d=diasAte(c.venc),falta=kcFalta(k);
+ const forma=`<div class="pcforma"><span class="note">Pago em</span><div class="pay">${PAYV.map(f=>`<button data-kcforma="${f}" aria-pressed="${fo===f}">${PAY[f]}</button>`).join('')}</div></div>`;
+ const rows=P.map(p=>{const v=String(p.venc).slice(0,10);return `<tr><td><b>${P.length>1?p.n+'/'+P.length:'Única'}</b></td><td>${br(v)}</td><td class="n">${R(+p.valor)}</td>
+  <td>${p.pago?`<span class="chip good st">Pago ${br(p.pago)} · ${PAY[p.forma]||''}</span>`:v<h?'<span class="chip bad st">Atrasado</span>':v===h?'<span class="chip warn st">Vence hoje</span>':'<span class="chip st">A vencer</span>'}</td>
+  <td class="n" style="white-space:nowrap">${!meu?'':p.pago?`<button class="btn sm" data-kcpdes="${p.id}">Desfazer</button>`:UI.kcRec===p.id?`<span class="pcrec"><span class="pcrs">R$</span><input class="dec" inputmode="decimal" id="kc-rv" value="${fmt(+p.valor)}" aria-label="Valor recebido"><button class="btn pri sm" data-kcok="${p.id}">OK</button><button class="btn sm" data-kcx>×</button></span>`:`<button class="btn pri sm" data-kcpag="${p.id}">Recebi</button>`}</td></tr>`}).join('');
+ UI.msize='lg';UI.modal=`<h3 data-kcmodal>Kit a prazo${k.num?` <span class="pnum big">${NUMF(k.num,'K')}</span>`:''}</h3>
+ <div class="cxres"><div><span>Revendedor</span><b>${esc(vend(k.vid)?.nome||'')}</b></div><div><span>Valor do kit</span><b>${Ri(+k.total)}</b></div><div><span>Liberado por</span><b>${esc(c.nome||'')}</b></div><div><span>Pagar à 3mix até</span><b>${br(c.venc)}</b></div></div>
+ ${forma}
+ <div class="note" style="margin:6px 0 4px;font-weight:700">1. ${esc(c.nome||'')} → 3mix</div>
+ <div class="row" style="padding:8px 0">${c.quit?`<div class="grow"><span class="chip good st">Quitado ${br(String(c.quit).slice(0,10))} · ${PAY[c.quitForma]||''}</span> <span class="note">registrado por ${esc(c.quitPor||'')}</span></div><button class="btn sm" data-kcdes="${k.id}">Desfazer</button>`
+  :`<div class="grow"><span class="chip ${d<0?'bad':d===0?'warn':''} st">${d<0?`Atrasado · ${-d} dia${d<-1?'s':''}`:d===0?'Vence hoje':`Faltam ${d} dia${d>1?'s':''}`}</span> <span class="note">${esc(c.nome||'')} deve ${Ri(+k.total)} à 3mix</span></div><button class="btn pri sm" data-kcquit="${k.id}">Registrar quitação</button>`}</div>
+ <div class="note" style="margin:10px 0 4px;font-weight:700">2. Revendedor → ${esc(c.nome||'')} <span style="font-weight:400">· falta ${Ri(falta)}</span></div>
+ <div class="tbl"><table class="cards pctab"><thead><tr><th>Parcela</th><th>Vencimento</th><th class="n">Valor (R$)</th><th>Situação</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+ <p class="note" style="margin:0">${meu?'Valor diferente da parcela recalcula as seguintes.':`Só ${esc(c.nome||'')} (quem liberou o crédito) registra os pagamentos do revendedor.`} A quitação com a 3mix pode ser registrada a qualquer momento, antes dos 14 dias.</p>
+ <div class="actions"><button class="btn ghost" data-close>Fechar</button></div>`;
  render()}
 function vCredito(){const h=iso(today),me=UI.user,adm=curUser()?.perfil==='adm',ab=UI.kcab||'abertos',fo=UI.kcForma||'pix';
  const C=S.kits.filter(k=>k.cred&&k.status!=='cancelado'),A=C.filter(k=>!k.cred.quit),Q=C.filter(k=>k.cred.quit).sort((a,b)=>String(b.cred.quit).localeCompare(String(a.cred.quit)));
@@ -2656,7 +2674,7 @@ const NOME_G={socios:'Configurações',vendasrev:'Vendas'};
 const grupoDe=k=>(GRUPOS_R[UI.role]||[]).find(g=>g[3].includes(k));
 const navList=()=>{const L=navList0(),G=GRUPOS_R[UI.role];if(!G)return L;const o=[];G.forEach(g=>g[3].forEach(k=>{const it=L.find(x=>x[0]===k);if(it)o.push(UI.role==='socio'&&NOME_G[k]?[k,NOME_G[k]]:it)}));L.forEach(x=>{if(!o.some(y=>y[0]===x[0]))o.push(x)});return o};
 const navComGrupos=(L,btn)=>{if(!GRUPOS_R[UI.role])return L.map(btn).join('');let ult='';return L.map(it=>{const g=grupoDe(it[0]);let h='';if(g&&g[0]!==ult){ult=g[0];h=`<div class="navlabel ng" style="--g:${g[2]}"><i></i>${g[1]}</div>`}return h+btn(it).replace('<button ',`<button style="--g:${g?g[2]:'var(--accent)'}" `)}).join('')};
-function render(){
+function render(){if(UI.kcm&&UI.modal&&String(UI.modal).includes('data-kcmodal')&&!UI._kcd){UI._kcd=1;try{drawKcPag()}finally{UI._kcd=0}return}
  if(!UI.modal&&UI.anx&&Object.keys(UI.anx).length)anxTodos();
  const u=curUser();const dentro=!!u||(['loja','revenda'].includes(UI.role)&&UI.publico);
  $('#login').hidden=dentro;$('.topbar').hidden=!dentro||UI.role==='loja'||UI.role==='revenda';$('#stage').hidden=!dentro;
@@ -2928,6 +2946,7 @@ document.addEventListener('click',e=>{
  if(d.vflimpa!==undefined){UI[UI.vfAtivo||'vf']={};render();return}
  if('cradd' in d){const c=CRED(),u=c.faixas.length?c.faixas[c.faixas.length-1].ate:0;c.faixas.push({ate:u+100,n:Math.min(c.max,(c.faixas.length?c.faixas[c.faixas.length-1].n:1)+1)});crSalva(c);return}
  if(d.crdel!==undefined){const c=CRED();c.faixas.splice(+d.crdel,1);crSalva(c);return}
+ if(d.kcm){UI.kcm=d.kcm;UI.kcRec=null;drawKcPag();return}
  if(d.kcpraz){mCredKit(d.kcpraz);return}
  if('kcsalva' in d){const x=UI.kc;rodar(()=>rpc('liberar_credito_kit',{p_id:x.id,p_itens:x.L.map(l=>({venc:l.venc,valor:Math.round((+l.valor||0)*100)/100,pago:!!l.pago,forma:l.pago?(x.forma||'pix'):null}))}),'Kit liberado a prazo · a entregar').then(ok=>{if(ok){UI.kc=null;closeModal()}});return}
  if(d.kcpg!==undefined){const l=UI.kc.L[+d.kcpg];l.pago=!l.pago;drawCredKit();return}
