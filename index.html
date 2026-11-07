@@ -1866,7 +1866,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.06-08';
+const VERSAO='2026.11.07-01';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2434,7 +2434,8 @@ function vCredV(vid){const h=iso(today),L=[];S.kits.filter(k=>k.vid===vid&&k.cre
  if(!L.length)return '';L.sort((a,b)=>String(a.p.venc).localeCompare(String(b.p.venc)));const {rows,ctl}=page('kcv'+vid,L,5),tt=L.reduce((a,x)=>a+ +x.p.valor,0);
  return `<section class="panel"><div class="panel-h"><h2>Kits a prazo · a pagar</h2><span class="sp"></span><span class="note">${Ri(tt)} em aberto</span></div>
  <div class="list">${rows.map(({k,p,n})=>{const v=String(p.venc).slice(0,10),vc=v<h;return `<div class="row"><div class="grow"><div class="t">Pagar a ${esc(k.cred.nome||'')} <span class="note">· ${NUMF(k.num,'K')}${n>1?` · parcela ${p.n}/${n}`:''}</span></div><div class="s">${vc?'venceu':'vence'} ${br(v)}</div></div><b>${Ri(+p.valor)}</b><span class="chip ${vc?'bad':v===h?'warn':''} st">${vc?'Atrasado':v===h?'Hoje':'A vencer'}</span></div>`}).join('')}</div>
- <p class="note">Pague direto a ${[...new Set(L.map(x=>esc(x.k.cred.nome||'')))].join(', ')}, que liberou o crédito. Não pague à 3mix.</p>${ctl}</section>`}
+ <p class="note">Pague direto a ${[...new Set(L.map(x=>esc(x.k.cred.nome||'')))].join(', ')}, que liberou o crédito. Não pague à 3mix.</p>${ctl}
+ ${(()=>{const R2=receb(vid);if(!R2.length)return '';const byC={};R2.forEach(x=>{const c=x.v.cliente||'Sem nome';(byC[c]=byC[c]||[]).push(x)});const tot=R2.reduce((a,x)=>a+x.valor,0);return `<div style="margin-top:8px;padding:10px 12px;background:var(--bg2);border-radius:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="note" style="font-weight:600">Seus clientes devem a você</span><b>${Ri(tot)}</b></div><div class="list" style="gap:2px">${Object.entries(byC).map(([c,ps])=>{const cv=ps.reduce((a,x)=>a+x.valor,0),vc=ps.some(x=>x.venc<h);return `<div class="row" style="padding:4px 0"><div class="grow"><span>${esc(c)}</span> <span class="note">· ${ps.length} ${ps.length>1?'parcelas':'parcela'}</span></div><b>${Ri(cv)}</b>${vc?'<span class="chip bad st" style="margin-left:6px">Atrasado</span>':''}</div>`}).join('')}</div></div>`})()}</section>`}
 const KST={aguardando:'<span class="chip warn st">Aguardando pgto</span>',informado:'<span class="chip warn st">Pgto informado</span>',pago:'<span class="chip A st">Pago · a entregar</span>',entregue:'<span class="chip good st">Entregue</span>',cancelado:'<span class="chip bad st">Cancelado</span>'};
 const KPAGO=['pago','entregue'];
 /* mais recente em cima: data e hora do pedido, depois o número */
