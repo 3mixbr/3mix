@@ -2691,7 +2691,35 @@ function ouvirVendas(){
   alertaVenda(rec);
  }).subscribe();
  _alertaCh=ch;
+ /* convida para ativar push (app fechado) */
+ mostrarConvitePush();
 }
+const VAPID_PUB='BOxGO8NQ1I07TSoNbE5RD6BUe8ZaSFZ1wQKuFjaU_BgEP4rBwp5as4lPXcyW-O0fhzH_mqoKtpjkKAHdovthiBs';
+function pushDisponivel(){return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window}
+function mostrarConvitePush(){
+ if(!pushDisponivel()||Notification.permission!=='default')return;
+ if(localStorage.getItem('push-dismiss'))return;
+ const el=document.createElement('div');el.className='alerta-venda';el.style.background='linear-gradient(135deg,#6A55D0,#8B74E0)';
+ el.innerHTML=`<span class="av-icon">🔔</span><div class="av-body"><div>Quer receber alertas de vendas?</div><div class="av-sub">Mesmo com o app fechado, você será notificado.</div></div><button class="btn pri sm" style="background:#fff;color:#6A55D0;flex-shrink:0" id="btnAtivarPush">Ativar</button><button class="av-close" id="btnFecharPush">✕</button>`;
+ document.body.appendChild(el);
+ document.getElementById('btnAtivarPush').onclick=()=>{el.remove();registrarPush()};
+ document.getElementById('btnFecharPush').onclick=()=>{el.remove();try{localStorage.setItem('push-dismiss','1')}catch(e){}};
+}
+async function registrarPush(){
+ try{
+  if(!pushDisponivel()){toast('Navegador não suporta notificações');return}
+  const reg=await navigator.serviceWorker.register('/sw.js');
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){toast('Permissão negada');return}
+  const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUB)});
+  const k=sub.toJSON();
+  if(!k.keys)return;
+  await sb.from('push_subscriptions').upsert({user_id:UI.user,endpoint:k.endpoint,p256dh:k.keys.p256dh,auth:k.keys.auth},{onConflict:'user_id,endpoint'});
+  toast('Notificações ativadas!');
+  try{localStorage.removeItem('push-dismiss')}catch(e){}
+ }catch(e){console.warn('Push error:',e);toast('Erro ao ativar notificações')}
+}
+function urlBase64ToUint8Array(b){const p=b.replace(/-/g,'+').replace(/_/g,'/');const r=atob(p+'='.repeat((4-p.length%4)%4));return Uint8Array.from(r,c=>c.charCodeAt(0))}
 
 /* ===== render ===== */
 const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['credito','Crédito a prazo'],['vendasrev','Vendas revendedores'],['equipe','Vendedores'],['candidatos','Candidatos'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
