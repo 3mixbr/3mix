@@ -1873,7 +1873,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.08-01';
+const VERSAO='2026.11.08-02';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2672,8 +2672,18 @@ function alertaVenda(rec){
  const vid=rec.vendedor_id,cli=rec.cliente||'Cliente';
  const vd=S.vend.find(v=>v.id===vid);
  const nome=vd?vd.nome:'Vendedor';
+ const isAdm=UI.role==='socio';
+ const ori=rec.origem||'painel';
+ /* admins veem cor/texto diferente conforme a origem */
+ let titulo,sub,bg;
+ if(isAdm&&ori==='loja'){
+  titulo='🛒 Venda pelo site!';sub=`${cli} comprou na loja de ${nome}`;bg='linear-gradient(135deg,#2563EB,#3B82F6)';
+ }else{
+  titulo='🔔 Nova venda!';sub=`${nome} vendeu para ${cli}`;bg='';
+ }
  const el=document.createElement('div');el.className='alerta-venda';
- el.innerHTML=`<span class="av-icon">🔔</span><div class="av-body"><div>Nova venda!</div><div class="av-sub">${nome} vendeu para ${cli}</div></div><button class="av-close" onclick="this.parentElement.remove()">✕</button>`;
+ if(bg)el.style.background=bg;
+ el.innerHTML=`<span class="av-icon">${ori==='loja'?'🛒':'🔔'}</span><div class="av-body"><div>${titulo}</div><div class="av-sub">${sub}</div></div><button class="av-close" onclick="this.parentElement.remove()">✕</button>`;
  document.body.appendChild(el);beepVenda();
  setTimeout(()=>{if(el.parentElement)el.remove()},8000);
  /* recarrega dados para refletir a venda */
