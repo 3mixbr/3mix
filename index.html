@@ -638,7 +638,7 @@ body:has(.shell.store){background:#fff}
  .sh-car{height:470px;margin-top:14px}.sl .sh-hero-t{padding:28px 22px 4px}.sl h1{font-size:30px}.sl{grid-template-columns:1fr;grid-template-rows:auto 1fr}
  .sl.ph::before{background:linear-gradient(180deg,rgba(0,0,0,.65),rgba(0,0,0,.15) 60%,transparent)}
  .car-nav{display:none}
- .bnrow{grid-template-columns:1fr}.bnfg{grid-template-columns:1fr 1fr}
+ .bnrow{grid-template-columns:1fr}.bnfg{grid-template-columns:1fr}.bnfg .full{grid-column:span 1}
 }
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(12px);opacity:.6}}}
 input.dec{text-align:right}
@@ -1370,7 +1370,7 @@ function vSocios(){
   </tbody></table></div>`:'<p class="empty">Nenhuma despesa cadastrada.</p>'}
   </div>
   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th></tr></thead><tbody>
-  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:120px"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:60px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
+  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:100%;min-width:0;box-sizing:border-box"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:56px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:56px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
   </tbody></table>
   <p class="note">Despesas fixas proporcionais ao período. Soma das participações: ${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}. <b>Fundo (%)</b>: quanto da parte de cada sócio fica no fundo de investimento da 3mix.</p>
  </section>
@@ -1873,7 +1873,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.08-02';
+const VERSAO='2026.11.08-03';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
