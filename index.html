@@ -212,6 +212,13 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .calc b{display:block;font-size:15px;color:var(--ink)}
 .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .toast{position:absolute;left:50%;bottom:76px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:10px;font-weight:600;font-size:13px;z-index:30}
+.alerta-venda{position:fixed;top:0;left:0;right:0;z-index:99;background:linear-gradient(135deg,#0E9479,#0bb58a);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);animation:alertaIn .4s ease}
+.alerta-venda .av-icon{font-size:22px;flex-shrink:0}
+.alerta-venda .av-body{flex:1;line-height:1.35}
+.alerta-venda .av-sub{font-weight:400;font-size:12px;opacity:.88;margin-top:2px}
+.alerta-venda .av-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px;opacity:.7}
+.alerta-venda .av-close:hover{opacity:1}
+@keyframes alertaIn{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
 .itemrow{display:grid;grid-template-columns:minmax(0,1fr) 70px 34px;gap:6px;align-items:end}
 .pay{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .pay button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 4px;font-size:12px;font-weight:600}
@@ -1866,7 +1873,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.07-01';
+const VERSAO='2026.11.08-01';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2658,12 +2665,41 @@ function drawVenda(){
 function armar(b,txt,ruim){b.textContent=txt;b.classList.add(ruim?'armed-bad':'armed-ok')}
 function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;$('#shell').appendChild(el);setTimeout(()=>el.remove(),1800)}
 
+/* ===== alertas de nova venda (Realtime) ===== */
+let _alertaCh=null;
+function beepVenda(){try{const ac=new(window.AudioContext||window.webkitAudioContext)();const g=ac.createGain();g.connect(ac.destination);g.gain.setValueAtTime(.18,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.6);const o1=ac.createOscillator();o1.type='sine';o1.frequency.setValueAtTime(880,ac.currentTime);o1.frequency.setValueAtTime(1100,ac.currentTime+.15);o1.connect(g);o1.start(ac.currentTime);o1.stop(ac.currentTime+.6);const g2=ac.createGain();g2.connect(ac.destination);g2.gain.setValueAtTime(.14,ac.currentTime+.18);g2.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.7);const o2=ac.createOscillator();o2.type='sine';o2.frequency.setValueAtTime(1320,ac.currentTime+.18);o2.connect(g2);o2.start(ac.currentTime+.18);o2.stop(ac.currentTime+.7)}catch(e){}}
+function alertaVenda(rec){
+ const vid=rec.vendedor_id,cli=rec.cliente||'Cliente';
+ const vd=S.vend.find(v=>v.id===vid);
+ const nome=vd?vd.nome:'Vendedor';
+ const el=document.createElement('div');el.className='alerta-venda';
+ el.innerHTML=`<span class="av-icon">🔔</span><div class="av-body"><div>Nova venda!</div><div class="av-sub">${nome} vendeu para ${cli}</div></div><button class="av-close" onclick="this.parentElement.remove()">✕</button>`;
+ document.body.appendChild(el);beepVenda();
+ setTimeout(()=>{if(el.parentElement)el.remove()},8000);
+ /* recarrega dados para refletir a venda */
+ sync().then(render,()=>{});
+}
+function ouvirVendas(){
+ if(_alertaCh)sb.removeChannel(_alertaCh);
+ const isAdm=UI.role==='socio';
+ const ch=sb.channel('vendas-alert').on('postgres_changes',{event:'INSERT',schema:'public',table:'vendas'},payload=>{
+  const rec=payload.new;if(!rec)return;
+  /* ignora a venda que o próprio usuário acabou de registrar */
+  if(UI._ignoraVenda){UI._ignoraVenda=false;return}
+  /* vendedor só vê vendas próprias */
+  if(!isAdm&&rec.vendedor_id!==UI.vid)return;
+  alertaVenda(rec);
+ }).subscribe();
+ _alertaCh=ch;
+}
+
 /* ===== render ===== */
 const NAVS={socio:[['painel','Painel'],['produtos','Produtos'],['vendas','Vendas'],['credito','Crédito a prazo'],['vendasrev','Vendas revendedores'],['equipe','Vendedores'],['candidatos','Candidatos'],['interesses','Interesses'],['cancel','Cancelamentos'],['socios','Administração']],
             vend:[['inicio','Início'],['comprar','Comprar'],['estoque','Estoque'],['vendas','Vendas'],['receber','A receber'],['interesses','Interesses'],['cancel','Cancelamentos'],['sobre','Sobre']],loja:[],revenda:[]};
 function curUser(){return S.users.find(u=>u.id===UI.user&&u.status==='ativo')||null}
 function iniciar(u){UI.user=u.id;UI.modal=null;UI.pages={};
- if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}}
+ if(u.perfil==='vend'){UI.role='vend';UI.vid=u.vid;UI.view='inicio'}else{UI.role='socio';UI.view='painel'}
+ ouvirVendas()}
 function showAuth(k){['login','rec'].forEach(x=>$({login:'#fLogin',rec:'#fRec'}[x]).hidden=x!==k);document.querySelectorAll('.lp-erro,.lp-ok').forEach(e=>e.hidden=true)}
 function authMsg(id,t){const e=$(id);e.textContent=t;e.hidden=false}
 const navList0=()=>UI.role==='socio'&&curUser()?.perfil==='adm'?[...NAVS.socio,['fundo','Fundo'],['inventario','Inventário'],['acessos','Acessos'],['log','Log'],['sobre','Sobre']]:NAVS[UI.role];
@@ -2712,7 +2748,7 @@ document.addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b){if(e.target.classList.contains('scrim')&&UI.downScrim)closeModal();return}
  const d=b.dataset;
  if(d.authform){showAuth(d.authform);return}
- if('sair' in d){log('Saiu do sistema');UI.user=null;UI.modal=null;UI.publico=false;sb.auth.signOut().finally(()=>{S=VAZIO();carregaCarts();$('#lSenha').value='';showAuth('login');render()});return}
+ if('sair' in d){log('Saiu do sistema');if(_alertaCh){sb.removeChannel(_alertaCh);_alertaCh=null}UI.user=null;UI.modal=null;UI.publico=false;sb.auth.signOut().finally(()=>{S=VAZIO();carregaCarts();$('#lSenha').value='';showAuth('login');render()});return}
  if('senha' in d){mSenha();return}
  if('savesenha' in d){const a=$('#ns1').value,b2=$('#ns2').value;if(a.length<6){toast('A senha precisa ter pelo menos 6 caracteres');return}if(a!==b2){toast('As senhas não conferem');return}
   sb.auth.updateUser({password:a}).then(({error})=>{if(error){toast(msgErro(error),4000);return}log('Senha alterada');closeModal();toast('Senha alterada')});return}
@@ -3062,7 +3098,7 @@ document.addEventListener('click',e=>{
   if(x.edit){const id=x.edit,vaiCred=x.pag==='crediario'&&x.pag0!=='crediario',venc=x.pag!=='crediario'&&x.status==='receber'&&x.pag0==='crediario'?(x.venc||addMeses(iso(today),1)):null;
    rodar(async()=>{await rpc('editar_venda',{p_id:id,p_itens:its,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_status:x.pag==='crediario'?null:x.status});if(venc)await rpc('definir_vencimento',{p_venda:id,p_venc:venc});UI.modal=null;UI.draft=null},vaiCred?'Venda alterada · agora defina as parcelas do crediário':'Venda alterada').then(ok=>{if(ok&&vaiCred)mParcelas(id,true)});return}
   let nid=null;const parc=x.pag==='crediario',venc=!parc&&x.status==='receber'?(x.venc||addMeses(iso(today),1)):null;
-  rodar(async()=>{nid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_parcelas:1,p_status:parc?'receber':x.status,p_origem:'painel',p_itens:its});if(venc&&nid)await rpc('definir_vencimento',{p_venda:typeof nid==='string'?nid:nid.id,p_venc:venc});UI.modal=null},parc?'Venda registrada · agora defina as parcelas do crediário':'Venda registrada').then(ok=>{if(ok&&parc&&nid)mParcelas(typeof nid==='string'?nid:nid?.id||nid,true)});return}
+  rodar(async()=>{UI._ignoraVenda=true;nid=await rpc('registrar_venda',{p_vid:x.vid,p_cliente:x.cliente.trim(),p_tel:String(x.tel||'').replace(/\D/g,''),p_pag:x.pag,p_parcelas:1,p_status:parc?'receber':x.status,p_origem:'painel',p_itens:its});if(venc&&nid)await rpc('definir_vencimento',{p_venda:typeof nid==='string'?nid:nid.id,p_venc:venc});UI.modal=null},parc?'Venda registrada · agora defina as parcelas do crediário':'Venda registrada').then(ok=>{if(ok&&parc&&nid)mParcelas(typeof nid==='string'?nid:nid?.id||nid,true)});return}
 });
 document.addEventListener('input',e=>{
  const t=e.target,d=t.dataset;
