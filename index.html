@@ -1227,6 +1227,7 @@ function vPainel(){
    ${S.socios.map(s=>`<tr><td>${esc(s.nome)}<div class="s note">fundo ${pc(+s.fundo||0)}</div></td><td class="n">${pc(s.pct)}</td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td><td class="n">${R(lucMes*(+s.fundo||0)/100)}</td></tr>`).join('')}
    <tr><td class="note" colspan="2" style="white-space:nowrap">Despesas fixas (${UI.per} dias)</td><td class="n">${R(-totalDesp()*UI.per/30)}</td><td></td></tr></tbody></table>
    <div class="row"><div class="grow"><div class="t">Fundo de investimento</div><div class="s">saldo atual · ${pc(fundoPct())} do lucro fica na empresa</div></div><b>${R(fundoSaldo())}</b></div>
+   ${(()=>{const ar=S.kits.filter(k=>KPAGO.includes(k.status)&&k.cred&&!k.cred.quit);return ar.length?`<div class="row"><div class="grow"><div class="t">Kits a prazo a receber</div><div class="s">${ar.length} kit${ar.length>1?'s':''} · ${[...new Set(ar.map(k=>k.cred.nome).filter(Boolean))].join(', ')} paga${ar.length>1?'m':''} à 3mix · entra na divisão quando quitar</div></div><b>${R(ar.reduce((a,k)=>a+kitVal(k),0))}</b></div>`:''})()}
    <div class="row"><div class="grow"><div class="t">Kits aguardando pagamento</div><div class="s">${abertos.length} kits · ainda não entram no caixa</div></div><b>${R(abertos.reduce((a,k)=>a+kitVal(k),0))}</b></div>
    ${(()=>{const A=S.kits.filter(kCredAb);return A.length?`<button class="row" data-view="credito"><div class="grow"><div class="t">Kits a prazo · administradores devem à 3mix</div><div class="s">${A.length} kit${A.length>1?'s':''} · entram no caixa quando quitados</div></div><b>${R(A.reduce((a,k)=>a+ +k.total,0))}</b></button>`:''})()}
   </section>
@@ -1335,16 +1336,18 @@ function vEquipe(){
 }
 
 function vSocios(){
- const KP=kPagos(),LP=KP.filter(inPer),tp=ksum(LP);
+ const KP=S.kits.filter(k=>KPAGO.includes(k.status)),LP=KP.filter(inPer),tp=ksum(LP);
+ const AR=LP.filter(k=>k.cred&&!k.cred.quit),arV=AR.reduce((a,k)=>a+kitVal(k),0);
  const desp=totalDesp()*UI.per/30;
  const lucMes=tp.luc-desp;
+ const tpR=ksum(kPagos().filter(inPer)),lucRec=tpR.luc-desp,arLuc=ksum(AR).luc;
  const mgBruta=tp.rec?(tp.rec-tp.cus)/tp.rec*100:0;
  const txPct=tp.rec?tp.tax/tp.rec*100:0;
  const mgLiq=tp.rec?tp.luc/tp.rec*100:0;
  const porUn=tp.un?(tp.luc/tp.un):0;
  return `<div class="head"><div><h1>Administração</h1><p class="sub">Divisão do lucro entre os administradores, resultado do período e pagamentos</p></div><div class="sp"></div>${perTabs()}</div>
  ${divulgaPanel()}
- <div class="two"><section class="panel"><div class="panel-h"><h2>Resultado do período</h2><span class="sp"></span><span class="note">últimos ${UI.per} dias · kits pagos</span></div>
+ <div class="two"><section class="panel"><div class="panel-h"><h2>Resultado do período</h2><span class="sp"></span><span class="note">últimos ${UI.per} dias · kits pagos e a prazo</span></div>
   ${(()=>{const p=n=>tp.rec?pc(Math.abs(n)/tp.rec*100):'—',nD=S.despesas.length;
    /* kits que estavam pagos e foram cancelados (total ou parcial) no período: saem do faturamento */
    const cT=S.kits.filter(k=>k.status==='cancelado'&&['pago','entregue'].includes(k.cancel?.ant)&&inPer(k)).reduce((a,k)=>a+kitVal(k),0);
@@ -1356,12 +1359,14 @@ function vSocios(){
    ${canc?L('Faturamento bruto','kits pagos no período',tp.rec+canc,'',1):''}
    ${canc?L('(−) Cancelamentos','kits pagos que foram cancelados',-canc,'',1):''}
    ${L(canc?'(=) Faturamento líquido':'Faturamento',`${U(tp.un)} frascos · ${LP.length} kit${LP.length===1?'':'s'}`,tp.rec,'tot')}
+   ${arV?L('dos quais a receber',`${AR.length} kit${AR.length>1?'s':''} a prazo · ${[...new Set(AR.map(k=>k.cred.nome).filter(Boolean))].join(', ')} paga${AR.length>1?'m':''} à 3mix`,arV,'',1):''}
    ${L('(−) Custo dos frascos','',-tp.cus)}
    ${L('(=) Margem bruta','',tp.rec-tp.cus,'sub')}
    ${L('(−) Taxas','gateway e outros',-tp.tax)}
    ${L('(=) Lucro bruto','',tp.luc,'sub')}
    ${L('(−) Despesas',`proporcional a ${UI.per} dias · ${nD} ite${nD===1?'m':'ns'}`,-desp)}
    ${L('(=) Lucro líquido',tp.un?`${Ri(lucMes/tp.un)} por frasco`:'',lucMes,'fim')}
+   ${arV?L('(−) Lucro a receber',`kits a prazo em aberto · ${Ri(arV)} a receber`,-arLuc,'',1)+L('(=) Lucro recebido · para divisão','só o que já entrou no caixa',lucRec,'fim',1):''}
    </tbody></table>${pend?`<div class="drepend"><span>Devoluções pendentes (a pagar aos vendedores)</span>${R(pend)}<button class="btn sm" data-view="cancel">Ver</button></div>`:''}`})()}
   <div style="margin-top:12px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><b style="font-size:13px">Despesas mensais</b><span class="sp"></span><button class="btn sm" data-despadd>+ Despesa</button></div>
   ${S.despesas.length?`<div class="tbl"><table><thead><tr><th>Descrição</th><th class="n">Valor (R$/mês)</th><th></th></tr></thead><tbody>
@@ -1370,7 +1375,7 @@ function vSocios(){
   </tbody></table></div>`:'<p class="empty">Nenhuma despesa cadastrada.</p>'}
   </div>
   <table><thead><tr><th>Administrador</th><th class="n">Part. (%)</th><th class="n">Fundo (%)</th><th class="n">Recebe (R$)</th></tr></thead><tbody>
-  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:100%;min-width:0;box-sizing:border-box"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:56px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:56px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(lucMes*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
+  ${S.socios.map((s,i)=>`<tr><td><input id="sn-${i}" data-sn="${i}" value="${esc(s.nome)}" style="border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px;width:100%;min-width:0;box-sizing:border-box"></td><td class="n"><input id="sp-${i}" data-sp="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(s.pct)}" style="width:56px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n"><input id="sf-${i}" data-sf="${i}" type="text" inputmode="decimal" class="dec" value="${fmt(+s.fundo||0)}" title="Quanto da parte deste sócio fica no fundo" style="width:56px;text-align:right;border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:3px 6px"></td><td class="n">${R(lucRec*(s.pct-(+s.fundo||0))/100)}</td></tr>`).join('')}
   </tbody></table>
   <p class="note">Despesas fixas proporcionais ao período. Soma das participações: ${pc(S.socios.reduce((a,s)=>a+ +s.pct,0))}. <b>Fundo (%)</b>: quanto da parte de cada sócio fica no fundo de investimento da 3mix.</p>
  </section>
@@ -1873,7 +1878,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.09-01';
+const VERSAO='2026.11.09-03';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
