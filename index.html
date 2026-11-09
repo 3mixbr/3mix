@@ -251,7 +251,7 @@ tr.vtot td{font-weight:800;background:var(--accent-soft);border-top:2px solid va
 /* CEP */
 .cepst{display:block;font-size:11px;color:var(--muted);min-height:14px}.cepst.ok{color:var(--good)}.cepst.warn{color:var(--warn)}
 .vexp{border:0;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:11.5px;border-radius:6px;padding:3px 8px;white-space:nowrap}
-tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-space:nowrap}.kitstbl .vsub-nm{white-space:normal}.kitstbl .kperf{max-width:150px}.kitstbl .ksit{max-width:210px}.kvend{font-weight:700;color:var(--ink)!important;margin-top:2px}
+tr.vsub td{background:var(--sunk);font-size:12.5px;border-top:0}.vsub-nm{white-space:nowrap}.kitstbl .vsub-nm{white-space:normal}.kln{display:grid;grid-template-columns:minmax(0,1fr) 84px 108px;align-items:center;gap:10px}.kln-m{text-align:center}.kln-p{display:flex;align-items:baseline;gap:3px}.kln-p .acc{flex:1;min-width:0}.kln-p small{font-size:10.5px}.kln-p .acc b{font-weight:500}.kitstbl .kperf{max-width:150px}.kitstbl .ksit{max-width:210px}.kvend{font-weight:700;color:var(--ink)!important;margin-top:2px}
 .gtabs{align-self:flex-start}.gtabs .gn{display:inline-block;min-width:18px;margin-left:4px;padding:0 5px;border-radius:999px;background:var(--sunk);font-size:10.5px;color:var(--muted)}.gtabs button[aria-pressed="true"] .gn{background:var(--accent-soft);color:var(--accent)}
 .sugok{color:var(--good);font-weight:800}
 .btn.ico{padding:3px 7px;min-width:0;margin-left:3px}
@@ -1873,7 +1873,7 @@ function mFundoMov(tipo){UI.msize='sm';UI.draft={tipo,socio:tipo==='aporte'?(cur
 
 /* ===== log do sistema (só administrador) ===== */
 /* ===== Sobre: créditos e, para administradores, onde o sistema roda ===== */
-const VERSAO='2026.11.08-03';
+const VERSAO='2026.11.09-01';
 const INFRA=[
  ['supabase','Supabase','Banco de dados, logins, arquivos e funções','https://supabase.com/dashboard/project/joebzygbzjpznybyqcql','Projeto joebzygbzjpznybyqcql'],
  ['vercel','Vercel','Hospedagem do site e do sistema','https://vercel.com/dashboard','Site: 3mix-beryl.vercel.app'],
@@ -2299,7 +2299,7 @@ const MCHIP='<span class="chip st" style="font-size:10px;padding:0 6px">mostruá
 function kitPerf(k){if(k.itens.length===1){const p=prod(k.itens[0].pid);return `<span class="note kperf" title="${esc((p?.code||'')+' '+(p?.nome||''))}">${p?.code||''} ${esc(p?.nome||'')}</span>`}
  return `<button class="vexp" data-kexp="${k.id}" aria-expanded="${UI.kexp===k.id}">${new Set(k.itens.map(i=>i.pid)).size} perfume${new Set(k.itens.map(i=>i.pid)).size>1?'s':''}${k.itens.some(i=>i.m)?' + mostr.':''} ${UI.kexp===k.id?'▾':'▸'}</button>`}
 function kitSub(k,antes,depois){if(UI.kexp!==k.id||k.itens.length<2)return '';
- return k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''};return `<tr class="vsub"><td colspan="${antes}"></td><td class="n">${U(i.qtd)}</td><td><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)} ${i.m?MCHIP:''}<span class="note">· ${Ri(i.preco)}/un</span></span></td><td class="n">${R(i.qtd*i.preco)}</td><td colspan="${depois}"></td></tr>`}).join('')}
+ return k.itens.map(i=>{const p=prod(i.pid)||{code:'?',nome:''};return `<tr class="vsub"><td colspan="${antes}"></td><td class="n">${U(i.qtd)}</td><td><span class="kln"><span class="vsub-nm">↳ <b>${p.code}</b> ${esc(p.nome)}</span><span class="kln-m">${i.m?MCHIP:''}</span><span class="kln-p note">${R(i.preco)}<small>/un</small></span></span></td><td class="n">${R(i.qtd*i.preco)}</td><td colspan="${depois}"></td></tr>`}).join('')}
 /* número único do pedido: P-00001 (pedido do cliente) · K-00001 (kit do vendedor) */
 const NUMF=(n,p)=>n?`${p}-${String(n).padStart(5,'0')}`:'';
 const numTag=(n,p)=>n?`<div class="pnum">${NUMF(n,p)}</div>`:'';
